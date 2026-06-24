@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🌟 두근두근 구구단 대모험 🌟</title>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Jua', sans-serif;
+            background-color: #FFF0F5;
+            color: #555;
+            text-align: center;
+            margin: 0;
+            padding: 10px;
+            user-select: none; 
+            -webkit-user-select: none;
+        }
+        #game-container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #FFFFFF;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        h1 { color: #FF69B4; font-size: 32px; margin-bottom: 10px; word-break: keep-all; }
+        .screen { display: none; animation: fadeIn 0.4s; }
+        .active-screen { display: block; }
+        
+        .input-group { margin: 10px 0; }
+        .input-field {
+            font-family: 'Jua', sans-serif;
+            font-size: 20px;
+            padding: 12px;
+            border: 2px solid #BAE1FF;
+            border-radius: 12px;
+            width: 90%;
+            text-align: center;
+            outline: none;
+        }
+        
+        .btn {
+            background-color: #BAE1FF;
+            border: none;
+            border-radius: 20px;
+            padding: 12px 20px;
+            font-size: 20px;
+            font-family: 'Jua', sans-serif;
+            color: #333;
+            cursor: pointer;
+            margin: 8px 4px;
+            transition: transform 0.1s, background-color 0.2s;
+            box-shadow: 0 4px 0 #9AC0E0;
+            width: 90%; 
+            max-width: 300px;
+        }
+        .btn:active { transform: translateY(4px); box-shadow: 0 0px 0 #9AC0E0; }
+        .btn-guest { background-color: #FFFFBA; box-shadow: 0 4px 0 #DCDC9A; }
+        .btn-success { background-color: #BAFFC9; box-shadow: 0 4px 0 #9AE0A9; }
+        .btn-danger { background-color: #FFB347; box-shadow: 0 4px 0 #E5A040; width: auto; padding: 8px 15px; font-size: 16px; margin: 4px;}
+        .btn-small { width: auto; padding: 8px 15px; font-size: 16px; margin: 4px; }
+
+        #options-container { display: flex; flex-wrap: wrap; justify-content: center; }
+        .btn-answer { 
+            background-color: #BAFFC9; 
+            width: 46%; 
+            margin: 2%; 
+            font-size: 28px; 
+            padding: 20px 0; 
+            max-width: none;
+        }
+
+        .question-text { font-size: 55px; color: #FFB347; margin: 15px 0; text-shadow: 2px 2px 0px #FFE0B2; min-height: 80px; }
+        .stats-bar { display: flex; justify-content: flex-end; font-size: 20px; color: #FF69B4; border-bottom: 2px dashed #EEE; padding-bottom: 8px; font-weight: bold; }
+        
+        .progress-container { background-color: #EEE; border-radius: 10px; height: 12px; margin: 12px 0; overflow: hidden; }
+        .progress-bar { background-color: #FF69B4; height: 100%; width: 0%; transition: width 0.3s; }
+        
+        .timer-container { background-color: #FFF; border: 2px solid #FFB347; border-radius: 10px; height: 12px; margin-bottom: 15px; overflow: hidden; }
+        .timer-bar { background-color: #FFB347; height: 100%; width: 100%; transition: width 0.1s linear; }
+
+        .result-box { background-color: #FFDFBA; padding: 15px; border-radius: 15px; margin: 10px 0; font-size: 18px; }
+        .highlight { color: #FF6B6B; font-size: 24px; font-weight: bold; }
+        .ranking-box { background-color: #E6E6FA; padding: 15px; border-radius: 15px; margin: 15px 0; text-align: left; }
+        .ranking-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed #CCC; font-size: 16px; }
+        
+        /* 등급별 배경 애니메이션 */
+        @keyframes legendGlow { 0% { box-shadow: 0 0 10px #FFD700; } 50% { box-shadow: 0 0 25px #FFD700, 0 0 10px #FFA500 inset; } 100% { box-shadow: 0 0 10px #FFD700; } }
+        
+        .reward-container { display: none; padding: 15px; border-radius: 15px; margin: 15px 0; animation: bounceIn 0.8s; border: 4px solid #CCC; }
+        .reward-img { width: 150px; height: 150px; filter: drop-shadow(0 5px 5px rgba(0,0,0,0.2)); object-fit: contain; }
+        .reward-title { font-size: 22px; margin: 5px 0; font-weight: bold; }
+
+        .collection-box { background-color: #FFF; border: 3px solid #9370DB; border-radius: 15px; padding: 15px; margin-top: 15px; }
+        .collection-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 10px; }
+        .collection-item { width: 65px; height: 65px; border-radius: 10px; padding: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border: 2px solid #DDD; position: relative; }
+        .collection-item img { width: 100%; height: 100%; object-fit: contain; }
+        
+        /* 도감용 작은 등급 뱃지 */
+        .rarity-badge { position: absolute; top: -5px; right: -5px; font-size: 10px; padding: 2px 4px; border-radius: 5px; color: white; font-weight: bold; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
+        @keyframes bounceIn { 0% { transform: scale(0.3); opacity: 0; } 50% { transform: scale(1.05); opacity: 1; } 70% { transform: scale(0.9); } 100% { transform: scale(1); } }
+        
+        .correct-anim { color: #4CAF50 !important; animation: pop 0.4s ease; }
+        .wrong-anim { color: #F44336 !important; animation: pop 0.4s ease; }
+        
+        #feedback { font-size: 32px; height: 40px; margin-top: 10px; }
+
+        @media (max-width: 400px) {
+            h1 { font-size: 26px; }
+            .question-text { font-size: 45px; }
+            .btn-answer { font-size: 24px; padding: 15px 0; }
+            .collection-item { width: 55px; height: 55px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="login-screen" class="screen active-screen">
+        <h1>🌟 구구단 냥코 대모험 🌟</h1>
+        <p style="font-size: 16px;">점수를 모아 전설의 고양이를 뽑자냥!</p>
+        <img src="https://robohash.org/hello.png?set=set4&size=120x120" width="100" style="margin:5px; background-color:#F8F8F8; border-radius:50%; border:3px solid #FFD1DC;">
+        <div class="input-group">
+            <input type="text" id="username-input" class="input-field" placeholder="내 이름 (아이디)">
+        </div>
+        <div class="input-group">
+            <input type="password" id="password-input" class="input-field" placeholder="비밀번호">
+        </div>
+        <button class="btn btn-success" onclick="handleAuth('login')">로그인</button>
+        <button class="btn" onclick="handleAuth('signup')">새로 가입</button>
+        <hr style="border: 1px dashed #DDD; margin: 15px 0;">
+        <button class="btn btn-guest" onclick="playAsGuest()">GUEST로 하기</button>
+    </div>
+
+    <div id="admin-screen" class="screen">
+        <h1>🛠️ 냥코 관리소 🛠️</h1>
+        <p style="color: #FF6B6B; font-size: 14px;">학생들의 계정과 점수를 관리합니다.</p>
+        <div class="collection-box" style="border-color: #FFB347; padding: 10px;">
+            <div id="admin-list" style="text-align: left;"></div>
+        </div>
+        <button class="btn btn-guest" style="margin-top: 15px;" onclick="logout()">처음으로</button>
+    </div>
+
+    <div id="lobby-screen" class="screen">
+        <h1>안녕, <span id="lobby-name" style="color:#FF69B4;"></span>!</h1>
+        <div class="result-box" id="lobby-stats-box" style="background-color: #BAE1FF; padding: 10px;">
+            <p style="margin: 5px;">🏆 내 레벨: Lv.<span class="highlight" id="lobby-level">1</span></p>
+            <p style="margin: 5px;">💰 누적 포인트: <span class="highlight" id="lobby-points">0</span>P</p>
+        </div>
+        
+        <div class="collection-box" id="collection-box">
+            <h3 style="margin:0; color:#4B0082; font-size: 18px;">🐾 내 고양이 도감 🐾</h3>
+            <div id="collection-grid" class="collection-grid"></div>
+        </div>
+
+        <p style="font-size: 16px; margin-top: 15px; font-weight: bold;">총 20문제! 시간은 단 5초!</p>
+        <button class="btn btn-success" style="font-size: 24px; width: 100%; max-width: 100%; margin: 10px 0;" onclick="startMarathonGame()">⚔️ 모험 시작! ⚔️</button>
+        <button class="btn btn-guest" onclick="logout()">로그아웃</button>
+    </div>
+
+    <div id="play-screen" class="screen">
+        <div class="stats-bar">
+            <span id="q-counter">문제: 1/20</span>
+        </div>
+        <div class="progress-container"><div id="progress-bar" class="progress-bar"></div></div>
+        <div class="timer-container"><div id="timer-bar" class="timer-bar"></div></div>
+        <div class="question-text" id="question">2 x 3 = ?</div>
+        <div id="options-container"></div>
+        <div id="feedback"></div>
+    </div>
+
+    <div id="result-screen" class="screen">
+        <h1>🎉 모험 끝냥! 🎉</h1>
+        
+        <div id="reward-box" class="reward-container">
+            <div id="reward-title" class="reward-title">🎁 냥이 획득! 🎁</div>
+            <img id="reward-image" class="reward-img" src="" alt="보상 고양이">
+        </div>
+
+        <div class="result-box">
+            <p style="margin: 5px;">맞춘 개수: <span class="highlight" id="res-correct">0</span>/20</p>
+            <p style="margin: 5px;">포인트: <span class="highlight" id="res-today">0</span>P</p>
+        </div>
+        
+        <div class="result-box" id="total-stats" style="background-color: #BAE1FF; display:none;">
+            <p style="margin: 5px;">🏆 최종 레벨: Lv.<span class="highlight" id="res-level">1</span></p>
+            <p style="margin: 5px;">💰 총 누적 포인트: <span class="highlight" id="res-total-points">0</span>P</p>
+        </div>
+
+        <div class="ranking-box" id="ranking-box">
+            <h3 style="text-align:center; margin:0 0 10px 0; color:#4B0082; font-size: 18px;">🏆 명예의 전당 (TOP 5) 🏆</h3>
+            <div id="ranking-list"></div>
+        </div>
+
+        <button class="btn btn-success" style="font-size: 22px; width: 100%; max-width: 100%; margin-bottom: 10px;" onclick="showLobby()">대기실로 돌아가기</button>
+        <button class="btn btn-guest" onclick="logout()">로그아웃</button>
+    </div>
+</div>
+
+<script>
+    let audioCtx;
+    function initAudio() {
+        if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+        if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+    }
+
+    function playSound(type) {
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+
+        if (type === 'correct') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); 
+            osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); 
+            gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.3);
+        } else if (type === 'wrong') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.3);
+        } else if (type === 'legend') {
+            // 전설 등급 뽑혔을 때 화려한 사운드
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + 0.2);
+            osc.frequency.linearRampToValueAtTime(1320, audioCtx.currentTime + 0.4);
+            gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
+            osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.6);
+        }
+    }
+
+    let currentUser = null; 
+    let isGuestMode = false;
+    let currentQIndex = 0;
+    const totalQuestions = 20; 
+    let answerContent = 0;
+    let questionStartTime = 0;
+    
+    const maxTime = 5; 
+    let timeLeft = 0;
+    let timerInterval = null;
+    let countdownInterval = null;
+
+    let sessionCorrect = 0;
+    let sessionSpeedScore = 0;
+
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
+        document.getElementById(screenId).classList.add('active-screen');
+    }
+
+    function getDB() { return JSON.parse(localStorage.getItem('gugu_user_db') || '{}'); }
+    function saveDB(db) { localStorage.setItem('gugu_user_db', JSON.stringify(db)); }
+
+    function triggerVibration(pattern) {
+        if ("vibrate" in navigator) { navigator.vibrate(pattern); }
+    }
+
+    function handleAuth(type) {
+        initAudio();
+        const username = document.getElementById('username-input').value.trim();
+        const password = document.getElementById('password-input').value.trim();
+        if(!username || !password) return alert("이름과 비밀번호를 입력해 주세요!");
+
+        if (username === 'admin' && password === 'admin1234') {
+            currentUser = 'admin'; showAdminScreen(); return;
+        }
+
+        let db = getDB();
+        if (type === 'signup') {
+            if (username === 'admin') return alert("사용할 수 없는 이름입니다.");
+            if (db[username]) return alert("이미 등록된 이름입니다.");
+            db[username] = { password: password, totalPoints: 0, level: 1, playCount: 0, rewards: [] };
+            saveDB(db); alert("가입 완료냥! 로그인을 진행해달라냥.");
+        } else {
+            if (!db[username] || db[username].password !== password) return alert("정보가 맞지 않다냥.");
+            currentUser = username; isGuestMode = false; showLobby();
+        }
+    }
+
+    function showAdminScreen() {
+        const db = getDB();
+        const listDiv = document.getElementById('admin-list');
+        listDiv.innerHTML = '';
+        const users = Object.keys(db);
+        if(users.length === 0) {
+            listDiv.innerHTML = '<p style="text-align:center;">등록된 학생이 없습니다.</p>';
+        } else {
+            users.forEach(u => {
+                const div = document.createElement('div');
+                div.className = 'ranking-item';
+                div.innerHTML = `
+                    <span><b>${u}</b> <br><span style="font-size:13px; color:#888;">(Lv.${db[u].level} / ${db[u].totalPoints}P)</span></span>
+                    <div>
+                        <button class="btn btn-small" onclick="resetUser('${u}')">초기화</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteUser('${u}')">삭제</button>
+                    </div>
+                `;
+                listDiv.appendChild(div);
+            });
+        }
+        showScreen('admin-screen');
+    }
+
+    function resetUser(u) {
+        if(confirm(`${u} 학생의 점수와 도감을 초기화 하시겠습니까?`)) {
+            let db = getDB();
+            db[u].totalPoints = 0; db[u].level = 1; db[u].playCount = 0; db[u].rewards = [];
+            saveDB(db); showAdminScreen(); 
+        }
+    }
+    function deleteUser(u) {
+        if(confirm(`${u} 학생의 계정을 삭제하시겠습니까?`)) {
+            let db = getDB(); delete db[u]; saveDB(db); showAdminScreen(); 
+        }
+    }
+
+    function playAsGuest() {
+        initAudio(); currentUser = "GUEST"; isGuestMode = true; showLobby();
+    }
+    function logout() {
+        currentUser = null; document.getElementById('username-input').value = ""; document.getElementById('password-input').value = ""; showScreen('login-screen');
+    }
+
+    function showLobby() {
+        document.getElementById('lobby-name').innerText = currentUser;
+        const grid = document.getElementById('collection-grid');
+        grid.innerHTML = '';
+
+        if (!isGuestMode) {
+            let user = getDB()[currentUser];
+            document.getElementById('lobby-level').innerText = user.level;
+            document.getElementById('lobby-points').innerText = user.totalPoints;
+            document.getElementById('lobby-stats-box').style.display = 'block';
+            document.getElementById('collection-box').style.display = 'block';
+
+            if (user.rewards && user.rewards.length > 0) {
+                user.rewards.forEach(cat => {
+                    const item = document.createElement('div');
+                    item.className = 'collection-item';
+                    
+                    // 구버전 데이터 호환 처리
+                    if(typeof cat !== 'object') {
+                        item.innerText = '?';
+                        item.style.backgroundColor = '#EEE';
+                    } else {
+                        item.style.backgroundColor = cat.bg;
+                        item.style.borderColor = cat.border;
+                        
+                        // 뱃지 추가
+                        const badge = document.createElement('div');
+                        badge.className = 'rarity-badge';
+                        badge.innerText = cat.rank;
+                        badge.style.backgroundColor = cat.border;
+                        item.appendChild(badge);
+
+                        const img = document.createElement('img');
+                        // 고양이 세트(set4) 이미지 호출
+                        img.src = `https://robohash.org/${cat.id}.png?set=set4&size=100x100`;
+                        item.appendChild(img);
+                    }
+                    grid.appendChild(item);
+                });
+            } else {
+                grid.innerHTML = '<p style="color:#999; margin:10px; font-size:14px;">아직 모은 고양이가 없다냥. 레벨업을 해보라냥!</p>';
+            }
+        } else {
+            document.getElementById('lobby-stats-box').style.display = 'none';
+            document.getElementById('collection-box').style.display = 'none';
+        }
+        showScreen('lobby-screen');
+    }
+
+    function startMarathonGame() {
+        initAudio();
+        currentQIndex = 0; sessionCorrect = 0; sessionSpeedScore = 0;
+        document.getElementById('reward-box').style.display = 'none';
+        
+        if (!isGuestMode) {
+            let db = getDB(); db[currentUser].playCount += 1; saveDB(db);
+        }
+        showScreen('play-screen');
+        nextMarathonQuestion();
+    }
+
+    function nextMarathonQuestion() {
+        if (currentQIndex >= totalQuestions) return endMarathonGame();
+        currentQIndex++;
+        document.getElementById('q-counter').innerText = `문제: ${currentQIndex}/${totalQuestions}`;
+        document.getElementById('progress-bar').style.width = `${(currentQIndex / totalQuestions) * 100}%`;
+        document.getElementById('feedback').innerText = "";
+        
+        let m1, m2; const optionsCount = 4; 
+        if (currentQIndex <= 5) {
+            if (Math.random() < 0.2) { m1 = [6,7,8][Math.floor(Math.random()*3)]; m2 = 1; } 
+            else { m1 = Math.floor(Math.random()*4)+2; m2 = Math.floor(Math.random()*9)+1; }
+        } else if (currentQIndex <= 10) {
+            if (Math.random() < 0.2) { m1 = [6,7,8][Math.floor(Math.random()*3)]; m2 = 2; } 
+            else { m1 = [4,5,9][Math.floor(Math.random()*3)]; m2 = Math.floor(Math.random()*9)+1; }
+        } else if (currentQIndex <= 15) {
+            m1 = Math.floor(Math.random()*3)+6; m2 = Math.floor(Math.random()*7)+3;
+        } else {
+            m1 = Math.floor(Math.random()*5)+11; m2 = Math.floor(Math.random()*8)+2; 
+        }
+
+        answerContent = m1 * m2;
+        const qElem = document.getElementById('question');
+        qElem.innerText = `${m1} X ${m2} = ?`; qElem.className = "question-text";
+
+        generateOptions(answerContent, optionsCount);
+        startTimer();
+    }
+
+    function generateOptions(ans, count) {
+        let opts = [ans];
+        while(opts.length < count) {
+            let wrong = ans + (Math.floor(Math.random()*15)-7); 
+            if(wrong !== ans && wrong > 0 && !opts.includes(wrong)) opts.push(wrong);
+        }
+        opts.sort(() => Math.random() - 0.5);
+        const container = document.getElementById('options-container'); container.innerHTML = "";
+        opts.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-answer'; btn.innerText = opt;
+            btn.onclick = () => checkAnswer(opt);
+            container.appendChild(btn);
+        });
+    }
+
+    function startTimer() {
+        clearInterval(timerInterval); clearInterval(countdownInterval);
+        timeLeft = maxTime; questionStartTime = Date.now();
+        const timerBar = document.getElementById('timer-bar');
+        timerBar.style.width = '100%'; timerBar.style.backgroundColor = '#FFB347';
+
+        countdownInterval = setInterval(() => {
+            let passed = (Date.now() - questionStartTime) / 1000;
+            let ratio = Math.max(0, (maxTime - passed) / maxTime) * 100;
+            timerBar.style.width = `${ratio}%`;
+            if(ratio < 30) timerBar.style.backgroundColor = '#F44336';
+        }, 50);
+
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            if (timeLeft <= 0) handleTimeOver();
+        }, 1000);
+    }
+
+    function handleTimeOver() {
+        clearInterval(timerInterval); clearInterval(countdownInterval);
+        document.getElementById('timer-bar').style.width = '0%';
+        const feedback = document.getElementById('feedback');
+        feedback.innerText = "⏰ 냥! 시간 초과!"; feedback.className = "wrong-anim";
+        document.getElementById('question').className = "question-text wrong-anim";
+        playSound('wrong'); triggerVibration([400, 100, 400]);
+        disableBtns(); setTimeout(nextMarathonQuestion, 1000); 
+    }
+
+    function checkAnswer(selected) {
+        clearInterval(timerInterval); clearInterval(countdownInterval);
+        const timeTaken = (Date.now() - questionStartTime) / 1000;
+        const feedback = document.getElementById('feedback');
+
+        if (selected === answerContent) {
+            sessionCorrect++; sessionSpeedScore += Math.max(0, Math.floor(maxTime - timeTaken)); 
+            feedback.innerText = "✨ 정답이다냥! ✨"; feedback.className = "correct-anim";
+            document.getElementById('question').className = "question-text correct-anim";
+            playSound('correct'); triggerVibration([100, 50, 100]); 
+        } else {
+            feedback.innerText = "💦 틀렸다냥!"; feedback.className = "wrong-anim";
+            document.getElementById('question').className = "question-text wrong-anim";
+            playSound('wrong'); triggerVibration([300, 100, 300, 100, 300]); 
+        }
+        disableBtns(); setTimeout(nextMarathonQuestion, 1000);
+    }
+
+    function disableBtns() { document.querySelectorAll('.btn-answer').forEach(b => b.disabled = true); }
+
+    function endMarathonGame() {
+        const baseScore = sessionCorrect * 10;
+        let todayTotal = baseScore + sessionSpeedScore;
+        let leveledUp = false;
+        let newCat = null;
+
+        if (!isGuestMode) {
+            let db = getDB();
+            let user = db[currentUser];
+            if (!user.rewards) user.rewards = []; 
+            
+            let oldLevel = user.level;
+            todayTotal += (user.playCount * 2); 
+            user.totalPoints += todayTotal;
+            user.level = Math.floor(user.totalPoints / 150) + 1; 
+            
+            // 레벨업 시 등급별 고양이 뽑기 로직
+            if(user.level > oldLevel) {
+                leveledUp = true;
+                let rand = Math.random() * 100;
+                let rank, bg, border, title;
+                
+                if (rand <= 1) { // 1% 확률
+                    rank = 'UR'; bg = '#FFFACD'; border = '#FFD700'; title = '🌟 전설의 냥코 등장!! 🌟';
+                } else if (rand <= 10) { // 9% 확률
+                    rank = 'SR'; bg = '#F3E5F5'; border = '#BA68C8'; title = '⭐⭐⭐ 영웅 냥코!!';
+                } else if (rand <= 40) { // 30% 확률
+                    rank = 'R'; bg = '#E3F2FD'; border = '#64B5F6'; title = '⭐⭐ 희귀 냥코!';
+                } else { // 60% 확률
+                    rank = 'N'; bg = '#FAFAFA'; border = '#BDBDBD'; title = '⭐ 일반 냥코';
+                }
+                
+                let catId = "Cat_" + Math.floor(Math.random() * 99999);
+                newCat = { id: catId, rank: rank, bg: bg, border: border, title: title };
+                user.rewards.push(newCat);
+            }
+            
+            saveDB(db);
+            
+            document.getElementById('res-level').innerText = user.level;
+            document.getElementById('res-total-points').innerText = user.totalPoints;
+            document.getElementById('total-stats').style.display = 'block';
+            
+            updateRankingDisplay();
+            document.getElementById('ranking-box').style.display = 'block';
+        } else {
+            document.getElementById('total-stats').style.display = 'none';
+            document.getElementById('ranking-box').style.display = 'none';
+        }
+
+        document.getElementById('res-correct').innerText = sessionCorrect;
+        document.getElementById('res-today').innerText = todayTotal;
+        
+        // 뽑기 결과 출력
+        if (leveledUp && newCat) {
+            const rewardBox = document.getElementById('reward-box');
+            rewardBox.style.backgroundColor = newCat.bg;
+            rewardBox.style.borderColor = newCat.border;
+            document.getElementById('reward-title').innerText = newCat.title;
+            document.getElementById('reward-title').style.color = newCat.border;
+            
+            if (newCat.rank === 'UR') {
+                playSound('legend');
+                triggerVibration([200, 100, 200, 100, 500]);
+                rewardBox.style.animation = 'bounceIn 0.8s, legendGlow 2s infinite';
+            } else {
+                playSound('correct');
+                triggerVibration([100, 50, 100, 50, 300]);
+                rewardBox.style.animation = 'bounceIn 0.8s';
+            }
+            
+            document.getElementById('reward-image').src = `https://robohash.org/${newCat.id}.png?set=set4&size=150x150`;
+            rewardBox.style.display = 'block';
+        }
+
+        showScreen('result-screen');
+    }
+
+    function updateRankingDisplay() {
+        const db = getDB();
+        const users = Object.keys(db).map(name => ({
+            name: name, points: db[name].totalPoints, level: db[name].level
+        }));
+        users.sort((a, b) => b.points - a.points);
+        
+        const listDiv = document.getElementById('ranking-list');
+        listDiv.innerHTML = '';
+        const topUsers = users.slice(0, 5);
+        topUsers.forEach((u, index) => {
+            const div = document.createElement('div'); div.className = 'ranking-item';
+            const rankIcon = index === 0 ? '👑' : `${index + 1}위`;
+            div.innerHTML = `<span><b>${rankIcon} ${u.name}</b> (Lv.${u.level})</span> <span>${u.points}P</span>`;
+            listDiv.appendChild(div);
+        });
+    }
+</script>
+
+</body>
+</html>
