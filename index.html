@@ -11,8 +11,8 @@
 
     <style>
         * { box-sizing: border-box; }
-        body { font-family: 'Jua', sans-serif; background-color: #FFF0F5; color: #555; text-align: center; margin: 0; padding: 10px; user-select: none; -webkit-user-select: none; }
-        #game-container { width: 100%; max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 20px; padding: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        body { font-family: 'Jua', sans-serif; background-color: #FFF0F5; color: #555; text-align: center; margin: 0; padding: 10px; user-select: none; -webkit-user-select: none; transition: background-color 0.5s; }
+        #game-container { width: 100%; max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 20px; padding: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); transition: all 0.5s; }
         h1 { color: #FF69B4; font-size: 32px; margin-bottom: 10px; word-break: keep-all; }
         .screen { display: none; animation: fadeIn 0.4s; }
         .active-screen { display: block; }
@@ -29,6 +29,7 @@
 
         #options-container { display: flex; flex-wrap: wrap; justify-content: center; }
         .btn-answer { background-color: #BAFFC9; width: 46%; margin: 2%; font-size: 28px; padding: 20px 0; max-width: none; }
+        .btn-answer-small { padding: 12px 0; font-size: 22px; }
 
         .question-text { font-size: 55px; color: #FFB347; margin: 15px 0; text-shadow: 2px 2px 0px #FFE0B2; min-height: 80px; }
         .stats-bar { display: flex; justify-content: space-between; align-items: center; font-size: 16px; color: #FF69B4; border-bottom: 2px dashed #EEE; padding-bottom: 8px; font-weight: bold; }
@@ -59,7 +60,6 @@
         @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
         @keyframes bounceIn { 0% { transform: scale(0.3); opacity: 0; } 50% { transform: scale(1.05); opacity: 1; } 70% { transform: scale(0.9); } 100% { transform: scale(1); } }
         
-        /* 실시간 포인트 통통 튀는 애니메이션 */
         @keyframes pointPop { 0% { transform: scale(1); color: #FFB347; } 50% { transform: scale(1.4); color: #FF4500; } 100% { transform: scale(1); color: #FFB347; } }
         .point-anim { animation: pointPop 0.4s ease; }
         
@@ -68,18 +68,42 @@
         
         #loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 999; justify-content: center; align-items: center; font-size: 30px; }
 
+        /* 🔥 보스전 전용 테마 CSS 🔥 */
+        body.boss-mode { background-color: #2b0000; }
+        body.boss-mode #game-container { background-color: #1a0000; box-shadow: 0 0 20px #ff0000; border: 2px solid #ff0000; }
+        body.boss-mode .stats-bar { color: #ff4444; border-bottom-color: #ff0000; }
+        body.boss-mode #q-counter { color: #ffaaaa !important; }
+        body.boss-mode .btn-answer { background-color: #550000; color: #fff; box-shadow: 0 4px 0 #330000; border: 1px solid #ff4444; }
+        body.boss-mode .btn-answer:active { box-shadow: 0 0 0 #330000; }
+        body.boss-mode .question-text { color: #ff3333; text-shadow: 0 0 15px #ff0000; animation: shake 0.4s infinite; font-size: 60px; }
+        
+        @keyframes shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 25% { transform: translate(-1px, -2px) rotate(-1deg); } 50% { transform: translate(-3px, 0px) rotate(1deg); } 75% { transform: translate(3px, 2px) rotate(0deg); } 100% { transform: translate(1px, -1px) rotate(-1deg); } }
+        
+        /* 🚨 보스 경고 오버레이 🚨 */
+        #boss-warning { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(200,0,0,0.85); z-index: 1000; flex-direction: column; justify-content: center; align-items: center; color: white; font-size: 50px; text-shadow: 0 0 20px #000; animation: flash 0.5s infinite alternate; }
+        @keyframes flash { from { opacity: 0.8; } to { opacity: 1; } }
+
         @media (max-width: 400px) {
             h1 { font-size: 26px; }
-            .question-text { font-size: 45px; }
+            .question-text { font-size: 40px; }
+            body.boss-mode .question-text { font-size: 45px; }
             .btn-answer { font-size: 24px; padding: 15px 0; }
+            .btn-answer-small { font-size: 18px; padding: 10px 0; }
             .collection-item { width: 55px; height: 55px; }
             .stats-bar { font-size: 14px; }
+            #boss-warning { font-size: 40px; }
         }
     </style>
 </head>
 <body>
 
 <div id="loading-overlay">📡 서버 통신 중... 냥!</div>
+
+<div id="boss-warning">
+    <div style="font-size: 80px; margin-bottom: 20px;">💀</div>
+    <div>경고! 보스 출현!</div>
+    <div style="font-size: 20px; margin-top: 10px;">함정을 조심하라냥!!</div>
+</div>
 
 <div id="game-container">
     <div id="login-screen" class="screen active-screen">
@@ -137,7 +161,7 @@
         <div class="timer-container"><div id="timer-bar" class="timer-bar"></div></div>
         <div class="question-text" id="question">2 x 3 = ?</div>
         <div id="options-container"></div>
-        <div id="feedback" style="font-size: 32px; height: 40px; margin-top: 10px;"></div>
+        <div id="feedback" style="font-size: 28px; height: 35px; margin-top: 5px;"></div>
     </div>
 
     <div id="result-screen" class="screen">
@@ -203,6 +227,17 @@
             osc.type = 'triangle'; osc.frequency.setValueAtTime(440, audioCtx.currentTime); osc.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + 0.2); osc.frequency.linearRampToValueAtTime(1320, audioCtx.currentTime + 0.4);
             gain.gain.setValueAtTime(0.6, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
             osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.6);
+        } else if (type === 'siren') {
+            // 🔥 보스 등장 사이렌 사운드 🔥
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 0.5);
+            osc.frequency.linearRampToValueAtTime(400, audioCtx.currentTime + 1.0);
+            osc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 1.5);
+            osc.frequency.linearRampToValueAtTime(400, audioCtx.currentTime + 2.0);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 2.0);
+            osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 2.0);
         }
     }
     function triggerVibration(pattern) { if ("vibrate" in navigator) { navigator.vibrate(pattern); } }
@@ -214,7 +249,6 @@
     const maxTime = 5; let timeLeft = 0; let timerInterval = null; let countdownInterval = null;
     let sessionCorrect = 0; let sessionSpeedScore = 0;
     
-    // 이전 문제 기억용 변수 (연속 중복 출제 방지)
     let lastQuestionStr = ""; 
 
     function showScreen(screenId) {
@@ -362,20 +396,54 @@
         initAudio(); 
         currentQIndex = 0; sessionCorrect = 0; sessionSpeedScore = 0; 
         lastQuestionStr = ""; 
+        document.body.classList.remove('boss-mode'); // 보스 모드 해제
         document.getElementById('reward-box').style.display = 'none';
         updateLivePoints(); 
         
-        showScreen('play-screen'); nextMarathonQuestion();
+        showScreen('play-screen'); nextMarathonQuestionFlow();
     }
 
-    function nextMarathonQuestion() {
+    // 🔥 보스전 흐름 제어 함수 🔥
+    function nextMarathonQuestionFlow() {
         if (currentQIndex >= totalQuestions) return endMarathonGame();
+        
+        // 18번 문제를 막 끝내고 19번으로 넘어갈 차례일 때 보스 경고 발생!
+        if (currentQIndex === 18) {
+            triggerBossWarning();
+        } else {
+            generateNextQuestion();
+        }
+    }
+
+    // 🚨 보스 경고 이벤트 발동 🚨
+    function triggerBossWarning() {
+        playSound('siren');
+        triggerVibration([500, 200, 500]);
+        
+        const warningScreen = document.getElementById('boss-warning');
+        warningScreen.style.display = 'flex';
+        
+        // 2초 후 경고창 닫고 보스 테마 적용 후 19번 문제 시작
+        setTimeout(() => {
+            warningScreen.style.display = 'none';
+            document.body.classList.add('boss-mode');
+            generateNextQuestion();
+        }, 2000);
+    }
+
+    // 실제 문제 생성 로직
+    function generateNextQuestion() {
         currentQIndex++; updateLiveAccuracy();
         document.getElementById('q-counter').innerText = `문제: ${currentQIndex}/${totalQuestions}`;
         document.getElementById('progress-bar').style.width = `${(currentQIndex / totalQuestions) * 100}%`;
         document.getElementById('feedback').innerText = "";
         
-        let m1, m2; const optionsCount = 4; let loopCount = 0;
+        // 1~18번은 4지선다, 19~20번(보스전)은 8지선다
+        let optionsCount = (currentQIndex <= 18) ? 4 : 8; 
+        // 16~20번 구간부터는 일의 자리 함정 적용
+        let needsTrap = (currentQIndex >= 16); 
+
+        let m1, m2; let loopCount = 0;
         
         do {
             if (currentQIndex <= 5) { 
@@ -396,17 +464,49 @@
         answerContent = m1 * m2;
         
         const qElem = document.getElementById('question'); qElem.innerText = `${m1} X ${m2} = ?`; qElem.className = "question-text";
-        generateOptions(answerContent, optionsCount); startTimer();
+        
+        generateOptions(answerContent, optionsCount, needsTrap); 
+        startTimer();
     }
 
-    function generateOptions(ans, count) {
+    function generateOptions(ans, count, needsTrap) {
         let opts = [ans];
-        while(opts.length < count) { let wrong = ans + (Math.floor(Math.random()*15)-7); if(wrong !== ans && wrong > 0 && !opts.includes(wrong)) opts.push(wrong); }
-        opts.sort(() => Math.random() - 0.5);
-        const container = document.getElementById('options-container'); container.innerHTML = "";
+        
+        // 일의 자리 함정 추가 로직
+        if (needsTrap) {
+            let trapTarget = (count === 8) ? 3 : 1; 
+            let trapCount = 0;
+            let attempt = 0; 
+            while(trapCount < trapTarget && attempt < 50) { 
+                let tensOffset = (Math.floor(Math.random() * 11) - 5) * 10; 
+                let trap = ans + tensOffset;
+                if(trap > 0 && trap !== ans && !opts.includes(trap)) {
+                    opts.push(trap);
+                    trapCount++;
+                }
+                attempt++;
+            }
+        }
+
+        while(opts.length < count) { 
+            let wrong = ans + (Math.floor(Math.random() * 31) - 15); 
+            if(wrong > 0 && wrong !== ans && !opts.includes(wrong)) {
+                opts.push(wrong); 
+            }
+        }
+        
+        opts.sort((a, b) => a - b); // 오름차순 정렬
+        
+        const container = document.getElementById('options-container'); 
+        container.innerHTML = "";
+        
         opts.forEach(opt => {
-            const btn = document.createElement('button'); btn.className = 'btn btn-answer'; btn.innerText = opt;
-            btn.onclick = () => checkAnswer(opt); container.appendChild(btn);
+            const btn = document.createElement('button'); 
+            btn.className = 'btn btn-answer'; 
+            if (count === 8) { btn.classList.add('btn-answer-small'); }
+            btn.innerText = opt;
+            btn.onclick = () => checkAnswer(opt); 
+            container.appendChild(btn);
         });
     }
 
@@ -425,7 +525,7 @@
         const feedback = document.getElementById('feedback'); feedback.innerText = "⏰ 시간 초과냥!"; feedback.className = "wrong-anim";
         document.getElementById('question').className = "question-text wrong-anim";
         playSound('wrong'); triggerVibration([400, 100, 400]);
-        disableBtns(); setTimeout(nextMarathonQuestion, 1000); 
+        disableBtns(); setTimeout(nextMarathonQuestionFlow, 1000); 
     }
 
     function checkAnswer(selected) {
@@ -443,12 +543,13 @@
             feedback.innerText = "💦 틀렸다냥!"; feedback.className = "wrong-anim"; document.getElementById('question').className = "question-text wrong-anim";
             playSound('wrong'); triggerVibration([300, 100, 300, 100, 300]); 
         }
-        disableBtns(); setTimeout(nextMarathonQuestion, 1000);
+        disableBtns(); setTimeout(nextMarathonQuestionFlow, 1000);
     }
 
     function disableBtns() { document.querySelectorAll('.btn-answer').forEach(b => b.disabled = true); }
 
     async function endMarathonGame() {
+        document.body.classList.remove('boss-mode'); // 게임 종료 시 보스 테마 해제
         toggleLoading(true); 
         const baseScore = sessionCorrect * 10;
         let todayTotal = baseScore + sessionSpeedScore;
@@ -468,16 +569,19 @@
                 let rand = Math.random() * 100; let rank, bg, border, title;
                 
                 if (accuracyRate === 1.0) {
+                    if (rand <= 5) { rank = 'UR'; bg = '#FFFACD'; border = '#FFD700'; title = '🌟 전설의 냥코 등장!! 🌟'; }
+                    else if (rand <= 20) { rank = 'SR'; bg = '#F3E5F5'; border = '#BA68C8'; title = '⭐⭐⭐ 영웅 냥코!!'; }
+                    else if (rand <= 50) { rank = 'R'; bg = '#E3F2FD'; border = '#64B5F6'; title = '⭐⭐ 희귀 냥코!'; }
+                    else { rank = 'N'; bg = '#FAFAFA'; border = '#BDBDBD'; title = '⭐ 일반 냥코'; }
+                } else if (accuracyRate >= 0.9) {
+                    if (rand <= 2) { rank = 'UR'; bg = '#FFFACD'; border = '#FFD700'; title = '🌟 전설의 냥코 등장!! 🌟'; }
+                    else if (rand <= 15) { rank = 'SR'; bg = '#F3E5F5'; border = '#BA68C8'; title = '⭐⭐⭐ 영웅 냥코!!'; }
+                    else if (rand <= 35) { rank = 'R'; bg = '#E3F2FD'; border = '#64B5F6'; title = '⭐⭐ 희귀 냥코!'; }
+                    else { rank = 'N'; bg = '#FAFAFA'; border = '#BDBDBD'; title = '⭐ 일반 냥코'; }
+                } else {
                     if (rand <= 1) { rank = 'UR'; bg = '#FFFACD'; border = '#FFD700'; title = '🌟 전설의 냥코 등장!! 🌟'; }
                     else if (rand <= 10) { rank = 'SR'; bg = '#F3E5F5'; border = '#BA68C8'; title = '⭐⭐⭐ 영웅 냥코!!'; }
                     else if (rand <= 40) { rank = 'R'; bg = '#E3F2FD'; border = '#64B5F6'; title = '⭐⭐ 희귀 냥코!'; }
-                    else { rank = 'N'; bg = '#FAFAFA'; border = '#BDBDBD'; title = '⭐ 일반 냥코'; }
-                } else if (accuracyRate >= 0.9) {
-                    if (rand <= 5) { rank = 'SR'; bg = '#F3E5F5'; border = '#BA68C8'; title = '⭐⭐⭐ 영웅 냥코!!'; }
-                    else if (rand <= 25) { rank = 'R'; bg = '#E3F2FD'; border = '#64B5F6'; title = '⭐⭐ 희귀 냥코!'; }
-                    else { rank = 'N'; bg = '#FAFAFA'; border = '#BDBDBD'; title = '⭐ 일반 냥코'; }
-                } else {
-                    if (rand <= 10) { rank = 'R'; bg = '#E3F2FD'; border = '#64B5F6'; title = '⭐⭐ 희귀 냥코!'; }
                     else { rank = 'N'; bg = '#FAFAFA'; border = '#BDBDBD'; title = '⭐ 일반 냥코'; }
                 }
                 
