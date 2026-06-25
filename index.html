@@ -5,58 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>🌟 두근두근 구구단 대모험 🌟</title>
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
     <style>
         * { box-sizing: border-box; }
-        body {
-            font-family: 'Jua', sans-serif;
-            background-color: #FFF0F5;
-            color: #555;
-            text-align: center;
-            margin: 0;
-            padding: 10px;
-            user-select: none; 
-            -webkit-user-select: none;
-        }
-        #game-container {
-            width: 100%;
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #FFFFFF;
-            border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
+        body { font-family: 'Jua', sans-serif; background-color: #FFF0F5; color: #555; text-align: center; margin: 0; padding: 10px; user-select: none; -webkit-user-select: none; }
+        #game-container { width: 100%; max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 20px; padding: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
         h1 { color: #FF69B4; font-size: 32px; margin-bottom: 10px; word-break: keep-all; }
         .screen { display: none; animation: fadeIn 0.4s; }
         .active-screen { display: block; }
         
         .input-group { margin: 10px 0; }
-        .input-field {
-            font-family: 'Jua', sans-serif;
-            font-size: 20px;
-            padding: 12px;
-            border: 2px solid #BAE1FF;
-            border-radius: 12px;
-            width: 90%;
-            text-align: center;
-            outline: none;
-        }
+        .input-field { font-family: 'Jua', sans-serif; font-size: 20px; padding: 12px; border: 2px solid #BAE1FF; border-radius: 12px; width: 90%; text-align: center; outline: none; }
         
-        .btn {
-            background-color: #BAE1FF;
-            border: none;
-            border-radius: 20px;
-            padding: 12px 20px;
-            font-size: 20px;
-            font-family: 'Jua', sans-serif;
-            color: #333;
-            cursor: pointer;
-            margin: 8px 4px;
-            transition: transform 0.1s, background-color 0.2s;
-            box-shadow: 0 4px 0 #9AC0E0;
-            width: 90%; 
-            max-width: 300px;
-        }
+        .btn { background-color: #BAE1FF; border: none; border-radius: 20px; padding: 12px 20px; font-size: 20px; font-family: 'Jua', sans-serif; color: #333; cursor: pointer; margin: 8px 4px; transition: transform 0.1s, background-color 0.2s; box-shadow: 0 4px 0 #9AC0E0; width: 90%; max-width: 300px; }
         .btn:active { transform: translateY(4px); box-shadow: 0 0px 0 #9AC0E0; }
         .btn-guest { background-color: #FFFFBA; box-shadow: 0 4px 0 #DCDC9A; }
         .btn-success { background-color: #BAFFC9; box-shadow: 0 4px 0 #9AE0A9; }
@@ -64,21 +28,13 @@
         .btn-small { width: auto; padding: 8px 15px; font-size: 16px; margin: 4px; }
 
         #options-container { display: flex; flex-wrap: wrap; justify-content: center; }
-        .btn-answer { 
-            background-color: #BAFFC9; 
-            width: 46%; 
-            margin: 2%; 
-            font-size: 28px; 
-            padding: 20px 0; 
-            max-width: none;
-        }
+        .btn-answer { background-color: #BAFFC9; width: 46%; margin: 2%; font-size: 28px; padding: 20px 0; max-width: none; }
 
         .question-text { font-size: 55px; color: #FFB347; margin: 15px 0; text-shadow: 2px 2px 0px #FFE0B2; min-height: 80px; }
-        .stats-bar { display: flex; justify-content: flex-end; font-size: 20px; color: #FF69B4; border-bottom: 2px dashed #EEE; padding-bottom: 8px; font-weight: bold; }
+        .stats-bar { display: flex; justify-content: space-between; align-items: center; font-size: 16px; color: #FF69B4; border-bottom: 2px dashed #EEE; padding-bottom: 8px; font-weight: bold; }
         
         .progress-container { background-color: #EEE; border-radius: 10px; height: 12px; margin: 12px 0; overflow: hidden; }
         .progress-bar { background-color: #FF69B4; height: 100%; width: 0%; transition: width 0.3s; }
-        
         .timer-container { background-color: #FFF; border: 2px solid #FFB347; border-radius: 10px; height: 12px; margin-bottom: 15px; overflow: hidden; }
         .timer-bar { background-color: #FFB347; height: 100%; width: 100%; transition: width 0.1s linear; }
 
@@ -87,7 +43,6 @@
         .ranking-box { background-color: #E6E6FA; padding: 15px; border-radius: 15px; margin: 15px 0; text-align: left; }
         .ranking-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed #CCC; font-size: 16px; }
         
-        /* 등급별 배경 애니메이션 */
         @keyframes legendGlow { 0% { box-shadow: 0 0 10px #FFD700; } 50% { box-shadow: 0 0 25px #FFD700, 0 0 10px #FFA500 inset; } 100% { box-shadow: 0 0 10px #FFD700; } }
         
         .reward-container { display: none; padding: 15px; border-radius: 15px; margin: 15px 0; animation: bounceIn 0.8s; border: 4px solid #CCC; }
@@ -95,36 +50,41 @@
         .reward-title { font-size: 22px; margin: 5px 0; font-weight: bold; }
 
         .collection-box { background-color: #FFF; border: 3px solid #9370DB; border-radius: 15px; padding: 15px; margin-top: 15px; }
-        .collection-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 10px; }
+        .collection-grid { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 8px; margin-top: 10px; }
         .collection-item { width: 65px; height: 65px; border-radius: 10px; padding: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border: 2px solid #DDD; position: relative; }
         .collection-item img { width: 100%; height: 100%; object-fit: contain; }
-        
-        /* 도감용 작은 등급 뱃지 */
-        .rarity-badge { position: absolute; top: -5px; right: -5px; font-size: 10px; padding: 2px 4px; border-radius: 5px; color: white; font-weight: bold; }
+        .rarity-badge { position: absolute; top: -5px; right: -5px; font-size: 10px; padding: 2px 4px; border-radius: 5px; color: white; font-weight: bold; z-index: 2; }
 
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
         @keyframes bounceIn { 0% { transform: scale(0.3); opacity: 0; } 50% { transform: scale(1.05); opacity: 1; } 70% { transform: scale(0.9); } 100% { transform: scale(1); } }
         
+        /* 실시간 포인트 통통 튀는 애니메이션 */
+        @keyframes pointPop { 0% { transform: scale(1); color: #FFB347; } 50% { transform: scale(1.4); color: #FF4500; } 100% { transform: scale(1); color: #FFB347; } }
+        .point-anim { animation: pointPop 0.4s ease; }
+        
         .correct-anim { color: #4CAF50 !important; animation: pop 0.4s ease; }
         .wrong-anim { color: #F44336 !important; animation: pop 0.4s ease; }
         
-        #feedback { font-size: 32px; height: 40px; margin-top: 10px; }
+        #loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 999; justify-content: center; align-items: center; font-size: 30px; }
 
         @media (max-width: 400px) {
             h1 { font-size: 26px; }
             .question-text { font-size: 45px; }
             .btn-answer { font-size: 24px; padding: 15px 0; }
             .collection-item { width: 55px; height: 55px; }
+            .stats-bar { font-size: 14px; }
         }
     </style>
 </head>
 <body>
 
+<div id="loading-overlay">📡 서버 통신 중... 냥!</div>
+
 <div id="game-container">
     <div id="login-screen" class="screen active-screen">
         <h1>🌟 구구단 냥코 대모험 🌟</h1>
-        <p style="font-size: 16px;">점수를 모아 전설의 고양이를 뽑자냥!</p>
+        <p style="font-size: 16px;">백점 맞고 전설의 고양이를 뽑자냥!</p>
         <img src="https://robohash.org/hello.png?set=set4&size=120x120" width="100" style="margin:5px; background-color:#F8F8F8; border-radius:50%; border:3px solid #FFD1DC;">
         <div class="input-group">
             <input type="text" id="username-input" class="input-field" placeholder="내 이름 (아이디)">
@@ -139,8 +99,7 @@
     </div>
 
     <div id="admin-screen" class="screen">
-        <h1>🛠️ 냥코 관리소 🛠️</h1>
-        <p style="color: #FF6B6B; font-size: 14px;">학생들의 계정과 점수를 관리합니다.</p>
+        <h1>🛠️ 글로벌 냥코 관리소 🛠️</h1>
         <div class="collection-box" style="border-color: #FFB347; padding: 10px;">
             <div id="admin-list" style="text-align: left;"></div>
         </div>
@@ -156,7 +115,7 @@
         
         <div class="collection-box" id="collection-box">
             <h3 style="margin:0; color:#4B0082; font-size: 18px;">🐾 내 고양이 도감 🐾</h3>
-            <div id="collection-grid" class="collection-grid"></div>
+            <div id="collection-grid"></div>
         </div>
 
         <p style="font-size: 16px; margin-top: 15px; font-weight: bold;">총 20문제! 시간은 단 5초!</p>
@@ -166,13 +125,19 @@
 
     <div id="play-screen" class="screen">
         <div class="stats-bar">
-            <span id="q-counter">문제: 1/20</span>
+            <div style="text-align: left;">
+                <span id="q-counter" style="color:#333;">문제: 1/20</span><br>
+                <span id="current-accuracy" style="color:#888; font-size:12px;">정답률: 100%</span>
+            </div>
+            <div id="live-points" style="font-size: 22px; color: #FFB347; font-weight: 900;">
+                현재 획득: 0P
+            </div>
         </div>
         <div class="progress-container"><div id="progress-bar" class="progress-bar"></div></div>
         <div class="timer-container"><div id="timer-bar" class="timer-bar"></div></div>
         <div class="question-text" id="question">2 x 3 = ?</div>
         <div id="options-container"></div>
-        <div id="feedback"></div>
+        <div id="feedback" style="font-size: 32px; height: 40px; margin-top: 10px;"></div>
     </div>
 
     <div id="result-screen" class="screen">
@@ -184,8 +149,8 @@
         </div>
 
         <div class="result-box">
-            <p style="margin: 5px;">맞춘 개수: <span class="highlight" id="res-correct">0</span>/20</p>
-            <p style="margin: 5px;">포인트: <span class="highlight" id="res-today">0</span>P</p>
+            <p style="margin: 5px;">맞춘 개수: <span class="highlight" id="res-correct">0</span>/20 (정답률 <span id="res-acc-rate">0</span>%)</p>
+            <p style="margin: 5px;">획득 포인트: <span class="highlight" id="res-today">0</span>P</p>
         </div>
         
         <div class="result-box" id="total-stats" style="background-color: #BAE1FF; display:none;">
@@ -194,7 +159,7 @@
         </div>
 
         <div class="ranking-box" id="ranking-box">
-            <h3 style="text-align:center; margin:0 0 10px 0; color:#4B0082; font-size: 18px;">🏆 명예의 전당 (TOP 5) 🏆</h3>
+            <h3 style="text-align:center; margin:0 0 10px 0; color:#4B0082; font-size: 18px;">🌍 글로벌 명예의 전당 🌍</h3>
             <div id="ranking-list"></div>
         </div>
 
@@ -204,284 +169,278 @@
 </div>
 
 <script>
+    // 🔥 파이어베이스 접속 키 🔥
+    const firebaseConfig = {
+      apiKey: "AIzaSyAiU-wOOXF-ZGsdPtsS1hUpxEZQit8IZbI",
+      authDomain: "gugu-cat-adventrue.firebaseapp.com",
+      projectId: "gugu-cat-adventrue",
+      storageBucket: "gugu-cat-adventrue.firebasestorage.app",
+      messagingSenderId: "380583801039",
+      appId: "1:380583801039:web:cfeda57a40a01985ccc7ba"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
     let audioCtx;
     function initAudio() {
         if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
         if (audioCtx.state === 'suspended') { audioCtx.resume(); }
     }
-
     function playSound(type) {
         initAudio();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
+        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
         osc.connect(gain); gain.connect(audioCtx.destination);
-
         if (type === 'correct') {
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); 
-            osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); 
-            gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); 
+            gain.gain.setValueAtTime(0.5, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
             osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.3);
         } else if (type === 'wrong') {
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.3);
-            gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.5, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
             osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.3);
         } else if (type === 'legend') {
-            // 전설 등급 뽑혔을 때 화려한 사운드
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(440, audioCtx.currentTime);
-            osc.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + 0.2);
-            osc.frequency.linearRampToValueAtTime(1320, audioCtx.currentTime + 0.4);
-            gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
-            gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
+            osc.type = 'triangle'; osc.frequency.setValueAtTime(440, audioCtx.currentTime); osc.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + 0.2); osc.frequency.linearRampToValueAtTime(1320, audioCtx.currentTime + 0.4);
+            gain.gain.setValueAtTime(0.6, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
             osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.6);
         }
     }
+    function triggerVibration(pattern) { if ("vibrate" in navigator) { navigator.vibrate(pattern); } }
 
     let currentUser = null; 
+    let currentUserData = null; 
     let isGuestMode = false;
-    let currentQIndex = 0;
-    const totalQuestions = 20; 
-    let answerContent = 0;
-    let questionStartTime = 0;
+    let currentQIndex = 0; const totalQuestions = 20; let answerContent = 0; let questionStartTime = 0;
+    const maxTime = 5; let timeLeft = 0; let timerInterval = null; let countdownInterval = null;
+    let sessionCorrect = 0; let sessionSpeedScore = 0;
     
-    const maxTime = 5; 
-    let timeLeft = 0;
-    let timerInterval = null;
-    let countdownInterval = null;
-
-    let sessionCorrect = 0;
-    let sessionSpeedScore = 0;
+    // 이전 문제 기억용 변수 (연속 중복 출제 방지)
+    let lastQuestionStr = ""; 
 
     function showScreen(screenId) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
         document.getElementById(screenId).classList.add('active-screen');
     }
+    function toggleLoading(show) { document.getElementById('loading-overlay').style.display = show ? 'flex' : 'none'; }
 
-    function getDB() { return JSON.parse(localStorage.getItem('gugu_user_db') || '{}'); }
-    function saveDB(db) { localStorage.setItem('gugu_user_db', JSON.stringify(db)); }
-
-    function triggerVibration(pattern) {
-        if ("vibrate" in navigator) { navigator.vibrate(pattern); }
-    }
-
-    function handleAuth(type) {
+    async function handleAuth(type) {
         initAudio();
         const username = document.getElementById('username-input').value.trim();
         const password = document.getElementById('password-input').value.trim();
         if(!username || !password) return alert("이름과 비밀번호를 입력해 주세요!");
 
-        if (username === 'admin' && password === 'admin1234') {
-            currentUser = 'admin'; showAdminScreen(); return;
-        }
+        if (username === 'admin' && password === 'admin1234') { currentUser = 'admin'; showAdminScreen(); return; }
 
-        let db = getDB();
-        if (type === 'signup') {
-            if (username === 'admin') return alert("사용할 수 없는 이름입니다.");
-            if (db[username]) return alert("이미 등록된 이름입니다.");
-            db[username] = { password: password, totalPoints: 0, level: 1, playCount: 0, rewards: [] };
-            saveDB(db); alert("가입 완료냥! 로그인을 진행해달라냥.");
-        } else {
-            if (!db[username] || db[username].password !== password) return alert("정보가 맞지 않다냥.");
-            currentUser = username; isGuestMode = false; showLobby();
+        toggleLoading(true);
+        try {
+            const userRef = db.collection('users').doc(username);
+            const doc = await userRef.get();
+
+            if (type === 'signup') {
+                if (username === 'admin') { alert("사용할 수 없는 이름입니다."); toggleLoading(false); return; }
+                if (doc.exists) { alert("이미 등록된 이름입니다."); toggleLoading(false); return; }
+                
+                const newData = { password: password, totalPoints: 0, level: 1, playCount: 0, rewards: [] };
+                await userRef.set(newData);
+                alert("가입 완료냥! 로그인을 진행해달라냥.");
+            } else {
+                if (!doc.exists || doc.data().password !== password) { alert("정보가 맞지 않다냥."); toggleLoading(false); return; }
+                currentUser = username;
+                currentUserData = doc.data(); 
+                isGuestMode = false;
+                showLobby();
+            }
+        } catch (error) {
+            alert("서버 연결에 실패했다냥! 설정 코드를 확인해라냥!");
+            console.error(error);
         }
+        toggleLoading(false);
     }
 
-    function showAdminScreen() {
-        const db = getDB();
+    async function showAdminScreen() {
+        toggleLoading(true);
         const listDiv = document.getElementById('admin-list');
         listDiv.innerHTML = '';
-        const users = Object.keys(db);
-        if(users.length === 0) {
-            listDiv.innerHTML = '<p style="text-align:center;">등록된 학생이 없습니다.</p>';
-        } else {
-            users.forEach(u => {
-                const div = document.createElement('div');
-                div.className = 'ranking-item';
-                div.innerHTML = `
-                    <span><b>${u}</b> <br><span style="font-size:13px; color:#888;">(Lv.${db[u].level} / ${db[u].totalPoints}P)</span></span>
-                    <div>
-                        <button class="btn btn-small" onclick="resetUser('${u}')">초기화</button>
-                        <button class="btn btn-danger btn-small" onclick="deleteUser('${u}')">삭제</button>
-                    </div>
-                `;
-                listDiv.appendChild(div);
-            });
-        }
+        try {
+            const snapshot = await db.collection('users').get();
+            if(snapshot.empty) { listDiv.innerHTML = '<p style="text-align:center;">등록된 학생이 없습니다.</p>'; } 
+            else {
+                snapshot.forEach(doc => {
+                    let u = doc.id; let data = doc.data();
+                    const div = document.createElement('div'); div.className = 'ranking-item';
+                    div.innerHTML = `<span><b>${u}</b> <br><span style="font-size:13px; color:#888;">(Lv.${data.level} / ${data.totalPoints}P)</span></span>
+                        <div><button class="btn btn-small" onclick="resetUser('${u}')">초기화</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteUser('${u}')">삭제</button></div>`;
+                    listDiv.appendChild(div);
+                });
+            }
+        } catch(e) { alert("데이터를 불러오지 못했다냥!"); }
+        toggleLoading(false);
         showScreen('admin-screen');
     }
-
-    function resetUser(u) {
-        if(confirm(`${u} 학생의 점수와 도감을 초기화 하시겠습니까?`)) {
-            let db = getDB();
-            db[u].totalPoints = 0; db[u].level = 1; db[u].playCount = 0; db[u].rewards = [];
-            saveDB(db); showAdminScreen(); 
+    
+    async function resetUser(u) {
+        if(confirm(`${u}의 점수를 초기화 하시겠습니까?`)) {
+            toggleLoading(true); await db.collection('users').doc(u).update({ totalPoints: 0, level: 1, playCount: 0, rewards: [] }); showAdminScreen(); 
         }
     }
-    function deleteUser(u) {
-        if(confirm(`${u} 학생의 계정을 삭제하시겠습니까?`)) {
-            let db = getDB(); delete db[u]; saveDB(db); showAdminScreen(); 
+    async function deleteUser(u) {
+        if(confirm(`${u}의 계정을 완전히 삭제하시겠습니까?`)) {
+            toggleLoading(true); await db.collection('users').doc(u).delete(); showAdminScreen(); 
         }
     }
 
-    function playAsGuest() {
-        initAudio(); currentUser = "GUEST"; isGuestMode = true; showLobby();
-    }
-    function logout() {
-        currentUser = null; document.getElementById('username-input').value = ""; document.getElementById('password-input').value = ""; showScreen('login-screen');
-    }
+    function playAsGuest() { initAudio(); currentUser = "GUEST"; isGuestMode = true; showLobby(); }
+    function logout() { currentUser = null; currentUserData = null; document.getElementById('username-input').value = ""; document.getElementById('password-input').value = ""; showScreen('login-screen'); }
 
     function showLobby() {
         document.getElementById('lobby-name').innerText = currentUser;
-        const grid = document.getElementById('collection-grid');
-        grid.innerHTML = '';
+        const grid = document.getElementById('collection-grid'); grid.innerHTML = '';
 
         if (!isGuestMode) {
-            let user = getDB()[currentUser];
-            document.getElementById('lobby-level').innerText = user.level;
-            document.getElementById('lobby-points').innerText = user.totalPoints;
+            document.getElementById('lobby-level').innerText = currentUserData.level;
+            document.getElementById('lobby-points').innerText = currentUserData.totalPoints;
             document.getElementById('lobby-stats-box').style.display = 'block';
             document.getElementById('collection-box').style.display = 'block';
 
-            if (user.rewards && user.rewards.length > 0) {
-                user.rewards.forEach(cat => {
-                    const item = document.createElement('div');
-                    item.className = 'collection-item';
-                    
-                    // 구버전 데이터 호환 처리
-                    if(typeof cat !== 'object') {
-                        item.innerText = '?';
-                        item.style.backgroundColor = '#EEE';
-                    } else {
-                        item.style.backgroundColor = cat.bg;
-                        item.style.borderColor = cat.border;
-                        
-                        // 뱃지 추가
-                        const badge = document.createElement('div');
-                        badge.className = 'rarity-badge';
-                        badge.innerText = cat.rank;
-                        badge.style.backgroundColor = cat.border;
-                        item.appendChild(badge);
+            if (currentUserData.rewards && currentUserData.rewards.length > 0) {
+                const rankInfo = [
+                    { id: 'UR', title: '🌟 전설 (Legend)' },
+                    { id: 'SR', title: '⭐⭐⭐ 영웅 (Super Rare)' },
+                    { id: 'R',  title: '⭐⭐ 희귀 (Rare)' },
+                    { id: 'N',  title: '⭐ 일반 (Normal)' }
+                ];
 
-                        const img = document.createElement('img');
-                        // 고양이 세트(set4) 이미지 호출
-                        img.src = `https://robohash.org/${cat.id}.png?set=set4&size=100x100`;
-                        item.appendChild(img);
+                rankInfo.forEach(r => {
+                    const catsInThisRank = currentUserData.rewards.filter(cat => cat.rank === r.id);
+                    if (catsInThisRank.length > 0) {
+                        const titleDiv = document.createElement('div');
+                        titleDiv.style.width = '100%'; titleDiv.style.textAlign = 'left'; titleDiv.style.fontSize = '14px'; titleDiv.style.fontWeight = 'bold'; titleDiv.style.color = '#333'; titleDiv.style.margin = '15px 0 5px 0'; titleDiv.style.borderBottom = '2px dashed #DDD';
+                        titleDiv.innerText = `${r.title} (${catsInThisRank.length}마리)`;
+                        grid.appendChild(titleDiv);
+
+                        const groupDiv = document.createElement('div');
+                        groupDiv.className = 'collection-grid'; groupDiv.style.marginTop = '0'; groupDiv.style.justifyContent = 'flex-start';
+
+                        catsInThisRank.forEach(cat => {
+                            const item = document.createElement('div'); item.className = 'collection-item';
+                            item.style.backgroundColor = cat.bg; item.style.borderColor = cat.border;
+                            
+                            const badge = document.createElement('div'); badge.className = 'rarity-badge'; badge.innerText = cat.rank; badge.style.backgroundColor = cat.border;
+                            item.appendChild(badge);
+                            
+                            const img = document.createElement('img'); img.src = `https://robohash.org/${cat.id}.png?set=set4&size=100x100`;
+                            item.appendChild(img);
+                            groupDiv.appendChild(item);
+                        });
+                        grid.appendChild(groupDiv);
                     }
-                    grid.appendChild(item);
                 });
-            } else {
-                grid.innerHTML = '<p style="color:#999; margin:10px; font-size:14px;">아직 모은 고양이가 없다냥. 레벨업을 해보라냥!</p>';
-            }
+            } else { grid.innerHTML = '<p style="color:#999; margin:10px; font-size:14px;">아직 모은 고양이가 없다냥. 레벨업을 해보라냥!</p>'; }
         } else {
-            document.getElementById('lobby-stats-box').style.display = 'none';
-            document.getElementById('collection-box').style.display = 'none';
+            document.getElementById('lobby-stats-box').style.display = 'none'; document.getElementById('collection-box').style.display = 'none';
         }
         showScreen('lobby-screen');
     }
 
-    function startMarathonGame() {
-        initAudio();
-        currentQIndex = 0; sessionCorrect = 0; sessionSpeedScore = 0;
-        document.getElementById('reward-box').style.display = 'none';
+    function updateLiveAccuracy() {
+        let currentAcc = currentQIndex > 1 ? Math.floor((sessionCorrect / (currentQIndex - 1)) * 100) : 100;
+        document.getElementById('current-accuracy').innerText = `정답률: ${currentAcc}%`;
+    }
+
+    function updateLivePoints() {
+        const livePts = document.getElementById('live-points');
+        const currentPoints = sessionCorrect * 10 + sessionSpeedScore;
+        livePts.innerText = `현재 획득: ${currentPoints}P`;
         
-        if (!isGuestMode) {
-            let db = getDB(); db[currentUser].playCount += 1; saveDB(db);
-        }
-        showScreen('play-screen');
-        nextMarathonQuestion();
+        livePts.classList.remove('point-anim');
+        void livePts.offsetWidth; 
+        livePts.classList.add('point-anim');
+    }
+
+    function startMarathonGame() {
+        initAudio(); 
+        currentQIndex = 0; sessionCorrect = 0; sessionSpeedScore = 0; 
+        lastQuestionStr = ""; 
+        document.getElementById('reward-box').style.display = 'none';
+        updateLivePoints(); 
+        
+        showScreen('play-screen'); nextMarathonQuestion();
     }
 
     function nextMarathonQuestion() {
         if (currentQIndex >= totalQuestions) return endMarathonGame();
-        currentQIndex++;
+        currentQIndex++; updateLiveAccuracy();
         document.getElementById('q-counter').innerText = `문제: ${currentQIndex}/${totalQuestions}`;
         document.getElementById('progress-bar').style.width = `${(currentQIndex / totalQuestions) * 100}%`;
         document.getElementById('feedback').innerText = "";
         
-        let m1, m2; const optionsCount = 4; 
-        if (currentQIndex <= 5) {
-            if (Math.random() < 0.2) { m1 = [6,7,8][Math.floor(Math.random()*3)]; m2 = 1; } 
-            else { m1 = Math.floor(Math.random()*4)+2; m2 = Math.floor(Math.random()*9)+1; }
-        } else if (currentQIndex <= 10) {
-            if (Math.random() < 0.2) { m1 = [6,7,8][Math.floor(Math.random()*3)]; m2 = 2; } 
-            else { m1 = [4,5,9][Math.floor(Math.random()*3)]; m2 = Math.floor(Math.random()*9)+1; }
-        } else if (currentQIndex <= 15) {
-            m1 = Math.floor(Math.random()*3)+6; m2 = Math.floor(Math.random()*7)+3;
-        } else {
-            m1 = Math.floor(Math.random()*5)+11; m2 = Math.floor(Math.random()*8)+2; 
-        }
-
+        let m1, m2; const optionsCount = 4; let loopCount = 0;
+        
+        do {
+            if (currentQIndex <= 5) { 
+                if (Math.random() < 0.2) { m1 = [6,7,8][Math.floor(Math.random()*3)]; m2 = 1; } 
+                else { m1 = Math.floor(Math.random()*4)+2; m2 = Math.floor(Math.random()*9)+1; }
+            } else if (currentQIndex <= 10) { 
+                if (Math.random() < 0.2) { m1 = [6,7,8][Math.floor(Math.random()*3)]; m2 = 2; } 
+                else { m1 = [4,5,9][Math.floor(Math.random()*3)]; m2 = Math.floor(Math.random()*9)+1; }
+            } else if (currentQIndex <= 15) { 
+                m1 = Math.floor(Math.random()*3)+6; m2 = Math.floor(Math.random()*7)+3;
+            } else { 
+                m1 = Math.floor(Math.random()*5)+11; m2 = Math.floor(Math.random()*8)+2; 
+            }
+            loopCount++;
+        } while (`${m1}x${m2}` === lastQuestionStr && loopCount < 10); 
+        
+        lastQuestionStr = `${m1}x${m2}`; 
         answerContent = m1 * m2;
-        const qElem = document.getElementById('question');
-        qElem.innerText = `${m1} X ${m2} = ?`; qElem.className = "question-text";
-
-        generateOptions(answerContent, optionsCount);
-        startTimer();
+        
+        const qElem = document.getElementById('question'); qElem.innerText = `${m1} X ${m2} = ?`; qElem.className = "question-text";
+        generateOptions(answerContent, optionsCount); startTimer();
     }
 
     function generateOptions(ans, count) {
         let opts = [ans];
-        while(opts.length < count) {
-            let wrong = ans + (Math.floor(Math.random()*15)-7); 
-            if(wrong !== ans && wrong > 0 && !opts.includes(wrong)) opts.push(wrong);
-        }
+        while(opts.length < count) { let wrong = ans + (Math.floor(Math.random()*15)-7); if(wrong !== ans && wrong > 0 && !opts.includes(wrong)) opts.push(wrong); }
         opts.sort(() => Math.random() - 0.5);
         const container = document.getElementById('options-container'); container.innerHTML = "";
         opts.forEach(opt => {
-            const btn = document.createElement('button');
-            btn.className = 'btn btn-answer'; btn.innerText = opt;
-            btn.onclick = () => checkAnswer(opt);
-            container.appendChild(btn);
+            const btn = document.createElement('button'); btn.className = 'btn btn-answer'; btn.innerText = opt;
+            btn.onclick = () => checkAnswer(opt); container.appendChild(btn);
         });
     }
 
     function startTimer() {
-        clearInterval(timerInterval); clearInterval(countdownInterval);
-        timeLeft = maxTime; questionStartTime = Date.now();
-        const timerBar = document.getElementById('timer-bar');
-        timerBar.style.width = '100%'; timerBar.style.backgroundColor = '#FFB347';
-
+        clearInterval(timerInterval); clearInterval(countdownInterval); timeLeft = maxTime; questionStartTime = Date.now();
+        const timerBar = document.getElementById('timer-bar'); timerBar.style.width = '100%'; timerBar.style.backgroundColor = '#FFB347';
         countdownInterval = setInterval(() => {
-            let passed = (Date.now() - questionStartTime) / 1000;
-            let ratio = Math.max(0, (maxTime - passed) / maxTime) * 100;
-            timerBar.style.width = `${ratio}%`;
-            if(ratio < 30) timerBar.style.backgroundColor = '#F44336';
+            let passed = (Date.now() - questionStartTime) / 1000; let ratio = Math.max(0, (maxTime - passed) / maxTime) * 100;
+            timerBar.style.width = `${ratio}%`; if(ratio < 30) timerBar.style.backgroundColor = '#F44336';
         }, 50);
-
-        timerInterval = setInterval(() => {
-            timeLeft--;
-            if (timeLeft <= 0) handleTimeOver();
-        }, 1000);
+        timerInterval = setInterval(() => { timeLeft--; if (timeLeft <= 0) handleTimeOver(); }, 1000);
     }
 
     function handleTimeOver() {
-        clearInterval(timerInterval); clearInterval(countdownInterval);
-        document.getElementById('timer-bar').style.width = '0%';
-        const feedback = document.getElementById('feedback');
-        feedback.innerText = "⏰ 냥! 시간 초과!"; feedback.className = "wrong-anim";
+        clearInterval(timerInterval); clearInterval(countdownInterval); document.getElementById('timer-bar').style.width = '0%';
+        const feedback = document.getElementById('feedback'); feedback.innerText = "⏰ 시간 초과냥!"; feedback.className = "wrong-anim";
         document.getElementById('question').className = "question-text wrong-anim";
         playSound('wrong'); triggerVibration([400, 100, 400]);
         disableBtns(); setTimeout(nextMarathonQuestion, 1000); 
     }
 
     function checkAnswer(selected) {
-        clearInterval(timerInterval); clearInterval(countdownInterval);
-        const timeTaken = (Date.now() - questionStartTime) / 1000;
+        clearInterval(timerInterval); clearInterval(countdownInterval); const timeTaken = (Date.now() - questionStartTime) / 1000;
         const feedback = document.getElementById('feedback');
-
+        
         if (selected === answerContent) {
-            sessionCorrect++; sessionSpeedScore += Math.max(0, Math.floor(maxTime - timeTaken)); 
-            feedback.innerText = "✨ 정답이다냥! ✨"; feedback.className = "correct-anim";
-            document.getElementById('question').className = "question-text correct-anim";
+            sessionCorrect++; 
+            sessionSpeedScore += Math.max(0, Math.floor(maxTime - timeTaken)); 
+            updateLivePoints(); 
+            
+            feedback.innerText = "✨ 정답이다냥! ✨"; feedback.className = "correct-anim"; document.getElementById('question').className = "question-text correct-anim";
             playSound('correct'); triggerVibration([100, 50, 100]); 
         } else {
-            feedback.innerText = "💦 틀렸다냥!"; feedback.className = "wrong-anim";
-            document.getElementById('question').className = "question-text wrong-anim";
+            feedback.innerText = "💦 틀렸다냥!"; feedback.className = "wrong-anim"; document.getElementById('question').className = "question-text wrong-anim";
             playSound('wrong'); triggerVibration([300, 100, 300, 100, 300]); 
         }
         disableBtns(); setTimeout(nextMarathonQuestion, 1000);
@@ -489,76 +448,72 @@
 
     function disableBtns() { document.querySelectorAll('.btn-answer').forEach(b => b.disabled = true); }
 
-    function endMarathonGame() {
+    async function endMarathonGame() {
+        toggleLoading(true); 
         const baseScore = sessionCorrect * 10;
         let todayTotal = baseScore + sessionSpeedScore;
-        let leveledUp = false;
-        let newCat = null;
+        let leveledUp = false; let newCat = null;
+        let accuracyRate = sessionCorrect / totalQuestions;
+        let accPercent = Math.floor(accuracyRate * 100);
 
         if (!isGuestMode) {
-            let db = getDB();
-            let user = db[currentUser];
-            if (!user.rewards) user.rewards = []; 
+            let oldLevel = currentUserData.level;
+            todayTotal += (currentUserData.playCount * 2); 
+            currentUserData.playCount += 1;
+            currentUserData.totalPoints += todayTotal;
+            currentUserData.level = Math.floor(currentUserData.totalPoints / 150) + 1; 
             
-            let oldLevel = user.level;
-            todayTotal += (user.playCount * 2); 
-            user.totalPoints += todayTotal;
-            user.level = Math.floor(user.totalPoints / 150) + 1; 
-            
-            // 레벨업 시 등급별 고양이 뽑기 로직
-            if(user.level > oldLevel) {
+            if(currentUserData.level > oldLevel) {
                 leveledUp = true;
-                let rand = Math.random() * 100;
-                let rank, bg, border, title;
+                let rand = Math.random() * 100; let rank, bg, border, title;
                 
-                if (rand <= 1) { // 1% 확률
-                    rank = 'UR'; bg = '#FFFACD'; border = '#FFD700'; title = '🌟 전설의 냥코 등장!! 🌟';
-                } else if (rand <= 10) { // 9% 확률
-                    rank = 'SR'; bg = '#F3E5F5'; border = '#BA68C8'; title = '⭐⭐⭐ 영웅 냥코!!';
-                } else if (rand <= 40) { // 30% 확률
-                    rank = 'R'; bg = '#E3F2FD'; border = '#64B5F6'; title = '⭐⭐ 희귀 냥코!';
-                } else { // 60% 확률
-                    rank = 'N'; bg = '#FAFAFA'; border = '#BDBDBD'; title = '⭐ 일반 냥코';
+                if (accuracyRate === 1.0) {
+                    if (rand <= 1) { rank = 'UR'; bg = '#FFFACD'; border = '#FFD700'; title = '🌟 전설의 냥코 등장!! 🌟'; }
+                    else if (rand <= 10) { rank = 'SR'; bg = '#F3E5F5'; border = '#BA68C8'; title = '⭐⭐⭐ 영웅 냥코!!'; }
+                    else if (rand <= 40) { rank = 'R'; bg = '#E3F2FD'; border = '#64B5F6'; title = '⭐⭐ 희귀 냥코!'; }
+                    else { rank = 'N'; bg = '#FAFAFA'; border = '#BDBDBD'; title = '⭐ 일반 냥코'; }
+                } else if (accuracyRate >= 0.9) {
+                    if (rand <= 5) { rank = 'SR'; bg = '#F3E5F5'; border = '#BA68C8'; title = '⭐⭐⭐ 영웅 냥코!!'; }
+                    else if (rand <= 25) { rank = 'R'; bg = '#E3F2FD'; border = '#64B5F6'; title = '⭐⭐ 희귀 냥코!'; }
+                    else { rank = 'N'; bg = '#FAFAFA'; border = '#BDBDBD'; title = '⭐ 일반 냥코'; }
+                } else {
+                    if (rand <= 10) { rank = 'R'; bg = '#E3F2FD'; border = '#64B5F6'; title = '⭐⭐ 희귀 냥코!'; }
+                    else { rank = 'N'; bg = '#FAFAFA'; border = '#BDBDBD'; title = '⭐ 일반 냥코'; }
                 }
                 
                 let catId = "Cat_" + Math.floor(Math.random() * 99999);
                 newCat = { id: catId, rank: rank, bg: bg, border: border, title: title };
-                user.rewards.push(newCat);
+                if (!currentUserData.rewards) currentUserData.rewards = [];
+                currentUserData.rewards.push(newCat);
             }
             
-            saveDB(db);
-            
-            document.getElementById('res-level').innerText = user.level;
-            document.getElementById('res-total-points').innerText = user.totalPoints;
-            document.getElementById('total-stats').style.display = 'block';
-            
-            updateRankingDisplay();
-            document.getElementById('ranking-box').style.display = 'block';
+            try {
+                await db.collection('users').doc(currentUser).set(currentUserData);
+                document.getElementById('res-level').innerText = currentUserData.level;
+                document.getElementById('res-total-points').innerText = currentUserData.totalPoints;
+                document.getElementById('total-stats').style.display = 'block';
+                await updateGlobalRanking(); 
+            } catch(e) {
+                alert("점수 저장에 실패했다냥!");
+            }
         } else {
             document.getElementById('total-stats').style.display = 'none';
             document.getElementById('ranking-box').style.display = 'none';
         }
 
         document.getElementById('res-correct').innerText = sessionCorrect;
+        document.getElementById('res-acc-rate').innerText = accPercent;
         document.getElementById('res-today').innerText = todayTotal;
         
-        // 뽑기 결과 출력
+        toggleLoading(false); 
+
         if (leveledUp && newCat) {
             const rewardBox = document.getElementById('reward-box');
-            rewardBox.style.backgroundColor = newCat.bg;
-            rewardBox.style.borderColor = newCat.border;
-            document.getElementById('reward-title').innerText = newCat.title;
-            document.getElementById('reward-title').style.color = newCat.border;
+            rewardBox.style.backgroundColor = newCat.bg; rewardBox.style.borderColor = newCat.border;
+            document.getElementById('reward-title').innerText = newCat.title; document.getElementById('reward-title').style.color = newCat.border;
             
-            if (newCat.rank === 'UR') {
-                playSound('legend');
-                triggerVibration([200, 100, 200, 100, 500]);
-                rewardBox.style.animation = 'bounceIn 0.8s, legendGlow 2s infinite';
-            } else {
-                playSound('correct');
-                triggerVibration([100, 50, 100, 50, 300]);
-                rewardBox.style.animation = 'bounceIn 0.8s';
-            }
+            if (newCat.rank === 'UR') { playSound('legend'); triggerVibration([200, 100, 200, 100, 500]); rewardBox.style.animation = 'bounceIn 0.8s, legendGlow 2s infinite'; } 
+            else { playSound('correct'); triggerVibration([100, 50, 100, 50, 300]); rewardBox.style.animation = 'bounceIn 0.8s'; }
             
             document.getElementById('reward-image').src = `https://robohash.org/${newCat.id}.png?set=set4&size=150x150`;
             rewardBox.style.display = 'block';
@@ -567,22 +522,39 @@
         showScreen('result-screen');
     }
 
-    function updateRankingDisplay() {
-        const db = getDB();
-        const users = Object.keys(db).map(name => ({
-            name: name, points: db[name].totalPoints, level: db[name].level
-        }));
-        users.sort((a, b) => b.points - a.points);
-        
+    async function updateGlobalRanking() {
         const listDiv = document.getElementById('ranking-list');
-        listDiv.innerHTML = '';
-        const topUsers = users.slice(0, 5);
-        topUsers.forEach((u, index) => {
-            const div = document.createElement('div'); div.className = 'ranking-item';
-            const rankIcon = index === 0 ? '👑' : `${index + 1}위`;
-            div.innerHTML = `<span><b>${rankIcon} ${u.name}</b> (Lv.${u.level})</span> <span>${u.points}P</span>`;
-            listDiv.appendChild(div);
-        });
+        listDiv.innerHTML = '<p style="text-align:center;">랭킹 불러오는 중...</p>';
+        
+        try {
+            const snapshot = await db.collection('users')
+                                     .orderBy('totalPoints', 'desc')
+                                     .limit(5)
+                                     .get();
+            
+            listDiv.innerHTML = '';
+            if(snapshot.empty) {
+                listDiv.innerHTML = '<p style="text-align:center;">아직 랭킹이 없습니다.</p>';
+                return;
+            }
+
+            let index = 0;
+            snapshot.forEach(doc => {
+                let u = doc.id; let data = doc.data();
+                const div = document.createElement('div'); div.className = 'ranking-item';
+                const rankIcon = index === 0 ? '👑' : `${index + 1}위`;
+                
+                const highlightMe = (u === currentUser) ? 'color: #FF69B4; font-weight: bold;' : '';
+                
+                div.innerHTML = `<span style="${highlightMe}"><b>${rankIcon} ${u}</b> (Lv.${data.level})</span> <span style="${highlightMe}">${data.totalPoints}P</span>`;
+                listDiv.appendChild(div);
+                index++;
+            });
+            document.getElementById('ranking-box').style.display = 'block';
+        } catch(e) {
+            console.error(e);
+            listDiv.innerHTML = '<p style="text-align:center; color:red;">랭킹 로드 실패!</p>';
+        }
     }
 </script>
 
