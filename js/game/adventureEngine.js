@@ -13,6 +13,9 @@
     var fb = byId('feedback'); if (fb) fb.textContent = '';
     var qc = byId('q-counter'); if (qc) qc.textContent = '0/0';
     var pb = byId('progress-bar'); if (pb) pb.style.width = '0%';
+    if (v2.effectService && typeof v2.effectService.clear === 'function') {
+      v2.effectService.clear();
+    }
   }
   function stop() { if (timer) clearInterval(timer); if (transitionTimer) clearTimeout(transitionTimer); if (safetyTimer) clearTimeout(safetyTimer); timer = null; transitionTimer = null; safetyTimer = null; }
 
@@ -58,6 +61,9 @@
   function nextQuestion() {
     if (!run || run.total >= stage.rules.questionCount || run.lives <= 0 || run.bossHp <= 0) return finishStage();
     try {
+      if (v2.effectService && typeof v2.effectService.clear === 'function') {
+        v2.effectService.clear();
+      }
       run.status='questionActive';run.locked=false;run.current = question(); byId('question').textContent = run.current.text; var box = byId('options-container'); box.innerHTML = '';
       run.current.options.forEach(function (value) { var button = document.createElement('button'); button.type = 'button'; button.className = 'option-btn btn-answer game-answer-button game-answer-button--adventure'; button.textContent = value; button.onclick = function () { answer(value, button); }; box.appendChild(button); }); renderHud();
     } catch (error) { console.error('[Adventure next question error]', error); if (run) run.locked = false; }

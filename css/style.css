@@ -316,3 +316,82 @@ body{min-height:100vh;background-color:#d9c997;background-image:radial-gradient(
     margin: 4px 0 !important;
   }
 }
+
+/* --- Gacha Card Pre-reveal Rarity Protection --- */
+.gacha-modal:not(.revealed) .gacha-reveal-card,
+.gacha-reveal-card:not(.is-revealed) {
+  border-color: #555f7a !important;
+  background: #273045 !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4) !important;
+  filter: none !important;
+  transform: none !important;
+  animation: none !important;
+}
+
+.gacha-modal:not(.revealed) .gacha-reveal-card * {
+  box-shadow: none !important;
+  filter: none !important;
+  animation: none !important;
+}
+
+/* --- Duplicate Star Rendering Styles --- */
+.collection-cat-name-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
+.collection-duplicate-stars {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 1px !important;
+}
+
+.collection-duplicate-stars img, .collection-cat-row__star-icon {
+  width: 12px !important;
+  height: 12px !important;
+  object-fit: contain;
+  margin: 0 !important;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.collection-duplicate-stars.gold img {
+  filter: drop-shadow(0 0 3px rgba(255, 212, 59, 0.8)) !important;
+}
+
+.collection-duplicate-stars.red img {
+  filter: drop-shadow(0 0 3px rgba(255, 77, 109, 0.8)) !important;
+}
+
+/* --- Mission Claim Button Enhancement Styles --- */
+button.claim-btn:not([disabled]) {
+  box-shadow: 0 4px 0 #b38317 !important;
+  background-color: #ffd166 !important;
+  color: #4b3565 !important;
+  font-weight: bold !important;
+  border: none !important;
+  border-radius: 8px !important;
+  transition: transform 0.1s ease, box-shadow 0.1s ease !important;
+  cursor: pointer !important;
+}
+
+button.claim-btn:not([disabled]).button-clicked-anim {
+  transform: translateY(3px) scale(0.96) !important;
+  box-shadow: 0 1px 0 #b38317 !important;
+}
+
+button.claim-btn.button-success-bounce {
+  animation: claimSuccessBounce 0.6s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+}
+
+@keyframes claimSuccessBounce {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.18) translateY(-6px); }
+  55% { transform: scale(0.94) translateY(0); }
+  80% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}

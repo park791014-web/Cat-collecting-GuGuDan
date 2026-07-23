@@ -5,8 +5,123 @@ function stars(count){var info=starInfo(count);if(!info.count)return'<span class
 function ensureModal(){if(id('gacha-animation-modal'))return;var modal=document.createElement('div');modal.id='gacha-animation-modal';modal.className='gacha-modal';modal.hidden=true;modal.innerHTML='<div class="gacha-stage" role="dialog" aria-modal="true" aria-labelledby="gacha-status"><p id="gacha-status" class="gacha-status">고양이 집에서 인기척이 들려요…</p><div class="gacha-house"><div class="gacha-light"></div><img class="gacha-house-body" src="assets/gacha/cat-house.svg" alt="귀여운 고양이 집"><img class="gacha-door" src="assets/gacha/cat-house-door.svg" alt=""></div><article id="gacha-reveal-card" class="gacha-reveal-card" tabindex="-1"></article></div>';document.body.appendChild(modal);}
 function savePending(drawType,r){var save=v2.storageService.loadSaveData();save.pendingDrawReveal={drawSessionId:'draw_'+Date.now()+'_'+Math.random().toString(36).slice(2,8),drawType:drawType,catId:r.cat.id,isDuplicate:Boolean(r.duplicate),rarity:r.rarity,fragments:r.fragments||0,createdAt:new Date().toISOString()};v2.storageService.saveSaveData(save);return save.pendingDrawReveal;}
 function clearPending(){var save=v2.storageService.loadSaveData();delete save.pendingDrawReveal;v2.storageService.saveSaveData(save);}
-function begin(drawType,r){if(state!=='idle')return;result={drawType:drawType,cat:r.cat,rarity:r.rarity,duplicate:Boolean(r.duplicate),fragments:r.fragments||0};savePending(drawType,r);ensureModal();state='animating';var modal=id('gacha-animation-modal');modal.hidden=false;modal.className='gacha-modal rarity-'+r.rarity+' animating';id('gacha-status').textContent='고양이 집에서 인기척이 들려요…';id('gacha-reveal-card').innerHTML='';timer=global.setTimeout(reveal,global.matchMedia&&global.matchMedia('(prefers-reduced-motion: reduce)').matches?700:3350);}
-function reveal(){if(state!=='animating'||!result)return;if(timer)clearTimeout(timer);timer=null;state='revealed';var item=result.cat,save=v2.storageService.loadSaveData(),dup=save.collection.duplicateCounts[item.id]||0,card=id('gacha-reveal-card');id('gacha-animation-modal').classList.remove('animating');id('gacha-animation-modal').classList.add('revealed');id('gacha-status').textContent=names[result.rarity]+' 고양이가 나타났어요!';card.innerHTML='<img class="gacha-result__cat-image" src="'+item.image+'" alt="'+item.displayName+'"><span class="gacha-result__rarity">'+names[result.rarity]+'</span><strong class="gacha-result__name">'+item.displayName+'</strong>'+stars(dup)+(item.description?'<p class="gacha-cat-description gacha-result__description">'+item.description+'</p>':'')+'<h3 class="gacha-result__acquisition">'+(result.duplicate?'중복 획득':'새 고양이 획득!')+'</h3><p>'+(result.duplicate?'고양이 조각 +'+result.fragments:'도감에 추가되었습니다.')+'</p><button id="gacha-confirm" class="game-button primary" type="button">확인</button>';if(v2.assetLoader)v2.assetLoader.applyImageFallback(card.querySelector('img'),item.fallbackImage,item.id);id('gacha-confirm').onclick=close;card.focus();}
+function triggerGachaEffect(rarity) {
+  var card = id('gacha-reveal-card');
+  if (!card) return;
+  if (rarity === 'hero') {
+    // 짧은 빛 확산
+    var flash = document.createElement('div');
+    flash.style.position = 'absolute';
+    flash.style.inset = '0';
+    flash.style.background = 'radial-gradient(circle, rgba(140,88,200,0.6) 0%, transparent 70%)';
+    flash.style.pointerEvents = 'none';
+    flash.style.zIndex = '99';
+    flash.style.borderRadius = '20px';
+    flash.style.transition = 'opacity 0.8s ease-out';
+    card.appendChild(flash);
+    setTimeout(function(){ flash.style.opacity = '0'; }, 50);
+    setTimeout(function(){ if(flash.parentNode) flash.parentNode.removeChild(flash); }, 850);
+
+    // 영웅 등급 파티클 (700~1000ms 내 종료, 카드 이름/이미지 안 가림)
+    for (var i = 0; i < 12; i++) {
+      var p = document.createElement('div');
+      p.className = 'gacha-effect-particle';
+      p.style.position = 'absolute';
+      p.style.left = '50%';
+      p.style.top = '50%';
+      p.style.width = '8px';
+      p.style.height = '8px';
+      p.style.borderRadius = '50%';
+      p.style.backgroundColor = '#8c58c8';
+      p.style.boxShadow = '0 0 8px #8c58c8';
+      p.style.zIndex = '5'; // 버튼(확인)이나 텍스트 방해 안 되게 z-index 내림
+      p.style.pointerEvents = 'none';
+      p.style.transition = 'all 0.9s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+      card.appendChild(p);
+      
+      var angle = Math.random() * Math.PI * 2;
+      var dist = 40 + Math.random() * 70;
+      var dx = Math.cos(angle) * dist;
+      var dy = Math.sin(angle) * dist;
+      
+      (function(el, x, y) {
+        setTimeout(function(){
+          el.style.transform = 'translate(' + x + 'px, ' + y + 'px) scale(0)';
+          el.style.opacity = '0';
+        }, 10);
+        setTimeout(function(){
+          if (el.parentNode) el.parentNode.removeChild(el);
+        }, 950);
+      })(p, dx, dy);
+    }
+  } else if (rarity === 'legendary') {
+    // 영웅보다 강한 후광 (gacha-stage 내부 중심)
+    var stage = document.querySelector('.gacha-stage');
+    var glow = document.createElement('div');
+    if (stage) {
+      glow.style.position = 'absolute';
+      glow.style.left = '50%';
+      glow.style.top = '50%';
+      glow.style.transform = 'translate(-50%, -50%)';
+      glow.style.width = '380px';
+      glow.style.height = '380px';
+      glow.style.background = 'radial-gradient(circle, rgba(212,155,37,0.7) 0%, transparent 60%)';
+      glow.style.pointerEvents = 'none';
+      glow.style.zIndex = '1';
+      glow.style.transition = 'opacity 1.2s ease-out';
+      stage.appendChild(glow);
+      setTimeout(function(){ glow.style.opacity = '0'; }, 50);
+      setTimeout(function(){ if(glow.parentNode) glow.parentNode.removeChild(glow); }, 1250);
+    }
+
+    // 짧은 화면 반짝임 (전체 화면 플래시)
+    var flashScreen = document.createElement('div');
+    flashScreen.style.position = 'fixed';
+    flashScreen.style.inset = '0';
+    flashScreen.style.backgroundColor = '#ffffff';
+    flashScreen.style.opacity = '0.6';
+    flashScreen.style.pointerEvents = 'none';
+    flashScreen.style.zIndex = '99999';
+    flashScreen.style.transition = 'opacity 0.3s ease-out';
+    document.body.appendChild(flashScreen);
+    setTimeout(function(){ flashScreen.style.opacity = '0'; }, 50);
+    setTimeout(function(){ if(flashScreen.parentNode) flashScreen.parentNode.removeChild(flashScreen); }, 350);
+
+    // 원형 빛 또는 별빛 파티클 (900~1400ms 내 종료, 확인 버튼 막지 않음)
+    for (var j = 0; j < 18; j++) {
+      var star = document.createElement('div');
+      star.style.position = 'absolute';
+      star.style.left = '50%';
+      star.style.top = '50%';
+      star.style.width = '10px';
+      star.style.height = '10px';
+      star.style.backgroundColor = '#d49b25';
+      star.style.clipPath = 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)';
+      star.style.zIndex = '5';
+      star.style.pointerEvents = 'none';
+      star.style.transition = 'all 1.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+      card.appendChild(star);
+
+      var angleLeg = Math.random() * Math.PI * 2;
+      var distLeg = 50 + Math.random() * 95;
+      var dxLeg = Math.cos(angleLeg) * distLeg;
+      var dyLeg = Math.sin(angleLeg) * distLeg;
+
+      (function(el, x, y) {
+        setTimeout(function(){
+          el.style.transform = 'translate(' + x + 'px, ' + y + 'px) rotate(140deg) scale(0)';
+          el.style.opacity = '0';
+        }, 10);
+        setTimeout(function(){
+          if (el.parentNode) el.parentNode.removeChild(el);
+        }, 1350);
+      })(star, dxLeg, dyLeg);
+    }
+  }
+}
+
+function begin(drawType,r){if(state!=='idle')return;result={drawType:drawType,cat:r.cat,rarity:r.rarity,duplicate:Boolean(r.duplicate),fragments:r.fragments||0};savePending(drawType,r);ensureModal();state='animating';var modal=id('gacha-animation-modal');modal.hidden=false;modal.className='gacha-modal animating';id('gacha-status').textContent='고양이 집에서 인기척이 들려요…';id('gacha-reveal-card').innerHTML='';timer=global.setTimeout(reveal,global.matchMedia&&global.matchMedia('(prefers-reduced-motion: reduce)').matches?700:3350);}
+function reveal(){if(state!=='animating'||!result)return;if(timer)clearTimeout(timer);timer=null;state='revealed';var item=result.cat,save=v2.storageService.loadSaveData(),dup=save.collection.duplicateCounts[item.id]||0,card=id('gacha-reveal-card');var modal=id('gacha-animation-modal');modal.className='gacha-modal rarity-'+result.rarity+' revealed';id('gacha-status').textContent=names[result.rarity]+' 고양이가 나타났어요!';card.innerHTML='<img class="gacha-result__cat-image" src="'+item.image+'" alt="'+item.displayName+'"><span class="gacha-result__rarity">'+names[result.rarity]+'</span><strong class="gacha-result__name">'+item.displayName+'</strong>'+stars(dup)+(item.description?'<p class="gacha-cat-description gacha-result__description">'+item.description+'</p>':'')+'<h3 class="gacha-result__acquisition">'+(result.duplicate?'중복 획득':'새 고양이 획득!')+'</h3><p>'+(result.duplicate?'고양이 조각 +'+result.fragments:'도감에 추가되었습니다.')+'</p><button id="gacha-confirm" class="game-button primary" type="button">확인</button>';card.classList.add('is-revealed');card.querySelectorAll('.duplicate-stars,.gacha-stars').forEach(function(el){el.remove();});if(v2.assetLoader)v2.assetLoader.applyImageFallback(card.querySelector('img'),item.fallbackImage,item.id);id('gacha-confirm').onclick=close;card.focus();try{triggerGachaEffect(result.rarity);}catch(e){console.warn('[Gacha effect fail]',e);}}
 function close(){if(state!=='revealed')return;state='closing';clearPending();id('gacha-animation-modal').hidden=true;id('gacha-animation-modal').className='gacha-modal';result=null;state='idle';if(global.renderPhase4Currency)global.renderPhase4Currency();openPackScreen();}
 function drawCoin(){if(state!=='idle')return;var r=v2.coinDrawService.draw();if(!r.ok){id('pack-message').textContent=r.reason==='insufficient_coins'?'코인이 부족합니다. 게임을 플레이해 코인을 모아보세요.':'뽑기를 완료하지 못했습니다.';return;}begin('coin',r);}
 function drawTicket(pack){if(state!=='idle')return;var r=v2.cardPackService.openPack(pack);if(!r.ok){id('pack-message').textContent=r.reason==='insufficient_ticket'?'뽑기권이 부족합니다.':'뽑기를 완료하지 못했습니다.';return;}begin(pack,r);}
