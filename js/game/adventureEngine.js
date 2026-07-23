@@ -80,19 +80,67 @@
       catch (error) { console.error('[Adventure correct effect error]', error); }
     }
   }
+  var isStarting = false;
   function startAdventureStage(storyConfirmed) {
-    if(!storyConfirmed&&stage&&stage.boss&&v2.adventureStoryService){try{return v2.adventureStoryService.showBossIntro(stage,function(){startAdventureStage(true);});}catch(storyError){console.warn('[Boss intro failed]',storyError);}}
-    if (!stage) return; if(global.clearClassicRuntime)global.clearClassicRuntime();if (global.clearPhase2Runtime) global.clearPhase2Runtime(); stop(); var cat = selectedCat(); run = { sessionId: 'adventure_' + Date.now(), status:'stageIntro', total: 0, correct: 0, wrong: 0, score: 0, combo: 0, bestCombo: 0, lives: stage.rules.lives, bossHp: stage.boss ? stage.boss.maximumHp : 1, remainingSeconds: stage.rules.timeLimitSeconds || 0, locked: false };
-    byId('skill-hud').style.display = 'flex'; byId('skill-cat-image').src = cat.image; fallback(byId('skill-cat-image'), cat.fallbackImage); byId('skill-status').textContent = cat.skill ? cat.skill.name : '장착 고양이와 함께 모험 중'; byId('manual-skill-button').style.display = 'none'; byId('phase2-exit-button').style.display = 'none'; byId('mode-status').textContent = '구구단 대모험';
-    byId('boss-panel').style.display = stage.boss ? '' : 'none'; if (stage.boss) {var playerImage=byId('player-cat-image'),playerName=byId('player-cat-name');byId('boss-panel').className='boss-panel boss-world-'+stage.chapter+(cat.legendarySkill?' legendary-companion':'');byId('boss-name').textContent = stage.boss.name; byId('boss-image').src = stage.boss.image;byId('boss-image').alt=stage.boss.name; fallback(byId('boss-image'));playerImage.src=cat.image||cat.fallbackImage;playerImage.alt=cat.displayName;fallback(playerImage,cat.fallbackImage);playerName.innerHTML='<strong>'+cat.displayName+'</strong><small>'+({normal:'일반',rare:'희귀',hero:'영웅',legendary:'전설'}[cat.rarity])+(cat.description?' · '+cat.description:'')+'</small>'+(cat.presentationSkill?'<em>효과 '+cat.presentationSkill.effectThemeId+' · 소리 '+cat.presentationSkill.soundThemeId+'</em>':'')+(cat.legendarySkill?'<b>'+cat.legendarySkill.specialOption+'</b>':''); }
-    global.showScreen('play-screen'); nextQuestion();
+    if (isStarting) return;
+    if (!storyConfirmed && stage && stage.boss && v2.adventureStoryService) {
+      isStarting = true;
+      try {
+        v2.adventureStoryService.showBossIntro(stage, function () {
+          isStarting = false;
+          startAdventureStage(true);
+        });
+        return;
+      } catch (storyError) {
+        isStarting = false;
+        console.warn('[Boss intro failed]', storyError);
+      }
+    }
+    isStarting = true;
+    if (!stage) { isStarting = false; return; }
+    if (global.clearClassicRuntime) global.clearClassicRuntime();
+    if (global.clearPhase2Runtime) global.clearPhase2Runtime();
+    stop();
+    var cat = selectedCat();
+    run = { sessionId: 'adventure_' + Date.now(), status: 'stageIntro', total: 0, correct: 0, wrong: 0, score: 0, combo: 0, bestCombo: 0, lives: stage.rules.lives, bossHp: stage.boss ? stage.boss.maximumHp : 1, remainingSeconds: stage.rules.timeLimitSeconds || 0, locked: false };
+    byId('skill-hud').style.display = 'flex';
+    byId('skill-cat-image').src = cat.image;
+    fallback(byId('skill-cat-image'), cat.fallbackImage);
+    byId('skill-status').textContent = cat.skill ? cat.skill.name : '장착 고양이와 함께 모험 중';
+    byId('manual-skill-button').style.display = 'none';
+    byId('phase2-exit-button').style.display = 'none';
+    byId('mode-status').textContent = '구구단 대모험';
+    byId('boss-panel').style.display = stage.boss ? '' : 'none';
+    if (stage.boss) {
+      var playerImage = byId('player-cat-image'), playerName = byId('player-cat-name');
+      byId('boss-panel').className = 'boss-panel boss-world-' + stage.chapter + (cat.legendarySkill ? ' legendary-companion' : '');
+      byId('boss-name').textContent = stage.boss.name;
+      byId('boss-image').src = stage.boss.image;
+      byId('boss-image').alt = stage.boss.name;
+      fallback(byId('boss-image'));
+      playerImage.src = cat.image || cat.fallbackImage;
+      playerImage.alt = cat.displayName;
+      fallback(playerImage, cat.fallbackImage);
+      playerName.innerHTML = '<strong>' + cat.displayName + '</strong><small>' + ({ normal: '일반', rare: '희귀', hero: '영웅', legendary: '전설' }[cat.rarity]) + (cat.description ? ' · ' + cat.description : '') + '</small>' + (cat.presentationSkill ? '<em>효과 ' + cat.presentationSkill.effectThemeId + ' · 소리 ' + cat.presentationSkill.soundThemeId + '</em>' : '') + (cat.legendarySkill ? '<b>' + cat.legendarySkill.specialOption + '</b>' : '');
+    }
+    global.showScreen('play-screen');
+    nextQuestion();
     if (stage.rules.timeLimitSeconds) timer = setInterval(function () { run.remainingSeconds -= 1; byId('timer-bar').style.width = Math.max(0, run.remainingSeconds / stage.rules.timeLimitSeconds * 100) + '%'; if (run.remainingSeconds <= 0) finishStage(); }, 1000);
+    isStarting = false;
   }
   function finishStage() {
     if (!run) return; stop(); var result = { sessionId: run.sessionId, mode: 'adventure', score: run.score, correctCount: run.correct, wrongCount: run.wrong, totalQuestions: run.total, accuracy: run.total ? Math.round(run.correct / run.total * 100) : 0, bestCombo: run.bestCombo, remainingLives: run.lives, remainingSeconds: run.remainingSeconds, bossHp: run.bossHp };
     var completion = v2.adventureService.completeStage(stage.id, result), claim = v2.rewardService.claimStageRewards({ sessionId: run.sessionId, stage: stage, cleared: completion.cleared, stars: completion.stars }), playReward = v2.modeRewardService.claim('adventure', result, { cleared: completion.cleared });
     if (v2.seasonService && v2.isFeatureEnabled('seasonMissions')) v2.seasonService.recordGameResult(Object.assign({}, result, { cleared: completion.cleared, isBoss: Boolean(stage.boss) }));
     if (v2.dailyMissionService) v2.dailyMissionService.recordGameResult(Object.assign({}, result, { cleared: completion.cleared, isBoss: Boolean(stage.boss) }));
+    if (completion.cleared) {
+      var context = window.getCurrentPlayerContext ? window.getCurrentPlayerContext() : { isGuest: true };
+      if (!context.isGuest && context.nickname && result.score > 0) {
+        var save = v2.storageService.loadSaveData();
+        var payload = Object.assign({}, result, { nickname: context.nickname, playerId: save.profile.playerId, playedAt: new Date().toISOString() });
+        v2.rankingService.submitOverall(payload).catch(function(e) { console.error('[Adventure overall rank submit failed]', e); });
+      }
+    }
     if(completion.cleared&&stage.clearStory&&v2.adventureStoryService)setTimeout(function(){try{v2.adventureStoryService.showClearStory(stage);}catch(error){console.warn('[Clear story failed]',error);}},120);
     var cat = selectedCat(); byId('adventure-result-number').textContent = 'STAGE ' + stage.displayNumber; byId('adventure-result-title').textContent = completion.cleared ? '스테이지 클리어!' : '다시 도전해 보세요'; byId('adventure-result-cat').innerHTML = img(cat.image, '', cat.displayName) + '<span>함께한 고양이<br><strong>' + cat.displayName + '</strong></span>'; fallback(byId('adventure-result-cat').querySelector('img'), cat.fallbackImage); byId('adventure-result-stars').textContent = '★'.repeat(completion.stars || 0) + '☆'.repeat(3 - (completion.stars || 0)); byId('adventure-result-stats').innerHTML = '<span>점수 <b>' + result.score + '</b></span><span>정답 <b>' + result.correctCount + '</b></span><span>정확도 <b>' + result.accuracy + '%</b></span>'; byId('adventure-rewards').textContent = (claim.ok ? '스테이지 보상 코인 ' + claim.reward.coins + ' · 일반 티켓 ' + claim.reward.normalTickets : '') + (playReward.ok ? ' · 플레이 보상 +' + playReward.parts.total + '코인' : ''); byId('adventure-unlock-copy').textContent = completion.unlockedStageId ? '다음 스테이지가 열렸어요!' : ''; byId('adventure-result-actions').innerHTML = '<button class="game-button primary" onclick="openStageReady(\'' + stage.id + '\')">다시 도전</button><button class="game-button secondary" onclick="backToStageSelect()">스테이지 목록</button>'; run = null; global.showScreen('adventure-result-screen'); focus('adventure-result-card');
   }

@@ -1,1 +1,87 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="80 80 640 640"><ellipse cx="400" cy="650" rx="290" ry="70" fill="#734f38" opacity=".35"/><path d="M185 630q30-230 215-250t215 250Z" fill="#80583d"/><ellipse cx="400" cy="380" rx="190" ry="205" fill="#9a6b4b" stroke="#4e342e" stroke-width="18"/><g fill="#fff"><circle cx="330" cy="350" r="24"/><circle cx="470" cy="350" r="24"/></g><g><circle cx="330" cy="350" r="10"/><circle cx="470" cy="350" r="10"/></g><ellipse cx="400" cy="430" rx="70" ry="55" fill="#f0a0a0"/><path d="M330 485q70 55 140 0" fill="none" stroke="#4e342e" stroke-width="16"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <defs>
+    <!-- 갈색 몸통 그라디언트 -->
+    <radialGradient id="grad-mole-body" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#a1887f"/>
+      <stop offset="70%" stop-color="#795548"/>
+      <stop offset="100%" stop-color="#4e342e"/>
+    </radialGradient>
+    <!-- 밝은 노란 고글 렌즈 -->
+    <radialGradient id="grad-goggle" cx="40%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#e0f7fa"/>
+      <stop offset="70%" stop-color="#4dd0e1"/>
+      <stop offset="100%" stop-color="#00838f"/>
+    </radialGradient>
+    <!-- 삽 금속 명암 -->
+    <linearGradient id="grad-shovel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#cfd8dc"/>
+      <stop offset="100%" stop-color="#78909c"/>
+    </linearGradient>
+  </defs>
+  <!-- 바닥 그림자 -->
+  <ellipse cx="400" cy="710" rx="220" ry="40" fill="#000" opacity="0.25"/>
+
+  <!-- 흙 무더기 효과 (배경) -->
+  <path d="M 220 700 Q 150 650 250 620 T 450 630 T 580 700 Z" fill="#5d4037" opacity="0.8"/>
+  <circle cx="280" cy="650" r="25" fill="#3e2723"/>
+  <circle cx="500" cy="660" r="20" fill="#3e2723"/>
+
+  <!-- 몸통 -->
+  <ellipse cx="400" cy="490" rx="200" ry="210" fill="url(#grad-mole-body)" stroke="#3e2723" stroke-width="12"/>
+
+  <!-- 배 부분 (밝은 갈색) -->
+  <ellipse cx="400" cy="540" rx="130" ry="120" fill="#d7ccc8"/>
+
+  <!-- 작은 삽 (오른손에 쥠) -->
+  <g transform="rotate(-20 280 500)">
+    <!-- 삽 자루 -->
+    <rect x="250" y="320" width="20" height="200" rx="5" fill="#8d6e63" stroke="#3e2723" stroke-width="6"/>
+    <!-- 삽 손잡이 -->
+    <path d="M 230 320 L 290 320 M 260 320 L 260 290" stroke="#3e2723" stroke-width="10" stroke-linecap="round"/>
+    <!-- 삽 금속부 -->
+    <path d="M 220 500 L 300 500 L 290 570 Q 260 610 230 570 Z" fill="url(#grad-shovel)" stroke="#3e2723" stroke-width="8"/>
+    <!-- 삽 내부 홈 -->
+    <line x1="260" y1="510" x2="260" y2="560" stroke="#37474f" stroke-width="4" stroke-linecap="round"/>
+  </g>
+
+  <!-- 흙 묻은 앞발 (왼손) -->
+  <rect x="520" y="470" width="90" height="110" rx="45" fill="url(#grad-mole-body)" stroke="#3e2723" stroke-width="10" transform="rotate(15 520 470)"/>
+  <!-- 손톱 & 흙 장식 -->
+  <circle cx="560" cy="560" r="14" fill="#5d4037"/>
+  <path d="M 525 560 L 535 580 L 545 560" fill="#fff" stroke="#3e2723" stroke-width="4"/>
+  <path d="M 555 560 L 565 580 L 575 560" fill="#fff" stroke="#3e2723" stroke-width="4"/>
+
+  <!-- 머리(얼굴) -->
+  <ellipse cx="400" cy="310" rx="160" ry="140" fill="url(#grad-mole-body)" stroke="#3e2723" stroke-width="12"/>
+
+  <!-- 탐험가 고글 -->
+  <!-- 고글 끈 -->
+  <rect x="235" y="270" width="330" height="25" fill="#37474f" stroke="#212121" stroke-width="6"/>
+  <!-- 왼쪽 렌즈 -->
+  <circle cx="330" cy="280" r="45" fill="url(#grad-goggle)" stroke="#ffb300" stroke-width="12"/>
+  <circle cx="330" cy="280" r="45" fill="none" stroke="#3e2723" stroke-width="6"/>
+  <path d="M 305 260 L 320 260" stroke="#fff" stroke-width="6" stroke-linecap="round"/> <!-- 렌즈 반사 -->
+  <!-- 오른쪽 렌즈 -->
+  <circle cx="470" cy="280" r="45" fill="url(#grad-goggle)" stroke="#ffb300" stroke-width="12"/>
+  <circle cx="470" cy="280" r="45" fill="none" stroke="#3e2723" stroke-width="6"/>
+  <path d="M 445 260 L 460 260" stroke="#fff" stroke-width="6" stroke-linecap="round"/> <!-- 렌즈 반사 -->
+  <!-- 고글 코 받침 -->
+  <rect x="375" y="270" width="50" height="15" fill="#ffb300" stroke="#3e2723" stroke-width="6"/>
+
+  <!-- 분홍색 둥근 코 -->
+  <ellipse cx="400" cy="340" rx="35" ry="25" fill="#ff8a80" stroke="#3e2723" stroke-width="8"/>
+  <ellipse cx="390" cy="333" rx="12" ry="8" fill="#fff"/>
+
+  <!-- 수염구멍/주둥이 -->
+  <path d="M 370 380 Q 400 400 430 380" fill="none" stroke="#3e2723" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- 장난스러운 이빨 미소 -->
+  <path d="M 360 410 Q 400 450 440 410" fill="#fff" stroke="#3e2723" stroke-width="8" stroke-linejoin="round"/>
+  <!-- 앞이빨 (2개) -->
+  <rect x="382" y="415" width="16" height="18" fill="#fff" stroke="#3e2723" stroke-width="4"/>
+  <rect x="402" y="415" width="16" height="18" fill="#fff" stroke="#3e2723" stroke-width="4"/>
+
+  <!-- 볼 터치 (수줍은 뺨) -->
+  <circle cx="280" cy="360" r="18" fill="#ff8a80" opacity="0.6"/>
+  <circle cx="520" cy="360" r="18" fill="#ff8a80" opacity="0.6"/>
+</svg>

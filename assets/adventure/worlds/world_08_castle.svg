@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <defs>
+    <linearGradient id="grad-sky-castle" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a001a"/>
+      <stop offset="60%" stop-color="#210033"/>
+      <stop offset="100%" stop-color="#4a0e4e"/>
+    </linearGradient>
+  </defs>
+  <!-- 하늘 -->
+  <rect width="800" height="800" fill="url(#grad-sky-castle)"/>
+
+  <!-- 마왕성의 실루엣 탑 -->
+  <polygon points="120,800 120,400 180,250 240,400 240,800" fill="#0d0d0d"/>
+  <polygon points="560,800 560,400 620,250 680,400 680,800" fill="#0d0d0d"/>
+  
+  <polygon points="300,800 300,300 400,100 500,300 500,800" fill="#090010" stroke="#ff1744" stroke-width="2"/>
+
+  <!-- 으스스한 번개 효과 -->
+  <path d="M 400 0 L 370 120 L 420 180 L 390 280" fill="none" stroke="#ea80fc" stroke-width="8" opacity="0.6"/>
+
+  <!-- 바닥 음침한 타일 돌다리 -->
+  <path d="M 0 670 Q 250 620 500 670 Q 680 700 800 670 L 800 800 L 0 800 Z" fill="#1c0f24" stroke="#ff1744" stroke-width="6"/>
+</svg>

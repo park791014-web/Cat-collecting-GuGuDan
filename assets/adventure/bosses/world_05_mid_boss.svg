@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <defs>
+    <radialGradient id="grad-pbody" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#4fc3f7"/>
+      <stop offset="70%" stop-color="#0288d1"/>
+      <stop offset="100%" stop-color="#01579b"/>
+    </radialGradient>
+    <linearGradient id="grad-hat" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff1744"/>
+      <stop offset="100%" stop-color="#b71c1c"/>
+    </linearGradient>
+  </defs>
+  <!-- 바닥 그림자 -->
+  <ellipse cx="400" cy="710" rx="230" ry="45" fill="#000" opacity="0.2"/>
+
+  <!-- 발 (노란색) -->
+  <ellipse cx="320" cy="690" rx="55" ry="30" fill="#ffa000" stroke="#37474f" stroke-width="8"/>
+  <ellipse cx="480" cy="690" rx="55" ry="30" fill="#ffa000" stroke="#37474f" stroke-width="8"/>
+
+  <!-- 몸통 (둥근 펭귄) -->
+  <ellipse cx="400" cy="460" rx="220" ry="240" fill="url(#grad-pbody)" stroke="#37474f" stroke-width="12"/>
+
+  <!-- 하얀 배/얼굴 영역 -->
+  <path d="M 230 460 Q 230 280 400 280 Q 570 280 570 460 Q 570 660 400 660 Q 230 660 230 460 Z" fill="#ffffff" stroke="#37474f" stroke-width="6"/>
+
+  <!-- 날개 팔 -->
+  <path d="M 190 400 Q 80 480 120 560 Q 170 540 190 480" fill="#0288d1" stroke="#37474f" stroke-width="10"/>
+  <path d="M 610 400 Q 720 480 680 560 Q 630 540 610 480" fill="#0288d1" stroke="#37474f" stroke-width="10"/>
+
+  <!-- 빨간 털모자 -->
+  <path d="M 250 250 Q 400 120 550 250 Z" fill="url(#grad-hat)" stroke="#37474f" stroke-width="10"/>
+  <!-- 모자 방울 -->
+  <circle cx="400" cy="120" r="35" fill="#ffffff" stroke="#37474f" stroke-width="8"/>
+  <!-- 모자 테두리 털 -->
+  <rect x="230" y="225" width="340" height="50" rx="25" fill="#ffffff" stroke="#37474f" stroke-width="8"/>
+
+  <!-- 눈 -->
+  <circle cx="330" cy="360" r="28" fill="#37474f"/>
+  <circle cx="320" cy="350" r="10" fill="#ffffff"/>
+  <circle cx="340" cy="370" r="4" fill="#ffffff"/>
+
+  <circle cx="470" cy="360" r="28" fill="#37474f"/>
+  <circle cx="460" cy="350" r="10" fill="#ffffff"/>
+  <circle cx="480" cy="370" r="4" fill="#ffffff"/>
+
+  <!-- 홍조 -->
+  <circle cx="280" cy="410" r="18" fill="#ff4081" opacity="0.5"/>
+  <circle cx="520" cy="410" r="18" fill="#ff4081" opacity="0.5"/>
+
+  <!-- 노란 부리 -->
+  <path d="M 360 380 Q 400 350 440 380 Q 400 450 360 380" fill="#ffd54f" stroke="#37474f" stroke-width="8" stroke-linejoin="round"/>
+</svg>

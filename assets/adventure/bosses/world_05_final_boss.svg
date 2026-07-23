@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <defs>
+    <radialGradient id="grad-qface" cx="50%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#e0f7fa"/>
+      <stop offset="70%" stop-color="#b2ebf2"/>
+      <stop offset="100%" stop-color="#4dd0e1"/>
+    </radialGradient>
+    <linearGradient id="grad-qdress" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#80deea"/>
+      <stop offset="50%" stop-color="#00acc1"/>
+      <stop offset="100%" stop-color="#006064"/>
+    </linearGradient>
+  </defs>
+  <!-- 바닥 그림자 -->
+  <ellipse cx="400" cy="730" rx="260" ry="40" fill="#000" opacity="0.18"/>
+
+  <!-- 얼음 날개 장식 (뒤쪽) -->
+  <path d="M 400 350 L 250 180 L 320 380 L 150 320 L 300 480 Z" fill="#e0f7fa" opacity="0.6" stroke="#00acc1" stroke-width="4"/>
+  <path d="M 400 350 L 550 180 L 480 380 L 650 320 L 500 480 Z" fill="#e0f7fa" opacity="0.6" stroke="#00acc1" stroke-width="4"/>
+
+  <!-- 드레스 하단 몸통 -->
+  <path d="M 300 450 Q 400 410 500 450 L 570 700 Q 400 750 230 700 Z" fill="url(#grad-qdress)" stroke="#006064" stroke-width="10"/>
+
+  <!-- 망토/어깨 장식 -->
+  <path d="M 310 440 Q 400 370 490 440 L 540 580 Q 400 520 260 580 Z" fill="#b2ebf2" stroke="#00838f" stroke-width="6"/>
+
+  <!-- 얼굴 -->
+  <ellipse cx="400" cy="330" rx="130" ry="120" fill="url(#grad-qface)" stroke="#00838f" stroke-width="10"/>
+
+  <!-- 눈송이 왕관 -->
+  <path d="M 280 260 L 300 130 L 350 220 L 400 100 L 450 220 L 500 130 L 520 260 Z" fill="#ffffff" stroke="#00acc1" stroke-width="8" stroke-linejoin="round"/>
+  <!-- 왕관 보석 -->
+  <circle cx="400" cy="180" r="16" fill="#00e5ff"/>
+  <circle cx="330" cy="200" r="10" fill="#00e5ff"/>
+  <circle cx="470" cy="200" r="10" fill="#00e5ff"/>
+
+  <!-- 매서운 눈 (여왕의 카리스마) -->
+  <path d="M 310 310 Q 350 290 370 320" fill="none" stroke="#006064" stroke-width="8" stroke-linecap="round"/>
+  <path d="M 490 310 Q 450 290 430 320" fill="none" stroke="#006064" stroke-width="8" stroke-linecap="round"/>
+  <!-- 눈동자 -->
+  <ellipse cx="345" cy="335" rx="14" ry="22" fill="#006064"/>
+  <circle cx="342" cy="328" r="5" fill="#fff"/>
+  <ellipse cx="455" cy="335" rx="14" ry="22" fill="#006064"/>
+  <circle cx="452" cy="328" r="5" fill="#fff"/>
+
+  <!-- 볼 터치 (연하늘) -->
+  <ellipse cx="310" cy="370" rx="20" ry="10" fill="#80deea" opacity="0.5"/>
+  <ellipse cx="490" cy="370" rx="20" ry="10" fill="#80deea" opacity="0.5"/>
+
+  <!-- 입 (작고 우아한) -->
+  <path d="M 385 390 Q 400 400 415 390" fill="none" stroke="#006064" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- 눈꽃 장식 입자 -->
+  <circle cx="200" cy="200" r="6" fill="#fff"/>
+  <circle cx="600" cy="200" r="6" fill="#fff"/>
+  <circle cx="150" cy="450" r="8" fill="#fff" opacity="0.7"/>
+  <circle cx="650" cy="450" r="8" fill="#fff" opacity="0.7"/>
+</svg>

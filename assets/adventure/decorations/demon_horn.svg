@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- 날카롭고 으스스한 붉은 뿔 쌍 -->
+  <path d="M 20 80 Q 15 40 40 20 Q 30 50 35 80 Z" fill="#b71c1c" stroke="#212121" stroke-width="4"/>
+  <path d="M 80 80 Q 85 40 60 20 Q 70 50 65 80 Z" fill="#b71c1c" stroke="#212121" stroke-width="4"/>
+  <!-- 뿔 중간의 띠 장식 -->
+  <path d="M 20 50 Q 25 55 31 52" fill="none" stroke="#ffd600" stroke-width="3"/>
+  <path d="M 80 50 Q 75 55 69 52" fill="none" stroke="#ffd600" stroke-width="3"/>
+</svg>

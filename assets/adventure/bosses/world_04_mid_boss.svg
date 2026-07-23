@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <defs>
+    <!-- 명암 그라디언트 -->
+    <radialGradient id="grad-body" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#ff7b39"/>
+      <stop offset="70%" stop-color="#e64a19"/>
+      <stop offset="100%" stop-color="#bf360c"/>
+    </radialGradient>
+    <linearGradient id="grad-belly" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fff176"/>
+      <stop offset="100%" stop-color="#fbc02d"/>
+    </linearGradient>
+    <radialGradient id="grad-flame" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffeb3b"/>
+      <stop offset="40%" stop-color="#ff9100"/>
+      <stop offset="100%" stop-color="#ff3d00" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- 바닥 그림자 -->
+  <ellipse cx="400" cy="710" rx="250" ry="50" fill="#000" opacity="0.25"/>
+  
+  <!-- 꼬리 -->
+  <path d="M 450 600 Q 620 620 680 480 Q 720 380 660 300 Q 610 240 650 180" fill="none" stroke="#e64a19" stroke-width="60" stroke-linecap="round"/>
+  <path d="M 450 600 Q 620 620 680 480 Q 720 380 660 300 Q 610 240 650 180" fill="none" stroke="#ff7b39" stroke-width="40" stroke-linecap="round"/>
+  <!-- 꼬리 끝 불꽃 -->
+  <circle cx="650" cy="180" r="70" fill="url(#grad-flame)"/>
+  <circle cx="650" cy="180" r="40" fill="#ffeb3b"/>
+  <path d="M 620 200 Q 650 100 680 200 Z" fill="#ff9100"/>
+
+  <!-- 다리 (뒤) -->
+  <rect x="220" y="580" width="80" height="110" rx="40" fill="#bf360c"/>
+  <rect x="500" y="580" width="80" height="110" rx="40" fill="#bf360c"/>
+  
+  <!-- 몸통 -->
+  <ellipse cx="400" cy="500" rx="210" ry="180" fill="url(#grad-body)" stroke="#5d4037" stroke-width="12"/>
+  
+  <!-- 배 (밝은 영역) -->
+  <ellipse cx="400" cy="530" rx="140" ry="120" fill="url(#grad-belly)"/>
+
+  <!-- 다리 (앞) -->
+  <rect x="260" y="610" width="70" height="100" rx="35" fill="url(#grad-body)" stroke="#5d4037" stroke-width="10"/>
+  <rect x="470" y="610" width="70" height="100" rx="35" fill="url(#grad-body)" stroke="#5d4037" stroke-width="10"/>
+  <!-- 발가락 장식 -->
+  <circle cx="280" cy="710" r="12" fill="#fff176"/>
+  <circle cx="310" cy="710" r="12" fill="#fff176"/>
+  <circle cx="490" cy="710" r="12" fill="#fff176"/>
+  <circle cx="520" cy="710" r="12" fill="#fff176"/>
+
+  <!-- 머리 -->
+  <ellipse cx="400" cy="300" rx="170" ry="150" fill="url(#grad-body)" stroke="#5d4037" stroke-width="12"/>
+  <path d="M 320 180 Q 400 130 480 180" fill="none" stroke="#ff7b39" stroke-width="20" stroke-linecap="round"/>
+
+  <!-- 눈 -->
+  <circle cx="310" cy="270" r="45" fill="#ffffff" stroke="#5d4037" stroke-width="8"/>
+  <circle cx="315" cy="270" r="22" fill="#3e2723"/>
+  <circle cx="305" cy="260" r="10" fill="#ffffff"/> <!-- 하이라이트 -->
+
+  <circle cx="490" cy="270" r="45" fill="#ffffff" stroke="#5d4037" stroke-width="8"/>
+  <circle cx="485" cy="270" r="22" fill="#3e2723"/>
+  <circle cx="475" cy="260" r="10" fill="#ffffff"/> <!-- 하이라이트 -->
+
+  <!-- 볼 붉은색 -->
+  <ellipse cx="270" cy="340" rx="25" ry="15" fill="#ff3d00" opacity="0.6"/>
+  <ellipse cx="530" cy="340" rx="25" ry="15" fill="#ff3d00" opacity="0.6"/>
+
+  <!-- 콧구멍 -->
+  <ellipse cx="380" cy="330" rx="6" ry="10" fill="#5d4037"/>
+  <ellipse cx="420" cy="330" rx="6" ry="10" fill="#5d4037"/>
+
+  <!-- 입 -->
+  <path d="M 350 370 Q 400 410 450 370" fill="none" stroke="#5d4037" stroke-width="10" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <defs>
+    <radialGradient id="grad-armor" cx="50%" cy="30%" r="60%">
+      <stop offset="0%" stop-color="#424242"/>
+      <stop offset="60%" stop-color="#212121"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </radialGradient>
+    <linearGradient id="grad-redeye" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff1744"/>
+      <stop offset="100%" stop-color="#880e4f"/>
+    </linearGradient>
+  </defs>
+  <!-- 바닥 그림자 (어두운 보스이므로 진하게 배치) -->
+  <ellipse cx="400" cy="730" rx="250" ry="45" fill="#000" opacity="0.5"/>
+
+  <!-- 어깨 장갑 (좌/우) -->
+  <path d="M 180 550 L 260 480 L 320 540 L 230 680 Z" fill="url(#grad-armor)" stroke="#3e2723" stroke-width="10"/>
+  <path d="M 620 550 L 540 480 L 480 540 L 570 680 Z" fill="url(#grad-armor)" stroke="#3e2723" stroke-width="10"/>
+
+  <!-- 칼 손잡이 (어깨 뒤쪽) -->
+  <rect x="200" y="320" width="30" height="150" rx="5" fill="#ff1744" transform="rotate(-30 200 320)" stroke="#000" stroke-width="6"/>
+  <rect x="180" y="420" width="80" height="20" rx="5" fill="#b0bec5" transform="rotate(-30 200 320)" stroke="#000" stroke-width="6"/>
+
+  <!-- 갑옷 상체 -->
+  <path d="M 280 520 L 520 520 L 550 710 L 250 710 Z" fill="url(#grad-armor)" stroke="#212121" stroke-width="12"/>
+  <!-- 가슴 어둠의 코어 -->
+  <polygon points="400,560 430,610 370,610" fill="#ff1744" stroke="#000" stroke-width="4"/>
+  <polygon points="400,630 420,610 380,610" fill="#ff1744" stroke="#000" stroke-width="4"/>
+
+  <!-- 목 조인트 -->
+  <rect x="340" y="440" width="120" height="90" fill="#3e2723" stroke="#000" stroke-width="8"/>
+
+  <!-- 투구 머리 -->
+  <path d="M 240 400 C 240 220, 560 220, 560 400 L 520 460 L 280 460 Z" fill="url(#grad-armor)" stroke="#ff1744" stroke-width="8"/>
+
+  <!-- 기사 뿔 (좌/우) -->
+  <path d="M 270 240 Q 180 120 220 180 Z" fill="#212121" stroke="#ff1744" stroke-width="8"/>
+  <path d="M 530 240 Q 620 120 580 180 Z" fill="#212121" stroke="#ff1744" stroke-width="8"/>
+
+  <!-- 투구 앞가리개 슬릿 (바이저) -->
+  <path d="M 280 340 L 520 340 L 490 410 L 310 410 Z" fill="#0d0d0d" stroke="#212121" stroke-width="8"/>
+  
+  <!-- 번뜩이는 붉은 기사 눈빛 -->
+  <polygon points="310,360 360,360 340,385" fill="url(#grad-redeye)"/>
+  <polygon points="490,360 440,360 460,385" fill="url(#grad-redeye)"/>
+  <circle cx="335" cy="365" r="4" fill="#fff"/>
+  <circle cx="465" cy="365" r="4" fill="#fff"/>
+
+  <!-- 투구 하단 마우스가드 격자 -->
+  <line x1="370" y1="430" x2="370" y2="450" stroke="#ff1744" stroke-width="6" stroke-linecap="round"/>
+  <line x1="400" y1="430" x2="400" y2="450" stroke="#ff1744" stroke-width="6" stroke-linecap="round"/>
+  <line x1="430" y1="430" x2="430" y2="450" stroke="#ff1744" stroke-width="6" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <defs>
+    <radialGradient id="grad-whale" cx="50%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#80deea"/>
+      <stop offset="50%" stop-color="#1a237e"/>
+      <stop offset="100%" stop-color="#0d47a1"/>
+    </radialGradient>
+    <radialGradient id="grad-sparkle" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="50%" stop-color="#80deea"/>
+      <stop offset="100%" stop-color="#0d47a1" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- 바닥 그림자 (우주 공간이므로 불투명도를 낮춰 신비롭게 처리) -->
+  <ellipse cx="400" cy="720" rx="310" ry="40" fill="#000" opacity="0.15"/>
+
+  <!-- 꼬리 지느러미 -->
+  <path d="M 180 500 Q 50 550 80 430 Q 150 420 230 460 Z" fill="#1a237e" stroke="#00bcd4" stroke-width="6"/>
+  <path d="M 180 500 Q 50 350 100 370 Q 170 410 230 460 Z" fill="#1a237e" stroke="#00bcd4" stroke-width="6"/>
+
+  <!-- 등 분수 (별빛 스파우트) -->
+  <path d="M 400 240 C 400 100, 320 80, 280 120" fill="none" stroke="#e0f7fa" stroke-width="12" stroke-linecap="round" opacity="0.8"/>
+  <path d="M 400 240 C 400 100, 480 80, 520 120" fill="none" stroke="#e0f7fa" stroke-width="12" stroke-linecap="round" opacity="0.8"/>
+  <circle cx="280" cy="120" r="15" fill="url(#grad-sparkle)"/>
+  <circle cx="520" cy="120" r="15" fill="url(#grad-sparkle)"/>
+
+  <!-- 몸통 (거대 고래) -->
+  <path d="M 200 460 C 220 300, 580 200, 680 380 C 720 480, 580 620, 350 600 C 260 590, 200 520, 200 460 Z" fill="url(#grad-whale)" stroke="#00838f" stroke-width="10"/>
+
+  <!-- 배 (밝은 파란 영역) -->
+  <path d="M 330 595 C 440 600, 580 540, 640 430 C 580 480, 460 510, 330 500 Z" fill="#b2ebf2" opacity="0.75"/>
+
+  <!-- 옆구리 지느러미 -->
+  <path d="M 420 520 Q 460 630 380 660 Q 360 580 420 520" fill="#0097a7" stroke="#00838f" stroke-width="8"/>
+
+  <!-- 신비로운 은하 무늬 (별자리 데칼) -->
+  <circle cx="480" cy="350" r="6" fill="#fff"/>
+  <circle cx="520" cy="380" r="8" fill="#fff"/>
+  <circle cx="560" cy="340" r="5" fill="#fff"/>
+  <line x1="480" y1="350" x2="520" y2="380" stroke="#fff" stroke-width="2" opacity="0.5"/>
+  <line x1="520" y1="380" x2="560" y2="340" stroke="#fff" stroke-width="2" opacity="0.5"/>
+
+  <!-- 은하 고래의 자비롭고 감동적인 눈 -->
+  <circle cx="610" cy="370" r="22" fill="#ffffff" stroke="#00838f" stroke-width="6"/>
+  <circle cx="610" cy="370" r="12" fill="#006064"/>
+  <circle cx="615" cy="365" r="5" fill="#fff"/> <!-- 하이라이트 -->
+
+  <!-- 은은한 미소 입 -->
+  <path d="M 640 430 Q 610 440 590 420" fill="none" stroke="#00838f" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- 우주 장식 파티클 -->
+  <circle cx="250" cy="300" r="4" fill="#e0f7fa"/>
+  <circle cx="340" cy="220" r="6" fill="#e0f7fa"/>
+  <circle cx="670" cy="500" r="5" fill="#e0f7fa"/>
+</svg>

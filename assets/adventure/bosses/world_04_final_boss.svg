@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <defs>
+    <radialGradient id="grad-mane" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff3d00"/>
+      <stop offset="60%" stop-color="#dd2c00"/>
+      <stop offset="100%" stop-color="#3e2723"/>
+    </radialGradient>
+    <linearGradient id="grad-face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffb74d"/>
+      <stop offset="100%" stop-color="#ff8f00"/>
+    </linearGradient>
+  </defs>
+  <!-- 바닥 그림자 -->
+  <ellipse cx="400" cy="730" rx="300" ry="50" fill="#000" opacity="0.3"/>
+
+  <!-- 갈기 (뒷배경) -->
+  <path d="M 400 100 Q 250 120 180 250 Q 100 400 180 550 Q 250 680 400 700 Q 550 680 620 550 Q 700 400 620 250 Q 550 120 400 100 Z" fill="url(#grad-mane)" stroke="#212121" stroke-width="12"/>
+  <!-- 갈기 깃털 뾰족 장식 -->
+  <path d="M 230 180 L 150 120 L 170 230" fill="#ff6d00"/>
+  <path d="M 570 180 L 650 120 L 630 230" fill="#ff6d00"/>
+  <path d="M 120 350 L 50 350 L 120 420" fill="#ff6d00"/>
+  <path d="M 680 350 L 750 350 L 680 420" fill="#ff6d00"/>
+
+  <!-- 뒷발 -->
+  <rect x="250" y="580" width="90" height="130" rx="45" fill="#d84315"/>
+  <rect x="460" y="580" width="90" height="130" rx="45" fill="#d84315"/>
+
+  <!-- 몸통 -->
+  <ellipse cx="400" cy="540" rx="190" ry="150" fill="#e65100" stroke="#3e2723" stroke-width="10"/>
+
+  <!-- 앞발 -->
+  <rect x="280" y="610" width="80" height="110" rx="40" fill="url(#grad-face)" stroke="#3e2723" stroke-width="10"/>
+  <rect x="440" y="610" width="80" height="110" rx="40" fill="url(#grad-face)" stroke="#3e2723" stroke-width="10"/>
+  <!-- 발톱 -->
+  <path d="M 295 710 L 305 730 L 315 710" fill="#fff" stroke="#3e2723" stroke-width="4"/>
+  <path d="M 325 710 L 335 730 L 345 710" fill="#fff" stroke="#3e2723" stroke-width="4"/>
+  <path d="M 455 710 L 465 730 L 475 710" fill="#fff" stroke="#3e2723" stroke-width="4"/>
+  <path d="M 485 710 L 495 730 L 505 710" fill="#fff" stroke="#3e2723" stroke-width="4"/>
+
+  <!-- 머리(얼굴) -->
+  <ellipse cx="400" cy="360" rx="150" ry="130" fill="url(#grad-face)" stroke="#3e2723" stroke-width="12"/>
+
+  <!-- 귀 -->
+  <path d="M 280 270 Q 250 180 320 230 Z" fill="#e65100" stroke="#3e2723" stroke-width="8"/>
+  <path d="M 520 270 Q 550 180 480 230 Z" fill="#e65100" stroke="#3e2723" stroke-width="8"/>
+
+  <!-- 이마 무늬 -->
+  <path d="M 370 240 L 400 290 L 430 240 Z" fill="#ff3d00"/>
+  <path d="M 385 240 L 400 270 L 415 240 Z" fill="#ffeb3b"/>
+
+  <!-- 눈 -->
+  <polygon points="290,320 340,310 330,340 290,340" fill="#fff" stroke="#3e2723" stroke-width="8"/>
+  <circle cx="315" cy="328" r="12" fill="#d50000"/>
+  <circle cx="312" cy="323" r="5" fill="#fff"/>
+
+  <polygon points="510,320 460,310 470,340 510,340" fill="#fff" stroke="#3e2723" stroke-width="8"/>
+  <circle cx="485" cy="328" r="12" fill="#d50000"/>
+  <circle cx="488" cy="323" r="5" fill="#fff"/>
+
+  <!-- 코/머즐 -->
+  <path d="M 360 380 Q 400 350 440 380 Q 450 430 400 440 Q 350 430 360 380 Z" fill="#ffcc80" stroke="#3e2723" stroke-width="6"/>
+  <polygon points="380,380 420,380 400,400" fill="#3e2723"/>
+
+  <!-- 화난 눈썹 -->
+  <path d="M 270 290 Q 330 290 350 320" fill="none" stroke="#3e2723" stroke-width="12" stroke-linecap="round"/>
+  <path d="M 530 290 Q 470 290 450 320" fill="none" stroke="#3e2723" stroke-width="12" stroke-linecap="round"/>
+
+  <!-- 입 / 수염구멍 -->
+  <path d="M 385 415 Q 400 425 415 415" fill="none" stroke="#3e2723" stroke-width="6"/>
+</svg>

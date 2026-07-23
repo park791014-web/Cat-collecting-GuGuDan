@@ -1,0 +1,59 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "leaderboardsV3",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "rankingVersion", "order": "ASCENDING" },
+        { "fieldPath": "mode", "order": "ASCENDING" },
+        { "fieldPath": "periodType", "order": "ASCENDING" },
+        { "fieldPath": "monthKey", "order": "ASCENDING" },
+        { "fieldPath": "monthlyScore", "order": "DESCENDING" },
+        { "fieldPath": "correctCount", "order": "DESCENDING" },
+        { "fieldPath": "accuracy", "order": "DESCENDING" },
+        { "fieldPath": "playedAtTimestamp", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "leaderboardsV3",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "rankingVersion", "order": "ASCENDING" },
+        { "fieldPath": "mode", "order": "ASCENDING" },
+        { "fieldPath": "periodType", "order": "ASCENDING" },
+        { "fieldPath": "totalScore", "order": "DESCENDING" },
+        { "fieldPath": "correctCount", "order": "DESCENDING" },
+        { "fieldPath": "accuracy", "order": "DESCENDING" },
+        { "fieldPath": "playedAtTimestamp", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "leaderboardsV3",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "rankingVersion", "order": "ASCENDING" },
+        { "fieldPath": "mode", "order": "ASCENDING" },
+        { "fieldPath": "periodType", "order": "ASCENDING" },
+        { "fieldPath": "weekKey", "order": "ASCENDING" },
+        { "fieldPath": "correctCount", "order": "DESCENDING" },
+        { "fieldPath": "accuracy", "order": "DESCENDING" },
+        { "fieldPath": "wrongCount", "order": "ASCENDING" },
+        { "fieldPath": "playedAtTimestamp", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "leaderboardsV3",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "rankingVersion", "order": "ASCENDING" },
+        { "fieldPath": "mode", "order": "ASCENDING" },
+        { "fieldPath": "periodType", "order": "ASCENDING" },
+        { "fieldPath": "correctCount", "order": "DESCENDING" },
+        { "fieldPath": "accuracy", "order": "DESCENDING" },
+        { "fieldPath": "wrongCount", "order": "ASCENDING" },
+        { "fieldPath": "playedAtTimestamp", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

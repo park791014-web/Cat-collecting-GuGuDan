@@ -1,0 +1,17 @@
+{
+  "name": "구구단 냥코 대모험",
+  "short_name": "냥코 구구단",
+  "start_url": "/Cat-collecting-GuGuDan/",
+  "scope": "/Cat-collecting-GuGuDan/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fffdf5",
+  "theme_color": "#6b3fa0",
+  "icons": [
+    {
+      "src": "assets/cats/base/base_legendary_01-transparent.png",
+      "sizes": "140x140",
+      "type": "image/png"
+    }
+  ]
+}

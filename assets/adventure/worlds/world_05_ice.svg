@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <defs>
+    <linearGradient id="grad-sky-ice" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#006064"/>
+      <stop offset="60%" stop-color="#0097a7"/>
+      <stop offset="100%" stop-color="#b2ebf2"/>
+    </linearGradient>
+  </defs>
+  <!-- 하늘 -->
+  <rect width="800" height="800" fill="url(#grad-sky-ice)"/>
+  
+  <!-- 배경 빙산 명암 -->
+  <polygon points="50,800 250,220 400,800" fill="#e0f7fa" opacity="0.75"/>
+  <polygon points="250,220 300,220 450,800 400,800" fill="#80deea" opacity="0.6"/>
+
+  <polygon points="350,800 500,180 700,800" fill="#e0f7fa" opacity="0.75"/>
+  <polygon points="500,180 550,180 750,800 700,800" fill="#80deea" opacity="0.6"/>
+
+  <!-- 눈 내리는 입자 -->
+  <circle cx="150" cy="180" r="10" fill="#fff" opacity="0.8"/>
+  <circle cx="380" cy="240" r="6" fill="#fff" opacity="0.5"/>
+  <circle cx="620" cy="150" r="8" fill="#fff" opacity="0.9"/>
+  <circle cx="500" cy="380" r="12" fill="#fff" opacity="0.7"/>
+
+  <!-- 바닥 빙판지대 -->
+  <path d="M 0 680 Q 250 630 500 680 Q 680 700 800 680 L 800 800 L 0 800 Z" fill="#b2ebf2" stroke="#00acc1" stroke-width="8"/>
+</svg>

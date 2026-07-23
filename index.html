@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="css/phase561.css">
     <link rel="stylesheet" href="css/phase562.css">
     <link rel="stylesheet" href="css/releasePatch.css?v=2.0.14">
+    <link rel="manifest" href="/Cat-collecting-GuGuDan/manifest.json">
 </head>
 <body>
 
@@ -74,7 +75,8 @@
             <button class="mode-card classic" onclick="startMarathonGame()"><strong>기본 게임</strong><span>구구단 문제를 차근차근 풀어보세요.</span></button>
             <button class="mode-card time-attack" onclick="startPhase2Mode('timeAttack')"><strong>타임어택</strong><span>제한 시간 동안 최고 점수에 도전하세요.</span></button>
         </div>
-        <nav class="utility-nav" aria-label="보조 메뉴"><button onclick="openCardPackScreen()">고양이 뽑기</button><button onclick="openCollectionScreen()">도감</button><button onclick="openRankings()">순위</button><button onclick="openSettingsScreen()">설정</button><label><input id="sound-enabled-toggle" type="checkbox" checked onchange="toggleGameSound(this.checked)"> 소리</label></nav>
+        <nav class="utility-nav" aria-label="보조 메뉴"><button onclick="openCardPackScreen()">고양이 뽑기</button><button onclick="openCollectionScreen()">도감</button><button onclick="openRankings()">순위</button><button onclick="openSettingsScreen()">설정</button></nav>
+        <button id="pwa-install-btn" class="btn btn-pwa" style="display:none; margin-top: 10px; background-color: #FFD166; color: #4B3565; font-weight: bold; width: 100%;">홈 화면에 추가</button>
         <button class="btn btn-guest" onclick="logout()">로그아웃</button>
     </div>
 
@@ -253,5 +255,7 @@
     <script src="js/ui/phase56Runtime.js"></script>
     <script src="js/ui/phase561Runtime.js"></script>
     <script src="js/ui/phase562Runtime.js"></script>
+    <script src="js/services/backButtonHandler.js"></script>
+    <script src="js/services/pwaManager.js"></script>
 </body>
 </html>

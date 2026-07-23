@@ -12,8 +12,22 @@
   function load(){var ctx=context||setInitial(),raw=global.localStorage.getItem(keyFor(ctx));try{return enrich(raw?JSON.parse(raw):null,ctx);}catch(error){console.error('[User save load error]',error);return enrich(null,ctx);}}
   function save(data){var ctx=context||setInitial(),value=enrich(data,ctx);try{global.localStorage.setItem(keyFor(ctx),JSON.stringify(value));return true;}catch(error){console.error('[User save error]',error);return false;}}
   function reset(){try{global.localStorage.removeItem(keyFor(context||setInitial()));return true;}catch(e){return false;}}
-  function better(mode,next,best){if(mode==='timeAttack')return next.score>best.bestScore||(next.score===best.bestScore&&(next.correctCount>(best.bestCorrectCount||0)||(next.correctCount===(best.bestCorrectCount||0)&&(next.bestCombo>best.bestCombo||(next.bestCombo===best.bestCombo&&next.wrongCount<(best.lowestWrongCount==null?Infinity:best.lowestWrongCount))))));return next.score>best.bestScore||(next.score===best.bestScore&&next.bestCombo>best.bestCombo);}
-  function recordGame(result){if(result.mode!=='classic'&&result.mode!=='timeAttack')return{saved:false,isPersonalBest:false,data:load()};var data=load(),best=data.personalBests[result.mode];data.gameHistory.push(JSON.parse(JSON.stringify(result)));data.gameHistory=data.gameHistory.slice(-50);data.progress.totalGames++;data.progress.totalScore+=result.score;data.progress.totalCorrect+=result.correctCount;data.progress.totalWrong+=result.wrongCount;data.progress.bestCombo=Math.max(data.progress.bestCombo,result.bestCombo);var personal=better(result.mode,result,best);if(personal)data.personalBests[result.mode]=result.mode==='timeAttack'?{bestScore:result.score,bestCorrectCount:result.correctCount,bestCombo:result.bestCombo,lowestWrongCount:result.wrongCount,achievedAt:result.playedAt}:{bestScore:result.score,bestCombo:result.bestCombo,achievedAt:result.playedAt};save(data);return{saved:true,isPersonalBest:personal,data:data};}
+  function better(mode,next,best){
+    if(!best)return true;
+    if(mode==='timeAttack'){
+      var nextVal=Number(next.correctCount)||0,curVal=Number(best.bestCorrectCount)||0;
+      if(nextVal!==curVal)return nextVal>curVal;
+      var nextAcc=Number(next.accuracy)||0,curAcc=Number(best.bestAccuracy)||0;
+      if(nextAcc!==curAcc)return nextAcc>curAcc;
+      var nextWrong=Number(next.wrongCount)||0,curWrong=Number(best.lowestWrongCount||0);
+      var curWrongVal=(best.lowestWrongCount===undefined||best.lowestWrongCount===null)?Infinity:curWrong;
+      if(nextWrong!==curWrongVal)return nextWrong<curWrongVal;
+      var nextTime=new Date(next.playedAt).getTime()||0,curTime=new Date(best.achievedAt).getTime()||0;
+      return nextTime<curTime;
+    }
+    return next.score>best.bestScore||(next.score===best.bestScore&&next.bestCombo>best.bestCombo);
+  }
+  function recordGame(result){if(result.mode!=='classic'&&result.mode!=='timeAttack')return{saved:false,isPersonalBest:false,data:load()};var data=load(),best=data.personalBests[result.mode];data.gameHistory.push(JSON.parse(JSON.stringify(result)));data.gameHistory=data.gameHistory.slice(-50);data.progress.totalGames++;data.progress.totalScore+=result.score;data.progress.totalCorrect+=result.correctCount;data.progress.totalWrong+=result.wrongCount;data.progress.bestCombo=Math.max(data.progress.bestCombo,result.bestCombo);var personal=better(result.mode,result,best);if(personal)data.personalBests[result.mode]=result.mode==='timeAttack'?{bestScore:result.score,bestCorrectCount:result.correctCount,bestCombo:result.bestCombo,lowestWrongCount:result.wrongCount,bestAccuracy:result.accuracy,achievedAt:result.playedAt}:{bestScore:result.score,bestCombo:result.bestCombo,achievedAt:result.playedAt};save(data);return{saved:true,isPersonalBest:personal,data:data};}
   function setInitial(){context=normalize({type:'guest'});return context;}
   function clearMemory(){context=null;return true;}
   function validateIsolation(){var original=getUserContext(),a=normalize({type:'authenticated',userId:'test_account_a'}),b=normalize({type:'authenticated',userId:'test_account_b'});return{valid:keyFor(a)!==keyFor(b)&&keyFor(a)!==keyFor(normalize({type:'guest',userId:'test_guest'})),keys:[keyFor(a),keyFor(b)] ,current:original};}

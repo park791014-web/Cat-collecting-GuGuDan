@@ -1,1 +1,56 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="50 50 700 700"><g fill="none" stroke="#c44d7a" stroke-width="34" stroke-linecap="round"><path d="M150 600Q20 500 145 360M650 600q130-100 5-240M300 680Q150 760 100 650"/></g><circle cx="400" cy="410" r="265" fill="#dc6f9b" stroke="#8e315a" stroke-width="20"/><g fill="none" stroke="#f5b4ce" stroke-width="16"><path d="M190 300q210 220 420 0M170 430q230-210 460 0M250 180q140 260 300 0"/></g><g fill="#fff"><ellipse cx="315" cy="405" rx="38" ry="50"/><ellipse cx="485" cy="405" rx="38" ry="50"/></g><path d="M320 520q80-55 160 0" fill="none" stroke="#6f2848" stroke-width="20"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <defs>
+    <!-- 보석 그라디언트 -->
+    <radialGradient id="grad-gem" cx="40%" cy="30%" r="60%">
+      <stop offset="0%" stop-color="#00e5ff"/>
+      <stop offset="60%" stop-color="#00acc1"/>
+      <stop offset="100%" stop-color="#006064"/>
+    </radialGradient>
+  </defs>
+  <!-- 바닥 그림자 -->
+  <ellipse cx="400" cy="720" rx="280" ry="45" fill="#000" opacity="0.25"/>
+
+  <!-- 꼬인 실타래 팔 (좌/우) -->
+  <path d="M 180 450 Q 80 500 120 620 Q 180 600 200 520" fill="none" stroke="#ff4081" stroke-width="40" stroke-linecap="round"/>
+  <path d="M 180 450 Q 80 500 120 620 Q 180 600 200 520" fill="none" stroke="#ff80ab" stroke-width="25" stroke-linecap="round"/>
+
+  <path d="M 620 450 Q 720 500 680 620 Q 620 600 600 520" fill="none" stroke="#ff4081" stroke-width="40" stroke-linecap="round"/>
+  <path d="M 620 450 Q 720 500 680 620 Q 620 600 600 520" fill="none" stroke="#ff80ab" stroke-width="25" stroke-linecap="round"/>
+
+  <!-- 둥근 몸통 (실뭉치 라인 겹치기) -->
+  <circle cx="400" cy="480" r="240" fill="#f06292" stroke="#3e2723" stroke-width="12"/>
+  
+  <!-- 여러 색의 털실 층 (패스 겹치기) -->
+  <!-- 노란색 실타래 선 -->
+  <path d="M 220 350 Q 400 200 580 350" fill="none" stroke="#ffd54f" stroke-width="18" stroke-linecap="round"/>
+  <path d="M 180 450 Q 400 350 620 450" fill="none" stroke="#ffd54f" stroke-width="15" stroke-linecap="round"/>
+  
+  <!-- 하늘색 실타래 선 -->
+  <path d="M 200 530 Q 400 650 600 530" fill="none" stroke="#4fc3f7" stroke-width="22" stroke-linecap="round"/>
+  <path d="M 250 600 Q 400 680 550 600" fill="none" stroke="#4fc3f7" stroke-width="15" stroke-linecap="round"/>
+
+  <!-- 보라색 실타래 선 -->
+  <path d="M 280 270 Q 400 450 520 270" fill="none" stroke="#ba68c8" stroke-width="20" stroke-linecap="round"/>
+  <path d="M 170 400 Q 250 250 400 280" fill="none" stroke="#ba68c8" stroke-width="15" stroke-linecap="round"/>
+
+  <!-- 가운데 빛나는 푸른 보석 조각 -->
+  <polygon points="400,410 440,460 400,510 360,460" fill="url(#grad-gem)" stroke="#ffffff" stroke-width="6"/>
+  <!-- 보석 안쪽 빛 반사 -->
+  <polygon points="400,425 420,460 400,485 380,460" fill="#e0f7fa" opacity="0.6"/>
+
+  <!-- 실로 만든 두꺼운 눈썹 -->
+  <path d="M 260 280 Q 320 260 360 300" fill="none" stroke="#3e2723" stroke-width="16" stroke-linecap="round"/>
+  <path d="M 540 280 Q 480 260 440 300" fill="none" stroke="#3e2723" stroke-width="16" stroke-linecap="round"/>
+
+  <!-- 눈송이 눈빛 -->
+  <circle cx="310" cy="350" r="30" fill="#ffffff" stroke="#3e2723" stroke-width="8"/>
+  <circle cx="310" cy="350" r="14" fill="#3e2723"/>
+  <circle cx="304" cy="342" r="6" fill="#ffffff"/>
+
+  <circle cx="490" cy="350" r="30" fill="#ffffff" stroke="#3e2723" stroke-width="8"/>
+  <circle cx="490" cy="350" r="14" fill="#3e2723"/>
+  <circle cx="484" cy="342" r="6" fill="#ffffff"/>
+
+  <!-- 실 입술 -->
+  <path d="M 370 540 Q 400 570 430 540" fill="none" stroke="#3e2723" stroke-width="10" stroke-linecap="round"/>
+</svg>

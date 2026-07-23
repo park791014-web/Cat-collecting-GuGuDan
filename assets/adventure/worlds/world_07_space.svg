@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <defs>
+    <radialGradient id="grad-sky-space" cx="50%" cy="50%" r="75%">
+      <stop offset="0%" stop-color="#1a237e"/>
+      <stop offset="60%" stop-color="#0d47a1"/>
+      <stop offset="100%" stop-color="#000022"/>
+    </radialGradient>
+  </defs>
+  <!-- 우주 공간 -->
+  <rect width="800" height="800" fill="url(#grad-sky-space)"/>
+
+  <!-- 배경 행성 (토성 형태) -->
+  <ellipse cx="600" cy="220" rx="90" ry="90" fill="#ffb74d" opacity="0.8"/>
+  <ellipse cx="600" cy="220" rx="190" ry="30" fill="none" stroke="#ffe082" stroke-width="15" transform="rotate(-15 600 220)" opacity="0.6"/>
+
+  <!-- 안드로메다 소용돌이 성운 -->
+  <path d="M 120 180 Q 200 120 300 250 T 400 400" fill="none" stroke="#ea80fc" stroke-width="8" opacity="0.3"/>
+
+  <!-- 별빛 반짝이들 -->
+  <circle cx="150" cy="380" r="4" fill="#fff"/>
+  <circle cx="280" cy="150" r="5" fill="#fff"/>
+  <circle cx="680" cy="420" r="4" fill="#fff"/>
+  <circle cx="450" cy="180" r="3" fill="#fff"/>
+
+  <!-- 바닥 우주선/은하수 궤도 발판 -->
+  <path d="M 0 680 Q 400 580 800 680 L 800 800 L 0 800 Z" fill="#000" opacity="0.8" stroke="#00e5ff" stroke-width="4"/>
+</svg>

@@ -223,7 +223,6 @@
         if (window.renderBaseCollection) window.renderBaseCollection();
         if (v2.isFeatureEnabled && v2.isFeatureEnabled('seasons') && window.renderSeasonBanner) window.renderSeasonBanner();
         if (window.renderDailyMissions) window.renderDailyMissions();
-        if (window.maybeShowOnboarding) window.maybeShowOnboarding();
     }
 
     function updateLiveAccuracy() {
@@ -531,3 +530,6 @@
     if (v2.validators) v2.validators.validateAll();
     window.toggleGameSound = function (enabled) { if (!v2.storageService) return; const data = v2.storageService.loadSaveData(); data.settings.soundEnabled = Boolean(enabled); v2.storageService.saveSaveData(data); if (v2.soundService) v2.soundService.setSoundEnabled(enabled); };
     window.getCurrentPlayerContext = function () { return { nickname: currentUser || '', isGuest: isGuestMode, userData: currentUserData }; };
+
+    if (v2.initBackButtonHandler) v2.initBackButtonHandler();
+    if (v2.initPwaManager) v2.initPwaManager();
