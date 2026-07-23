@@ -63,17 +63,20 @@
     var me = context();
     list.innerHTML = '';
     if (!records.length) list.innerHTML = '<p class="ranking-empty">아직 등록된 기록이 없어요.</p>';
+    
+    var suffix = category === 'timeAttack' ? '개' : 'P';
+    
     records.forEach(function (record, index) {
       var item = document.createElement('div');
       item.className = 'mode-ranking-item' + (record.playerId === playerId() ? ' is-me' : '');
-      item.innerHTML = '<span><b>' + (index + 1) + '위</b> ' + escapeHtml(record.nickname || '익명') + '</span><strong>' + record.displayScore + 'P</strong>';
+      item.innerHTML = '<span><b>' + (index + 1) + '위</b> ' + escapeHtml(record.nickname || '익명') + '</span><strong>' + record.displayScore + suffix + '</strong>';
       list.appendChild(item);
     });
     var inTopTen = ownRecord && records.some(function (record) { return record.id === ownRecord.id; });
     if (ownRecord && !inTopTen) {
       var own = document.createElement('div');
       own.className = 'mode-ranking-item ranking-own-outside';
-      own.innerHTML = '<span><b>10위 밖 · 내 기록</b> ' + escapeHtml(ownRecord.nickname || me.nickname || '') + '</span><strong>' + ownRecord.displayScore + 'P</strong>';
+      own.innerHTML = '<span><b>10위 밖 · 내 기록</b> ' + escapeHtml(ownRecord.nickname || me.nickname || '') + '</span><strong>' + ownRecord.displayScore + suffix + '</strong>';
       list.appendChild(own);
     }
   }
