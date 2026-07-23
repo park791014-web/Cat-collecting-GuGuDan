@@ -115,30 +115,30 @@
                     console.error('[Release reset migration error]', migrationError);
                 }
                 try {
-                    var stats = currentUserData.stats;
                     var migrations = currentUserData.migrations || (currentUserData.migrations = {});
-                    if (stats && stats.modes && !migrations['v2_recalculate_overall_scores_202607']) {
-                        var classic = stats.modes.classic || {};
-                        var timeAttack = stats.modes.timeAttack || {};
-                        var adventure = stats.modes.adventure || {};
-                        var cScore = Number(classic.score) || 0;
-                        var tScore = Number(timeAttack.score) || 0;
-                        var aScore = Number(adventure.score) || 0;
-                        if (classic.plays || timeAttack.plays || adventure.plays) {
-                            var recalculatedTotalScore = cScore + tScore + aScore;
-                            stats.totalScore = recalculatedTotalScore;
-                            currentUserData.totalPoints = recalculatedTotalScore;
-                            currentUserData.totalScore = recalculatedTotalScore;
-                            currentUserData.level = Math.floor(recalculatedTotalScore / 150) + 1;
-                            migrations['v2_recalculate_overall_scores_202607'] = { completed: true, completedAt: new Date().toISOString() };
-                            currentUserData.migrations = migrations;
-                            currentUserData.stats = stats;
-                            await userRef.set(currentUserData, { merge: true });
-                            console.log('[Overall recalculation migration completed for user]', username, recalculatedTotalScore);
-                        }
+                    if (!migrations['scoring_v4_reset']) {
+                        currentUserData.scoringVersion = 4;
+                        currentUserData.totalPoints = 0;
+                        currentUserData.totalScore = 0;
+                        currentUserData.monthlyScore = 0;
+                        currentUserData.level = 1;
+                        currentUserData.lastRewardedLevel = 1;
+                        currentUserData.modePoints = {
+                            classic: 0,
+                            timeAttack: 0,
+                            adventure: 0
+                        };
+                        migrations['scoring_v4_reset'] = {
+                            completed: true,
+                            completedAt: new Date().toISOString()
+                        };
+                        currentUserData.migrations = migrations;
+                        
+                        await userRef.set(currentUserData, { merge: true });
+                        console.log('[scoring_v4_reset migration complete]', username);
                     }
                 } catch (migErr) {
-                    console.warn('[Recalculate migration failed]', migErr);
+                    console.warn('[scoring_v4_reset migration failed]', migErr);
                 }
                 await receivePendingTickets(userRef, currentUserData);
                 await syncCurrentCurrencyToFirebase(userRef);
@@ -414,76 +414,68 @@
 
     function disableBtns() { document.querySelectorAll('.btn-answer').forEach(b => b.disabled = true); }
 
+    const SCORING_SCHEMA_VERSION = 4;
+    const LEVEL_BASE_POINTS = 2000;
+    const LEVEL_GROWTH_POINTS = 500;
+
+    function requiredTotalPointsForLevel(level) {
+        const safeLevel = Math.max(1, Math.floor(Number(level) || 1));
+        const completedLevels = safeLevel - 1;
+        return completedLevels * LEVEL_BASE_POINTS + (completedLevels * (completedLevels - 1) / 2) * LEVEL_GROWTH_POINTS;
+    }
+    v2.requiredTotalPointsForLevel = requiredTotalPointsForLevel;
+
+    function calculateLevelFromPoints(totalPoints) {
+        let level = 1;
+        while (totalPoints >= requiredTotalPointsForLevel(level + 1)) {
+            level += 1;
+        }
+        return Math.min(level, 999);
+    }
+    v2.calculateLevelFromPoints = calculateLevelFromPoints;
+
     const POINTS_PER_CORRECT = 10;
-    function calculateOfficialOverallPoints(result) {
-        return Math.max(0, Number(result.correctCount || 0) * POINTS_PER_CORRECT);
+    function calculateSessionPoints(correctCount) {
+        const safeCorrectCount = Math.max(0, Math.floor(Number(correctCount) || 0));
+        return safeCorrectCount * POINTS_PER_CORRECT;
     }
-    v2.calculateOfficialOverallPoints = calculateOfficialOverallPoints;
+    v2.calculateSessionPoints = calculateSessionPoints;
 
-    function isBetterTimeAttackResult(candidate, currentBest) {
-        if (!currentBest) return true;
-        var nextVal = Number(candidate.correctCount) || 0, curVal = Number(currentBest.correctCount) || 0;
-        if (nextVal !== curVal) return nextVal > curVal;
-        var nextAcc = Number(candidate.accuracy) || 0, curAcc = Number(currentBest.accuracy) || 0;
-        if (nextAcc !== curAcc) return nextAcc > curAcc;
-        var nextWrong = Number(candidate.wrongCount) || 0, curWrong = Number(currentBest.wrongCount) || 0;
-        if (nextWrong !== curWrong) return nextWrong < curWrong;
-        var nextTime = new Date(candidate.achievedAt || candidate.playedAt || new Date()).getTime() || 0;
-        var curTime = new Date(currentBest.achievedAt || currentBest.playedAt || new Date()).getTime() || 0;
-        return nextTime < curTime;
-    }
-    v2.isBetterTimeAttackResult = isBetterTimeAttackResult;
-
-    async function saveTimeAttackWeeklyBest(result) {
-        if (isGuestMode || !currentUser) return;
-        var save = v2.storageService.loadSaveData();
-        var payload = {
-            mode: 'timeAttack',
-            score: (Number(result.correctCount) || 0) * POINTS_PER_CORRECT,
-            correctCount: Number(result.correctCount) || 0,
-            accuracy: Number(result.accuracy) || 0,
-            wrongCount: Number(result.wrongCount) || 0,
-            bestCombo: Number(result.bestCombo) || 0,
-            sessionId: result.sessionId || ('best_' + Date.now()),
-            playerId: save.profile.playerId,
-            nickname: currentUser,
-            playedAt: result.completedAt || new Date().toISOString()
-        };
-        return v2.rankingService.submitScore(payload);
-    }
-    async function saveTimeAttackAllTimeBest(result) {
-        return saveTimeAttackWeeklyBest(result);
+    // V4 레벨업 알림 팝업
+    function showLevelUpAlertV4(newLevel, ticketCount) {
+        alert("🎉 레벨 업! 🎉\n\n레벨 " + newLevel + "을 달성했다냥!\n고급 뽑기권 " + ticketCount + "장을 받았어요.");
     }
 
-    async function finalizeCompletedGameSession(result) {
+    // V4 공통 결과 처리 함수
+    async function finalizeGameResultV4(result) {
         if (!result || !result.sessionId) return;
-        v2.finalizingSessionIds = v2.finalizingSessionIds || {};
-        if (v2.finalizingSessionIds[result.sessionId]) {
-            console.warn('[Session finalization locked] already running:', result.sessionId);
+        v2.finalizingSessionIdsV4 = v2.finalizingSessionIdsV4 || {};
+        if (v2.finalizingSessionIdsV4[result.sessionId]) {
+            console.warn('[Session V4 finalization locked] already running:', result.sessionId);
             return;
         }
-        v2.finalizingSessionIds[result.sessionId] = true;
+        v2.finalizingSessionIdsV4[result.sessionId] = true;
 
         try {
             var mode = result.mode;
             var correctCount = Number(result.correctCount) || 0;
             var wrongCount = Number(result.wrongCount) || 0;
-            var answeredCount = Number(result.totalQuestions || result.answeredCount || (correctCount + wrongCount)) || 0;
-            var overallPoints = calculateOfficialOverallPoints(result);
+            var answeredCount = Number(result.answeredCount || result.totalQuestions || (correctCount + wrongCount)) || 0;
+            var earnedPoints = calculateSessionPoints(correctCount);
             var completedAt = result.completedAt || result.playedAt || new Date().toISOString();
             var stageId = result.stageId || null;
 
-            // 1. LocalStorage 중복 검증 및 기록
+            // 1. LocalStorage 중복 검증
             var save = v2.storageService.loadSaveData();
             save.rewardHistory = save.rewardHistory || {};
-            var history = save.rewardHistory.processedOverallSessionIds || (save.rewardHistory.processedOverallSessionIds = []);
-            if (history.indexOf(result.sessionId) >= 0) {
-                console.warn('[Session Duplicate Local] already processed:', result.sessionId);
-                delete v2.finalizingSessionIds[result.sessionId];
+            var processedV4 = save.rewardHistory.processedV4Sessions || (save.rewardHistory.processedV4Sessions = []);
+            if (processedV4.indexOf(result.sessionId) >= 0) {
+                console.warn('[Session Duplicate Local V4] already processed:', result.sessionId);
+                delete v2.finalizingSessionIdsV4[result.sessionId];
                 return;
             }
-            history.push(result.sessionId);
-            save.rewardHistory.processedOverallSessionIds = history.slice(-100);
+            processedV4.push(result.sessionId);
+            save.rewardHistory.processedV4Sessions = processedV4.slice(-100);
 
             var cleanResult = {
                 sessionId: result.sessionId,
@@ -493,7 +485,7 @@
                 totalQuestions: answeredCount,
                 answeredCount: answeredCount,
                 accuracy: answeredCount ? Math.round(correctCount / answeredCount * 100) : 0,
-                score: overallPoints,
+                score: earnedPoints,
                 playedAt: completedAt,
                 completedAt: completedAt,
                 stageId: stageId,
@@ -501,10 +493,14 @@
             };
             v2.storageService.recordGame(cleanResult);
 
-            // 2. Firebase가 온라인인 경우 통합 업데이트
+            // 2. Firebase가 온라인이고 로그인 상태일 때 통합 업데이트
             if (!isGuestMode && currentUser) {
                 var userRef = db.collection('users').doc(currentUser);
-                var sessionRef = db.collection('processedGameSessions').doc(currentUser + '_' + result.sessionId);
+                var sessionRef = db.collection('processedGameSessions_v4').doc(currentUser + '_' + result.sessionId);
+
+                var gainedLevels = 0;
+                var premiumTicketsToGrant = 0;
+                var newLevel = 1;
 
                 await db.runTransaction(async function(transaction) {
                     var sessionDoc = await transaction.get(sessionRef);
@@ -515,126 +511,115 @@
                     var userSnap = await transaction.get(userRef);
                     var uData = userSnap.exists ? userSnap.data() : {};
 
-                    // stats 구조 검증 및 초기화 (5. 사용자 성적 데이터 구조 반영)
-                    uData.stats = uData.stats || {};
-                    var stats = uData.stats;
-                    stats.totalScore = Number(stats.totalScore) || 0;
-                    stats.totalCorrectCount = Number(stats.totalCorrectCount) || 0;
-                    stats.totalAnsweredCount = Number(stats.totalAnsweredCount) || 0;
-                    stats.monthlyScore = Number(stats.monthlyScore) || 0;
-                    stats.monthlyCorrectCount = Number(stats.monthlyCorrectCount) || 0;
-                    stats.monthlyAnsweredCount = Number(stats.monthlyAnsweredCount) || 0;
+                    // stats V4 초기화 보장
+                    uData.scoringVersion = 4;
+                    uData.totalPoints = Number(uData.totalPoints) || 0;
+                    uData.monthlyScore = Number(uData.monthlyScore) || 0;
+                    uData.level = Number(uData.level) || 1;
+                    uData.lastRewardedLevel = Number(uData.lastRewardedLevel) || 1;
 
-                    stats.modes = stats.modes || {};
+                    uData.modePoints = uData.modePoints || { classic: 0, timeAttack: 0, adventure: 0 };
                     ['classic', 'timeAttack', 'adventure'].forEach(function(m) {
-                        stats.modes[m] = stats.modes[m] || { plays: 0, score: 0, correctCount: 0, answeredCount: 0 };
-                        if (m === 'timeAttack') {
-                            stats.modes[m].bestCorrectCount = Number(stats.modes[m].bestCorrectCount) || 0;
-                        }
+                        uData.modePoints[m] = Number(uData.modePoints[m]) || 0;
                     });
 
-                    // 전체 누적 및 월간 합산
-                    stats.totalScore += overallPoints;
-                    stats.totalCorrectCount += correctCount;
-                    stats.totalAnsweredCount += answeredCount;
+                    // 포인트 누적
+                    uData.totalPoints += earnedPoints;
+                    uData.monthlyScore += earnedPoints;
+                    uData.modePoints[mode] += earnedPoints;
 
-                    stats.monthlyScore += overallPoints;
-                    stats.monthlyCorrectCount += correctCount;
-                    stats.monthlyAnsweredCount += answeredCount;
+                    // 레벨 재계산
+                    newLevel = calculateLevelFromPoints(uData.totalPoints);
 
-                    // 모드 상세
-                    var mStats = stats.modes[mode];
-                    mStats.plays = (Number(mStats.plays) || 0) + 1;
-                    mStats.score = (Number(mStats.score) || 0) + overallPoints;
-                    mStats.correctCount = (Number(mStats.correctCount) || 0) + correctCount;
-                    mStats.answeredCount = (Number(mStats.answeredCount) || 0) + answeredCount;
+                    // 레벨업 보상 (V4 룰)
+                    gainedLevels = Math.max(0, newLevel - uData.lastRewardedLevel);
+                    if (gainedLevels > 0) {
+                        premiumTicketsToGrant = gainedLevels;
+                        uData.premiumTickets = (Number(uData.premiumTickets) || 0) + premiumTicketsToGrant;
+                        uData.lastRewardedLevel = newLevel;
+                    }
+                    uData.level = newLevel;
 
                     if (mode === 'timeAttack') {
-                        var currentBestObj = uData.timeAttackBestObj || null;
+                        var currentBestObj = uData.timeAttackBestObjV4 || null;
                         var candidate = {
-                            correctCount: correctCount,
+                            bestCorrectCount: correctCount,
                             accuracy: answeredCount ? (correctCount / answeredCount) : 0,
                             wrongCount: wrongCount,
-                            playedAt: completedAt,
+                            achievedAt: completedAt,
                             bestCombo: Number(result.bestCombo) || 0
                         };
-                        var isNewBest = !currentBestObj || isBetterTimeAttackResult(candidate, currentBestObj);
+                        var isNewBest = !currentBestObj || v2.rankingService.isBetterTimeAttackResult(candidate, currentBestObj);
                         if (isNewBest) {
-                            stats.modes.timeAttack.bestCorrectCount = correctCount;
-                            uData.timeAttackBestObj = candidate;
+                            uData.timeAttackBestObjV4 = candidate;
                         }
                     }
 
-                    // 1레벨 필드 매핑 일치
-                    uData.totalPoints = stats.totalScore;
-                    uData.totalScore = stats.totalScore;
-                    uData.monthlyScore = stats.monthlyScore;
-                    uData.level = Math.floor(stats.totalScore / 150) + 1;
+                    uData.totalScore = uData.totalPoints;
                     uData.playCount = (Number(uData.playCount) || 0) + 1;
-                    uData.stats = stats;
 
                     transaction.set(userRef, uData, { merge: true });
                     transaction.set(sessionRef, { processedAt: firebase.firestore.FieldValue.serverTimestamp() });
                     currentUserData = uData;
                 });
 
-                // 16. 개발 로그
-                console.debug("[Game Result Finalized]", {
-                    sessionId: result.sessionId,
-                    mode: mode,
-                    correctCount: correctCount,
-                    overallPoints: overallPoints,
-                    updatedMonthlyScore: currentUserData.stats.monthlyScore,
-                    updatedTotalScore: currentUserData.stats.totalScore,
-                    timeAttackBestCorrectCount: currentUserData.stats.modes.timeAttack.bestCorrectCount
-                });
-
-                // 랭킹 저장 (월간 랭킹, 누적 랭킹 문서 갱신)
+                // V4 랭킹 제출
                 await v2.rankingService.submitOverall({
                     playerId: save.profile.playerId,
                     nickname: currentUser,
-                    score: currentUserData.stats.totalScore,
-                    monthlyScore: currentUserData.stats.monthlyScore,
-                    correctCount: currentUserData.stats.totalCorrectCount,
-                    totalQuestions: currentUserData.stats.totalAnsweredCount,
-                    accuracy: currentUserData.stats.totalAnsweredCount ? Math.round(currentUserData.stats.totalCorrectCount / currentUserData.stats.totalAnsweredCount * 10000) / 100 : 0,
-                    sessionId: result.sessionId,
+                    points: currentUserData.totalPoints,
+                    monthlyPoints: currentUserData.monthlyScore,
+                    score: earnedPoints,
                     playedAt: completedAt
                 });
 
-                // 타임어택 최고기록일 때 주간/누적 랭킹 문서 갱신
-                if (mode === 'timeAttack' && currentUserData.timeAttackBestObj) {
-                    var bestObj = currentUserData.timeAttackBestObj;
-                    await saveTimeAttackWeeklyBest({
-                        correctCount: bestObj.correctCount,
+                if (mode === 'timeAttack' && currentUserData.timeAttackBestObjV4) {
+                    var bestObj = currentUserData.timeAttackBestObjV4;
+                    await v2.rankingService.submitScore({
+                        playerId: save.profile.playerId,
+                        nickname: currentUser,
+                        correctCount: bestObj.bestCorrectCount,
                         wrongCount: bestObj.wrongCount,
                         accuracy: bestObj.accuracy,
                         bestCombo: bestObj.bestCombo,
-                        completedAt: bestObj.playedAt,
+                        completedAt: bestObj.achievedAt,
                         sessionId: result.sessionId
                     });
+                }
+
+                // 레벨업 팝업 호출
+                if (gainedLevels > 0) {
+                    setTimeout(function() {
+                        showLevelUpAlertV4(newLevel, premiumTicketsToGrant);
+                    }, 100);
                 }
             }
 
             // 12. 첫 화면 즉시 갱신
+            await reloadCurrentUserStats();
             refreshHomeStatsFromCurrentUser();
             refreshLeaderboardSummaryIfVisible();
 
         } catch (error) {
             if (error.message === 'session_already_processed') {
-                console.warn('[Session already processed by server]', result.sessionId);
+                console.warn('[Session already processed by server V4]', result.sessionId);
             } else {
-                console.error('[finalizeCompletedGameSession failed]', error);
+                console.error('[finalizeGameResultV4 failed]', error);
             }
         } finally {
-            delete v2.finalizingSessionIds[result.sessionId];
+            delete v2.finalizingSessionIdsV4[result.sessionId];
         }
+    }
+    v2.finalizeGameResultV4 = finalizeGameResultV4;
+
+    // 하위 호환성용 래퍼
+    async function finalizeCompletedGameSession(result) {
+        return finalizeGameResultV4(result);
     }
     v2.finalizeCompletedGameSession = finalizeCompletedGameSession;
 
-    // 하위 호환성 유지용 래퍼 함수
     async function saveCompletedGameResult(result) {
-        return finalizeCompletedGameSession(result);
+        return finalizeGameResultV4(result);
     }
     v2.saveCompletedGameResult = saveCompletedGameResult;
 
@@ -655,24 +640,32 @@
         try {
             if (!currentUser) return;
             if (!isGuestMode && currentUserData) {
-                var stats = currentUserData.stats || {};
-                var timeAttack = stats.modes && stats.modes.timeAttack || {};
-                var totalScore = Number(stats.totalScore) || Number(currentUserData.totalScore) || Number(currentUserData.totalPoints) || 0;
-                var monthlyScore = Number(stats.monthlyScore) || Number(currentUserData.monthlyScore) || 0;
-                var totalCorrectCount = Number(stats.totalCorrectCount) || Number(currentUserData.totalCorrectCount) || 0;
+                var totalPoints = Number(currentUserData.totalPoints) || 0;
                 var level = Number(currentUserData.level) || 1;
-                var xp = totalScore % 150;
-                var bestCorrectCount = Number(timeAttack.bestCorrectCount) || 0;
+                
+                var currentLevelStart = requiredTotalPointsForLevel(level);
+                var nextLevelStart = requiredTotalPointsForLevel(level + 1);
+                var progressHtml = '';
+                
+                if (nextLevelStart > currentLevelStart) {
+                    var percent = Math.min(100, Math.max(0, ((totalPoints - currentLevelStart) / (nextLevelStart - currentLevelStart)) * 100));
+                    progressHtml = 
+                        '<div class="level-progress-container" style="margin-top: 8px; background: #e0e0e0; border-radius: 4px; height: 8px; width: 100%; overflow: hidden;">' +
+                            '<div class="level-progress-bar" style="background: #FF69B4; width: ' + percent + '%; height: 100%; transition: width 0.3s ease;"></div>' +
+                        '</div>' +
+                        '<div style="font-size: 0.75em; color: #666; margin-top: 4px; text-align: right;">' +
+                            totalPoints.toLocaleString() + ' / ' + nextLevelStart.toLocaleString() + 'P' +
+                        '</div>';
+                }
 
                 var box = document.getElementById('lobby-stats-box');
                 if (box) {
                     box.innerHTML = 
-                        '<p style="margin: 5px;">🏆 내 레벨: Lv.<span class="highlight" id="lobby-level">' + level + '</span></p>' +
-                        '<p style="margin: 5px;">💰 전체 누적 점수: <span class="highlight" id="lobby-points">' + totalScore + '</span>P</p>' +
-                        '<p style="margin: 5px;">📅 이번 달 점수: <span class="highlight">' + monthlyScore + '</span>P</p>' +
-                        '<p style="margin: 5px;">✅ 전체 정답 수: <span class="highlight">' + totalCorrectCount + '</span>개</p>' +
-                        '<p style="margin: 5px;">⭐ 경험치 진행도: <span>' + xp + ' / 150</span> XP</p>' +
-                        '<p style="margin: 5px;">⏱️ 타임어택 최고 기록: <span class="highlight">' + bestCorrectCount + '개</span></p>';
+                        '<div style="text-align: left; padding: 5px;">' +
+                            '<p style="margin: 3px 0; font-size: 1.1em; font-weight: bold; color: #4b3565;">🏆 내 레벨: <span class="highlight" id="lobby-level">Lv.' + level + '</span></p>' +
+                            '<p style="margin: 3px 0; font-size: 1.1em; font-weight: bold; color: #4b3565;">💰 전체 포인트: <span class="highlight" id="lobby-points">' + totalPoints.toLocaleString() + 'P</span></p>' +
+                            progressHtml +
+                        '</div>';
                 }
             }
         } catch (error) {

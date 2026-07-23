@@ -1,8 +1,8 @@
 (function (global) {
   'use strict';
   var v2 = global.GugudanV2 || {};
-  var category = 'overall';
-  var period = 'monthly';
+  var category = 'points'; // V4 category: points / timeAttack
+  var period = 'monthly';   // V4 period: monthly / allTime
 
   function byId(id) { return document.getElementById(id); }
   function escapeHtml(value) { var node = document.createElement('span'); node.textContent = value == null ? '' : String(value); return node.innerHTML; }
@@ -12,7 +12,7 @@
   function buildControls() {
     var controls = byId('ranking-controls');
     controls.innerHTML = '<div class="ranking-tab-row ranking-tab-row--main">' +
-      '<button data-category="overall" type="button">전체 성적</button><button data-category="timeAttack" type="button">타임어택</button></div>' +
+      '<button data-category="points" type="button">전체 성적</button><button data-category="timeAttack" type="button">타임어택</button></div>' +
       '<div class="ranking-tab-row ranking-tab-row--period"></div><small id="ranking-period-label"></small>';
     controls.style.display = 'block';
     controls.querySelectorAll('[data-category]').forEach(function (button) {
@@ -24,9 +24,7 @@
   function renderPeriodButtons() {
     var row = document.querySelector('.ranking-tab-row--period');
     if (!row) return;
-    row.innerHTML = category === 'overall'
-      ? '<button data-period="monthly" type="button">월간</button><button data-period="allTime" type="button">누적</button>'
-      : '<button data-period="weeklyBest" type="button">주간 최고기록</button><button data-period="allTimeBest" type="button">누적 최고기록</button>';
+    row.innerHTML = '<button data-period="monthly" type="button">월간</button><button data-period="allTime" type="button">누적</button>';
     row.querySelectorAll('[data-period]').forEach(function (button) {
       button.addEventListener('click', function () { setRankingPeriod(button.dataset.period); });
     });
@@ -38,21 +36,24 @@
     document.querySelectorAll('[data-period]').forEach(function (button) { button.classList.toggle('active', button.dataset.period === period); });
     var label = byId('ranking-period-label');
     if (!label) return;
-    if (category === 'overall' && period === 'monthly') label.textContent = v2.rankingService.getKoreaMonthKey() + ' · 한국 시간';
-    else if (category === 'timeAttack' && period === 'weeklyBest') label.textContent = v2.rankingService.getKoreanWeekRange().weekKey + ' · 한국 시간';
-    else label.textContent = '랭킹 v3 적용 이후 누적';
+    var monthStr = v2.rankingService.getKoreaMonthKey();
+    if (category === 'points') {
+      if (period === 'monthly') label.textContent = monthStr + ' 월간 포인트 랭킹';
+      else label.textContent = '통합 전체 포인트 랭킹 (V4)';
+    } else {
+      if (period === 'monthly') label.textContent = monthStr + ' 월간 타임어택 최고기록';
+      else label.textContent = '전체 타임어택 최고기록 (V4)';
+    }
   }
 
   function setRankingMode(next) {
-    category = next === 'timeAttack' ? 'timeAttack' : 'overall';
-    period = category === 'overall' ? 'monthly' : 'weeklyBest';
-    renderPeriodButtons();
+    category = next === 'timeAttack' ? 'timeAttack' : 'points';
+    updateButtons();
     loadModeRanking();
   }
 
   function setRankingPeriod(next) {
-    var allowed = category === 'overall' ? ['monthly', 'allTime'] : ['weeklyBest', 'allTimeBest'];
-    if (allowed.indexOf(next) < 0) return;
+    if (next !== 'monthly' && next !== 'allTime') return;
     period = next;
     updateButtons();
     loadModeRanking();
@@ -93,7 +94,7 @@
       v2.rankingService.getPlayerRecord(Object.assign({ playerId: playerId() }, options))
     ]);
     if (!results[0].ok) {
-      list.innerHTML = '<p class="ranking-error">순위를 불러오지 못했어요.<br><small>개발자 콘솔에서 Firebase 인덱스 안내를 확인해 주세요.</small></p>';
+      list.innerHTML = '<p class="ranking-error">순위를 불러오지 못했어요.<br><small>Firebase 설정을 확인해 주세요.</small></p>';
       retry.style.display = 'inline-block';
       return;
     }
@@ -103,13 +104,14 @@
   function openRankings() {
     if (typeof global.clearPhase2Runtime === 'function') global.clearPhase2Runtime();
     if (typeof global.prepareClassicUI === 'function') global.prepareClassicUI();
-    category = 'overall'; period = 'monthly';
+    category = 'points'; period = 'monthly';
     byId('phase2-result-panel').style.display = 'none';
     byId('phase2-result-actions').style.display = 'none';
     byId('legacy-result-actions').style.display = 'block';
     byId('ranking-box').style.display = 'block';
     document.querySelector('#result-screen > h1').textContent = '🏆 냥코 순위';
-    document.querySelector('#ranking-box > h3').textContent = '새롭게 시작된 랭킹';
+    var subtitle = document.querySelector('#ranking-box > h3');
+    if (subtitle) subtitle.textContent = '새로운 랭킹 시즌 V4';
     buildControls();
     if (typeof global.showScreen === 'function') global.showScreen('result-screen');
     loadModeRanking();

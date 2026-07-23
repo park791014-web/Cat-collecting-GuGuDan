@@ -92,15 +92,16 @@
     lastFocus = document.activeElement;
     var p = data.collection.catProgress[catId] || {}, dup = data.collection.duplicateCounts[catId] || 0, selected = data.profile.selectedCatId === catId, content = id('cat-detail-content');
     
-    var starsHtml = dup >= 5 ? v2.duplicateStarService.renderStars(dup) : '';
+    // V4 상세 화면: 별을 별도의 줄로 표시, 이름 굵게(800)
+    var starsText = '★'.repeat(Math.min(5, Math.max(0, dup)));
+    var starsHtml = starsText ? '<div class="cat-detail-stars gold" style="color: #ffb020; font-size: 1.2em; margin: 6px 0;">' + starsText + '</div>' : '';
     
-    content.innerHTML = '<img class="cat-detail-image" src="' + cat.image + '" alt="' + cat.displayName + '"><span class="rarity-badge">' + names[cat.rarity] + '</span>' +
-                        '<div class="collection-cat-name-row" style="justify-content: center; margin: 10px 0; display: flex; align-items: center; gap: 6px;">' +
-                          '<h2 id="cat-detail-name" style="margin: 0;">' + cat.displayName + '</h2>' +
-                          starsHtml +
-                        '</div>' +
-                        '<p>' + names[cat.rarity] + ' · 기본 고양이</p><p>획득일 ' + (p.obtainedAt ? new Date(p.obtainedAt).toLocaleDateString('ko-KR') : '처음부터 함께함') + ' · 중복 ' + dup + '회</p>' +
-                        '<button id="equip-cat-button" class="game-button primary" ' + (selected ? 'disabled' : '') + '>' + (selected ? '대표 고양이로 장착 중' : '대표 고양이로 장착') + '</button>';
+    content.innerHTML = '<img class="cat-detail-image" src="' + cat.image + '" alt="' + cat.displayName + '" style="max-width: 100%; height: auto; object-fit: contain;"><span class="rarity-badge">' + names[cat.rarity] + '</span>' +
+                        '<h2 class="cat-detail-name" style="margin: 8px 0 4px 0; font-weight: 800; font-size: 1.5em; color: #2d3748;">' + cat.displayName + '</h2>' +
+                        starsHtml +
+                        '<p style="margin: 4px 0; color: #4a5568; font-weight: 600;">' + names[cat.rarity] + ' 고양이</p><p style="margin: 4px 0; font-size: 0.85em; color: #718096;">획득일 ' + (p.obtainedAt ? new Date(p.obtainedAt).toLocaleDateString('ko-KR') : '처음부터 함께함') + ' · 중복 ' + dup + '회</p>' +
+                        '<p class="cat-description" style="margin: 10px 0; line-height: 1.4; word-break: keep-all; font-size: 0.9em; color: #4a5568;">' + (cat.description || '') + '</p>' +
+                        '<button id="equip-cat-button" class="game-button primary" style="margin-top: 10px; width: 100%;" ' + (selected ? 'disabled' : '') + '>' + (selected ? '대표 고양이로 장착 중' : '대표 고양이로 장착') + '</button>';
     
     v2.assetLoader.applyImageFallback(content.querySelector('img'), cat.fallbackImage, cat.id);
     content.querySelector('button').onclick = function () { equip(catId); };
@@ -123,24 +124,29 @@
       var visible = list.filter(function (c) {
         return (rarity === 'all' || c.rarity === rarity) && (!query || c.displayName.toLocaleLowerCase('ko').indexOf(query) >= 0);
       });
-      grid.className = 'collection-grid collection-grid-view';
+      grid.className = 'collection-grid collection-single-row-list';
       grid.innerHTML = '';
       id('collection-empty-message').hidden = visible.length > 0;
       
       v2.collectionSortService.sortOwnedCatsForCollection(visible, { saveData: data, sortMode: 'rarity' }).forEach(function (cat) {
         var b = document.createElement('button');
-        b.className = 'collection-item cat-thumbnail-item rarity-' + cat.rarity;
+        b.className = 'collection-item collection-cat-row rarity-' + cat.rarity;
         
         var dup = data.collection.duplicateCounts[cat.id] || 0;
-        var starsHtml = dup >= 5 ? v2.duplicateStarService.renderStars(dup) : '';
+        var starsText = '★'.repeat(Math.min(5, Math.max(0, dup)));
+        var starsHtml = starsText ? '<span class="collection-stars gold" style="color: #ffb020; font-size: 0.8em; margin-left: 4px; display: inline-flex;">' + starsText + '</span>' : '';
         
-        b.innerHTML = '<img class="cat-thumbnail-item__image" src="' + cat.image + '" alt="' + cat.displayName + '">' +
-                      '<div class="collection-cat-name-row">' +
-                        '<span class="collection-cat-name">' + cat.displayName + '</span>' +
-                        starsHtml +
+        // V4: 가로 1열 카드 구조로 렌더링
+        b.innerHTML = '<img class="collection-cat-row__image" src="' + cat.image + '" alt="' + cat.displayName + '" style="width: 60px; height: 60px; border-radius: 8px; object-fit: contain; margin-right: 12px; flex-shrink: 0; background-color: #f7fafc; border: 1px solid #edf2f7;">' +
+                      '<div class="collection-cat-row__content" style="display: flex; flex-direction: column; flex-grow: 1; min-width: 0; text-align: left;">' +
+                        '<div class="collection-cat-heading" style="display: flex; align-items: center; gap: 4px; line-height: 1.2;">' +
+                          '<span class="collection-rarity" style="font-size: 0.75em; background: #edf2f7; color: #4a5568; padding: 1px 4px; border-radius: 4px; font-weight: 600;">' + names[cat.rarity] + '</span>' +
+                          '<span class="collection-cat-name" style="font-weight: 700; font-size: 0.95em; color: #2d3748;">' + cat.displayName + '</span>' +
+                          starsHtml +
+                        '</div>' +
+                        '<div class="collection-cat-description" style="margin-top: 4px; font-size: 0.8em; color: #718096; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: keep-all;">' + (cat.description || '') + '</div>' +
                       '</div>' +
-                      '<small>' + names[cat.rarity] + '</small>' +
-                      (data.profile.selectedCatId === cat.id ? '<em>대표</em>' : '');
+                      (data.profile.selectedCatId === cat.id ? '<em style="font-style: normal; font-size: 0.75em; color: #e53e3e; font-weight: bold; margin-left: auto; flex-shrink: 0;">대표</em>' : '');
         
         v2.assetLoader.applyImageFallback(b.querySelector('img'), cat.fallbackImage, cat.id);
         b.onclick = function () { openCatDetail(cat.id); };

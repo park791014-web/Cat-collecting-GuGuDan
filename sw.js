@@ -1,15 +1,15 @@
-var CACHE_NAME = "nyanko-score-integration-20260723-01";
+var CACHE_NAME = "nyanko-scoring-v4-collection-ui-01";
 var ASSETS = [
   "/Cat-collecting-GuGuDan/",
   "/Cat-collecting-GuGuDan/index.html",
-  "/Cat-collecting-GuGuDan/css/style.css?v=2.0.20",
+  "/Cat-collecting-GuGuDan/css/style.css?v=2.0.30",
   "/Cat-collecting-GuGuDan/css/phase56.css",
   "/Cat-collecting-GuGuDan/css/phase561.css",
   "/Cat-collecting-GuGuDan/css/phase562.css",
-  "/Cat-collecting-GuGuDan/css/releasePatch.css?v=2.0.20",
-  "/Cat-collecting-GuGuDan/js/app.js?v=2.0.20",
-  "/Cat-collecting-GuGuDan/js/game/modeEngine.js?v=2.0.20",
-  "/Cat-collecting-GuGuDan/js/game/adventureEngine.js?v=2.0.20",
+  "/Cat-collecting-GuGuDan/css/releasePatch.css?v=2.0.30",
+  "/Cat-collecting-GuGuDan/js/app.js?v=2.0.30",
+  "/Cat-collecting-GuGuDan/js/game/modeEngine.js?v=2.0.30",
+  "/Cat-collecting-GuGuDan/js/game/adventureEngine.js?v=2.0.30",
   "/Cat-collecting-GuGuDan/js/data/worlds.js",
   "/Cat-collecting-GuGuDan/js/data/adventureStoryData.js",
   "/Cat-collecting-GuGuDan/js/services/rankingService.js",
