@@ -23,7 +23,18 @@
     if (!active) return;
     var callback = onClose; active = false; onClose = null; id('adventure-story-modal').hidden = true;
     if (lastFocus && lastFocus.focus) lastFocus.focus();
+    if (global.NyankoDebug && global.NyankoDebug.resetAdventureStartingLock) {
+      global.NyankoDebug.resetAdventureStartingLock();
+    }
+    if (v2.adventureEngine && v2.adventureEngine.resetStartingLock) {
+      v2.adventureEngine.resetStartingLock();
+    }
     if (continueFlow && callback) callback();
+    else {
+      if (global.backToStageSelect) {
+        global.backToStageSelect();
+      }
+    }
   }
   function show(data, options, callback) {
     if (!data) { if (callback) callback(); return false; }

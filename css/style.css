@@ -203,7 +203,7 @@ p, span, button, input { letter-spacing:-.015em; }
 
 
 /* Phase 5.1 final collection and game typography policy */
-body,button,input,select,textarea{font-family:Pretendard,"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif}.question-text,.btn-answer,.mode-status,.feedback,.boss-name,.adventure-result-card h2,.pack-result h3{font-family:"Jua","Do Hyeon",Pretendard,"Noto Sans KR",sans-serif}.collection-summary-box{padding:12px 14px}.collection-summary-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.collection-summary-head h3,.collection-summary-head p{margin:2px 0;text-align:left}.selected-cat-summary.compact{display:flex;align-items:center;gap:10px;margin:8px 0;padding:6px 0;background:transparent;border:0}.selected-cat-summary.compact img{width:clamp(56px,12vw,88px);height:clamp(56px,12vw,88px);object-fit:contain;border-radius:50%}.selected-cat-summary.compact span{display:flex;flex:1;flex-direction:column;text-align:left}.selected-cat-summary.compact strong{font-size:16px}.selected-cat-summary.compact em{font-size:12px;font-style:normal;color:var(--color-text-soft)}.selected-cat-summary.compact button{min-height:38px;padding:6px 12px}.collection-screen{max-width:960px}.collection-filters{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.collection-filters input,.collection-filters select{min-height:40px;padding:7px 10px;border:1px solid var(--color-border);border-radius:9px;background:#fff}.collection-filters input{flex:1 1 190px}.collection-view-toggle{display:flex;gap:4px}.collection-view-toggle button.active{background:#27466d;color:#fff}.collection-grid.collection-grid-view{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px}.collection-grid.collection-list-view{display:flex;flex-direction:column;gap:8px}.collection-list-item{display:flex;width:100%;align-items:center;gap:12px;padding:10px;border:1px solid var(--color-border);border-radius:12px;background:#fff;text-align:left}.collection-list-item img{width:clamp(40px,10vw,52px);height:clamp(40px,10vw,52px);object-fit:contain}.collection-list-item span{display:flex;flex:1;flex-direction:column}.collection-list-item small{color:var(--color-text-soft)}.collection-list-item em{font-style:normal;font-weight:800;color:#c43f70}.collection-empty-message{padding:28px 12px;color:var(--color-text-soft)}.correct-anim{animation:answer-correct .22s ease-out}.wrong-anim{animation:answer-wrong .22s ease-out}@keyframes answer-correct{0%{transform:scale(1)}55%{transform:scale(1.055) rotate(-1deg)}100%{transform:scale(1)}}@keyframes answer-wrong{0%,100%{transform:translateX(0)}30%{transform:translateX(-5px) rotate(-.5deg)}65%{transform:translateX(5px) rotate(.5deg)}}@media(max-width:320px){.collection-summary-head{align-items:flex-start}.collection-summary-head .game-button{padding:7px 9px}.selected-cat-summary.compact img{width:56px;height:56px}.collection-grid.collection-card-view{grid-template-columns:repeat(auto-fit,minmax(118px,160px));gap:10px;justify-content:center}.collection-filters>*{max-width:100%}.collection-sort-label{width:100%}}@media(prefers-reduced-motion:reduce){.correct-anim,.wrong-anim{animation:none!important}}body.reduced-motion .correct-anim,body.reduced-motion .wrong-anim{animation:none!important}
+body,button,input,select,textarea{font-family:Pretendard,"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif}.question-text,.btn-answer,.mode-status,.feedback,.boss-name,.adventure-result-card h2,.pack-result h3{font-family:"Jua","Do Hyeon",Pretendard,"Noto Sans KR",sans-serif}.collection-summary-box{padding:12px 14px}.collection-summary-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.collection-summary-head button, .collection-summary-head .game-button { white-space: nowrap !important; word-break: keep-all !important; overflow-wrap: normal !important; min-width: max-content !important; }.collection-summary-head h3,.collection-summary-head p{margin:2px 0;text-align:left}.selected-cat-summary.compact{display:flex;align-items:center;gap:10px;margin:8px 0;padding:6px 0;background:transparent;border:0}.selected-cat-summary.compact img{width:clamp(56px,12vw,88px);height:clamp(56px,12vw,88px);object-fit:contain;border-radius:50%}.selected-cat-summary.compact span{display:flex;flex:1;flex-direction:column;text-align:left}.selected-cat-summary.compact strong{font-size:16px}.selected-cat-summary.compact em{font-size:12px;font-style:normal;color:var(--color-text-soft)}.selected-cat-summary.compact button{min-height:38px;padding:6px 12px}.collection-screen{max-width:960px}.collection-filters{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.collection-filters input,.collection-filters select{min-height:40px;padding:7px 10px;border:1px solid var(--color-border);border-radius:9px;background:#fff}.collection-filters input{flex:1 1 190px}.collection-view-toggle{display:flex;gap:4px}.collection-view-toggle button.active{background:#27466d;color:#fff}.collection-grid.collection-grid-view{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px}.collection-grid.collection-list-view{display:flex;flex-direction:column;gap:8px}.collection-list-item{display:flex;width:100%;align-items:center;gap:12px;padding:10px;border:1px solid var(--color-border);border-radius:12px;background:#fff;text-align:left}.collection-list-item img{width:clamp(40px,10vw,52px);height:clamp(40px,10vw,52px);object-fit:contain}.collection-list-item span{display:flex;flex:1;flex-direction:column}.collection-list-item small{color:var(--color-text-soft)}.collection-list-item em{font-style:normal;font-weight:800;color:#c43f70}.collection-empty-message{padding:28px 12px;color:var(--color-text-soft)}.correct-anim{animation:answer-correct .22s ease-out}.wrong-anim{animation:answer-wrong .22s ease-out}@keyframes answer-correct{0%{transform:scale(1)}55%{transform:scale(1.055) rotate(-1deg)}100%{transform:scale(1)}}@keyframes answer-wrong{0%,100%{transform:translateX(0)}30%{transform:translateX(-5px) rotate(-.5deg)}65%{transform:translateX(5px) rotate(.5deg)}}@media(max-width:320px){.collection-summary-head{align-items:flex-start}.collection-summary-head .game-button{padding:7px 9px}.selected-cat-summary.compact img{width:56px;height:56px}.collection-grid.collection-card-view{grid-template-columns:repeat(auto-fit,minmax(118px,160px));gap:10px;justify-content:center}.collection-filters>*{max-width:100%}.collection-sort-label{width:100%}}@media(prefers-reduced-motion:reduce){.correct-anim,.wrong-anim{animation:none!important}}body.reduced-motion .correct-anim,body.reduced-motion .wrong-anim{animation:none!important}
 
 .visually-hidden{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.collection-filters button,.collection-list-item,.collection-item{min-height:44px}.collection-screen{padding-bottom:max(18px,env(safe-area-inset-bottom))}
 
@@ -261,3 +261,58 @@ body{min-height:100vh;background-color:#d9c997;background-image:radial-gradient(
 
 /* Phase 5.2 compact collection, daily missions, mobile answers and feedback */
 .collection-grid.collection-grid-view{grid-template-columns:repeat(auto-fit,minmax(92px,124px));gap:10px}.collection-grid-view .collection-item{padding:8px}.collection-grid-view .collection-item img{width:clamp(56px,14vw,88px);height:clamp(56px,14vw,88px);object-fit:contain}.daily-missions{margin:12px 0;padding:12px;border:1px solid var(--color-border);border-radius:14px;background:#fff}.daily-title{display:flex;justify-content:space-between;text-align:left}.daily-title h3{margin:0}.daily-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:9px}.daily-mission-card{display:grid;grid-template-columns:1fr auto;gap:6px;padding:10px;border-radius:10px;background:#f7f9fc;text-align:left}.daily-mission-card strong,.daily-mission-card progress{grid-column:1/-1}.daily-mission-card progress{width:100%}.daily-mission-card button{min-height:40px}.btn-answer{min-height:clamp(64px,16vw,92px);font-size:clamp(22px,7vw,34px);padding:10px;touch-action:manipulation}.options-container{gap:clamp(8px,2vw,14px)}.correct-anim{position:relative}.correct-anim::before,.correct-anim::after{position:absolute;pointer-events:none;animation:cat-particle .42s ease-out forwards}.correct-anim::before{content:"??";left:12%;top:-8px}.correct-anim::after{content:"?";right:12%;top:-5px}@keyframes cat-particle{from{opacity:1;transform:translateY(0) scale(.7)}to{opacity:0;transform:translateY(-25px) scale(1.15)}}.time-critical{color:#fff;background:#c62828;animation:time-pulse .7s ease-in-out infinite}.time-attack-critical #game-container{box-shadow:0 0 0 4px rgba(198,40,40,.35)}@keyframes time-pulse{50%{transform:scale(1.03)}}@media(max-width:420px){.daily-grid{grid-template-columns:1fr}.btn-answer{min-height:68px}.collection-grid.collection-grid-view{grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px}}@media(prefers-reduced-motion:reduce){.correct-anim::before,.correct-anim::after,.time-critical{animation:none!important}}body.reduced-motion .correct-anim::before,body.reduced-motion .correct-anim::after,body.reduced-motion .time-critical{animation:none!important}
+
+@media (max-width: 480px) {
+  .boss-arena {
+    min-height: 110px !important;
+  }
+  .boss-image {
+    height: 100px !important;
+    max-height: 100px !important;
+  }
+  .player-cat {
+    width: 110px !important;
+    padding: 4px !important;
+  }
+  .player-cat img {
+    width: 36px !important;
+    height: 36px !important;
+    margin-right: 4px !important;
+  }
+  .player-cat strong {
+    font-size: 10px !important;
+  }
+  .player-cat small {
+    font-size: 8px !important;
+    display: none !important; /* 모바일에서 설명 숨김으로 높이 최적화 */
+  }
+  .player-cat b, .player-cat em {
+    font-size: 7px !important;
+  }
+}
+
+@media (max-width: 390px) {
+  #play-screen {
+    padding: 8px !important;
+  }
+  .question-text {
+    font-size: clamp(22px, 6vw, 28px) !important;
+    margin: 8px 0 !important;
+  }
+  .stats-bar {
+    padding: 6px !important;
+    font-size: 12px !important;
+  }
+  .skill-hud {
+    min-height: 36px !important;
+    padding: 4px 6px !important;
+    margin: 4px 0 !important;
+  }
+  .skill-hud img {
+    width: 26px !important;
+    height: 26px !important;
+  }
+  .timer-container, .progress-container {
+    margin: 4px 0 !important;
+  }
+}

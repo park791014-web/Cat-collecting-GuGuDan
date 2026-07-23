@@ -1,13 +1,21 @@
 (function (global) {
   'use strict';
-  var v2 = global.GugudanV2, worldId = null, stage = null, run = null, timer = null, transitionTimer = null, safetyTimer = null;
+  var v2 = global.GugudanV2, worldId = null, stage = null, run = null, timer = null, transitionTimer = null, safetyTimer = null, activeStageSessionId = null;
   function byId(id) { return document.getElementById(id); }
   function cats() { return [].concat(v2.baseCats || [], v2.seasonCats || []); }
   function selectedCat() { return v2.releasePolicyService.getSelectedCat(); }
   function img(src, cls, alt) { return '<img src="' + src + '" class="' + cls + '" alt="' + (alt || '') + '">'; }
   function fallback(node, path) { if (node && v2.assetLoader) v2.assetLoader.applyImageFallback(node, path || 'assets/placeholders/adventure-placeholder.svg'); }
   function focus(id) { setTimeout(function () { var node = byId(id); if (node) node.focus(); }, 0); }
+  function resetAdventureFeedbackState() {
+    if (transitionTimer) { clearTimeout(transitionTimer); transitionTimer = null; }
+    if (safetyTimer) { clearTimeout(safetyTimer); safetyTimer = null; }
+    var fb = byId('feedback'); if (fb) fb.textContent = '';
+    var qc = byId('q-counter'); if (qc) qc.textContent = '0/0';
+    var pb = byId('progress-bar'); if (pb) pb.style.width = '0%';
+  }
   function stop() { if (timer) clearInterval(timer); if (transitionTimer) clearTimeout(transitionTimer); if (safetyTimer) clearTimeout(safetyTimer); timer = null; transitionTimer = null; safetyTimer = null; }
+
 
   function openAdventureMap() {
     stop(); var progress = v2.adventureService.loadProgress(), list = byId('world-list');
@@ -32,6 +40,7 @@
 
   function openStageReady(id) {
     stage = v2.adventureService.getStage(id); if (!stage) return;
+    resetAdventureFeedbackState();
     byId('ready-stage-number').textContent = 'STAGE ' + stage.displayNumber; byId('stage-ready-title').textContent = stage.title;
     byId('stage-ready-card').innerHTML = '<p>구구단: ' + stage.rules.tables.join(', ') + '단</p><p>문제 수: ' + stage.rules.questionCount + ' · 목숨: ' + stage.rules.lives + '</p>' + (stage.boss ? '<p>보스: ' + stage.boss.name + '</p>' : '');
     global.showScreen('stage-ready-screen'); focus('stage-ready-title');try{if(v2.adventureStoryService){v2.adventureStoryService.showStageIntro(stage,function(){startAdventureStage(false);});}else startAdventureStage(false);}catch(error){console.warn('[Stage intro failed]',error);startAdventureStage(false);}
@@ -71,8 +80,8 @@
     }
     byId('feedback').textContent = feedbackText;
     try{renderHud();}catch(hudError){console.warn('[Adventure HUD error]',hudError);}
-    var activeRun = run, answeredQuestion = run.current;
-    function advance() { if (run === activeRun && run.current === answeredQuestion && run.locked) { run.locked = false; nextQuestion(); } }
+    var activeRun = run, answeredQuestion = run.current, currentSessionId = run.sessionId;
+    function advance() { if (activeStageSessionId !== currentSessionId) return; if (run === activeRun && run.current === answeredQuestion && run.locked) { run.locked = false; nextQuestion(); } }
     transitionTimer = global.setTimeout(advance, 700);
     safetyTimer = global.setTimeout(advance, 1800);
     if (correct && v2.effectService && typeof v2.effectService.playCorrect === 'function') {
@@ -81,6 +90,9 @@
     }
   }
   var isStarting = false;
+  function resetStartingLock() {
+    isStarting = false;
+  }
   function startAdventureStage(storyConfirmed) {
     if (isStarting) return;
     if (!storyConfirmed && stage && stage.boss && v2.adventureStoryService) {
@@ -103,6 +115,8 @@
     stop();
     var cat = selectedCat();
     run = { sessionId: 'adventure_' + Date.now(), status: 'stageIntro', total: 0, correct: 0, wrong: 0, score: 0, combo: 0, bestCombo: 0, lives: stage.rules.lives, bossHp: stage.boss ? stage.boss.maximumHp : 1, remainingSeconds: stage.rules.timeLimitSeconds || 0, locked: false };
+    activeStageSessionId = run.sessionId;
+
     byId('skill-hud').style.display = 'flex';
     byId('skill-cat-image').src = cat.image;
     fallback(byId('skill-cat-image'), cat.fallbackImage);
@@ -133,19 +147,27 @@
     var completion = v2.adventureService.completeStage(stage.id, result), claim = v2.rewardService.claimStageRewards({ sessionId: run.sessionId, stage: stage, cleared: completion.cleared, stars: completion.stars }), playReward = v2.modeRewardService.claim('adventure', result, { cleared: completion.cleared });
     if (v2.seasonService && v2.isFeatureEnabled('seasonMissions')) v2.seasonService.recordGameResult(Object.assign({}, result, { cleared: completion.cleared, isBoss: Boolean(stage.boss) }));
     if (v2.dailyMissionService) v2.dailyMissionService.recordGameResult(Object.assign({}, result, { cleared: completion.cleared, isBoss: Boolean(stage.boss) }));
-    if (completion.cleared) {
-      var context = window.getCurrentPlayerContext ? window.getCurrentPlayerContext() : { isGuest: true };
-      if (!context.isGuest && context.nickname && result.score > 0) {
-        var save = v2.storageService.loadSaveData();
-        var payload = Object.assign({}, result, { nickname: context.nickname, playerId: save.profile.playerId, playedAt: new Date().toISOString() });
-        v2.rankingService.submitOverall(payload).catch(function(e) { console.error('[Adventure overall rank submit failed]', e); });
+    
+    // 공통 세션 피날레 호출 (결과 저장 및 홈화면 통계 연동)
+    if (v2.finalizeCompletedGameSession) {
+      v2.finalizeCompletedGameSession(result).catch(function(e) { console.error('[Adventure finale completed game session failed]', e); });
+    } else {
+      if (completion.cleared) {
+        var context = window.getCurrentPlayerContext ? window.getCurrentPlayerContext() : { isGuest: true };
+        if (!context.isGuest && context.nickname && result.score > 0) {
+          var save = v2.storageService.loadSaveData();
+          var payload = Object.assign({}, result, { nickname: context.nickname, playerId: save.profile.playerId, playedAt: new Date().toISOString() });
+          v2.rankingService.submitOverall(payload).catch(function(e) { console.error('[Adventure overall rank submit failed]', e); });
+        }
       }
     }
+    
     if(completion.cleared&&stage.clearStory&&v2.adventureStoryService)setTimeout(function(){try{v2.adventureStoryService.showClearStory(stage);}catch(error){console.warn('[Clear story failed]',error);}},120);
     var cat = selectedCat(); byId('adventure-result-number').textContent = 'STAGE ' + stage.displayNumber; byId('adventure-result-title').textContent = completion.cleared ? '스테이지 클리어!' : '다시 도전해 보세요'; byId('adventure-result-cat').innerHTML = img(cat.image, '', cat.displayName) + '<span>함께한 고양이<br><strong>' + cat.displayName + '</strong></span>'; fallback(byId('adventure-result-cat').querySelector('img'), cat.fallbackImage); byId('adventure-result-stars').textContent = '★'.repeat(completion.stars || 0) + '☆'.repeat(3 - (completion.stars || 0)); byId('adventure-result-stats').innerHTML = '<span>점수 <b>' + result.score + '</b></span><span>정답 <b>' + result.correctCount + '</b></span><span>정확도 <b>' + result.accuracy + '%</b></span>'; byId('adventure-rewards').textContent = (claim.ok ? '스테이지 보상 코인 ' + claim.reward.coins + ' · 일반 티켓 ' + claim.reward.normalTickets : '') + (playReward.ok ? ' · 플레이 보상 +' + playReward.parts.total + '코인' : ''); byId('adventure-unlock-copy').textContent = completion.unlockedStageId ? '다음 스테이지가 열렸어요!' : ''; byId('adventure-result-actions').innerHTML = '<button class="game-button primary" onclick="openStageReady(\'' + stage.id + '\')">다시 도전</button><button class="game-button secondary" onclick="backToStageSelect()">스테이지 목록</button>'; run = null; global.showScreen('adventure-result-screen'); focus('adventure-result-card');
   }
   function useManualCatSkill() { return false; }
   var debug = global.NyankoDebug = global.NyankoDebug || {};
-  Object.assign(debug, { validateAdventureProgress: function () { return v2.adventureService.validateAdventureProgress(v2.adventureService.loadProgress()); }, printAdventureProgress: function () { return v2.adventureService.loadProgress(); },printAdventureState:function(){return run?{stageId:stage.id,status:run.status,questionIndex:run.total+1,answeredCount:run.total,bossHp:run.bossHp,bossMaximumHp:stage.boss&&stage.boss.maximumHp,lives:run.lives,isInputLocked:run.locked}:null;},startAdventureStage:function(id){openStageReady(id);startAdventureStage();return debug.printAdventureState();},simulateAdventureAnswer:function(correct){if(!run||!run.current)return false;var value=correct?run.current.answer:run.current.options.find(function(x){return Number(x)!==Number(run.current.answer);});answer(value,null);return true;},validateAdventureStageConfig:function(id){var s=v2.adventureService.getStage(id),errors=[];if(!s)return{valid:false,errors:['missing']};if(!Number.isInteger(s.rules.questionCount)||s.rules.questionCount<2)errors.push('questionCount');if(s.boss&&s.boss.maximumHp!==s.rules.questionCount)errors.push('bossHp');return{valid:!errors.length,errors:errors,questionCount:s.rules.questionCount,bossHp:s.boss&&s.boss.maximumHp};},validateAdventureStateTransition:function(){return{valid:!run||['stageIntro','questionActive','answerFeedback'].indexOf(run.status)>=0&&!(!run.locked&&run.status==='answerFeedback'),state:debug.printAdventureState()};},unlockStage: v2.adventureService.unlockStage, unlockWorld: v2.adventureService.unlockWorld, resetAdventureProgressForTesting: v2.adventureService.resetForTesting, completeStageForTesting: function (id) { var target = v2.adventureService.getStage(id); return target && v2.adventureService.completeStage(id, { score: 100, correctCount: target.rules.questionCount, wrongCount: 0, totalQuestions: target.rules.questionCount, accuracy: 100, bestCombo: target.rules.questionCount, remainingLives: 3, remainingSeconds: target.rules.timeLimitSeconds || 0, bossHp: 0 }); } });
+  Object.assign(debug, { resetAdventureStartingLock: resetStartingLock, validateAdventureProgress: function () { return v2.adventureService.validateAdventureProgress(v2.adventureService.loadProgress()); }, printAdventureProgress: function () { return v2.adventureService.loadProgress(); },printAdventureState:function(){return run?{stageId:stage.id,status:run.status,questionIndex:run.total+1,answeredCount:run.total,bossHp:run.bossHp,bossMaximumHp:stage.boss&&stage.boss.maximumHp,lives:run.lives,isInputLocked:run.locked}:null;},startAdventureStage:function(id){openStageReady(id);startAdventureStage();return debug.printAdventureState();},simulateAdventureAnswer:function(correct){if(!run||!run.current)return false;var value=correct?run.current.answer:run.current.options.find(function(x){return Number(x)!==Number(run.current.answer);});answer(value,null);return true;},validateAdventureStageConfig:function(id){var s=v2.adventureService.getStage(id),errors=[];if(!s)return{valid:false,errors:['missing']};if(!Number.isInteger(s.rules.questionCount)||s.rules.questionCount<2)errors.push('questionCount');if(s.boss&&s.boss.maximumHp!==s.rules.questionCount)errors.push('bossHp');return{valid:!errors.length,errors:errors,questionCount:s.rules.questionCount,bossHp:s.boss&&s.boss.maximumHp};},validateAdventureStateTransition:function(){return{valid:!run||['stageIntro','questionActive','answerFeedback'].indexOf(run.status)>=0&&!(!run.locked&&run.status==='answerFeedback'),state:debug.printAdventureState()};},unlockStage: v2.adventureService.unlockStage, unlockWorld: v2.adventureService.unlockWorld, resetAdventureProgressForTesting: v2.adventureService.resetForTesting, completeStageForTesting: function (id) { var target = v2.adventureService.getStage(id); return target && v2.adventureService.completeStage(id, { score: 100, correctCount: target.rules.questionCount, wrongCount: 0, totalQuestions: target.rules.questionCount, accuracy: 100, bestCombo: target.rules.questionCount, remainingLives: 3, remainingSeconds: target.rules.timeLimitSeconds || 0, bossHp: 0 }); } });
   global.openAdventureMap = openAdventureMap; global.openStageSelect = openStageSelect; global.openStageReady = openStageReady; global.backToStageSelect = backToStageSelect; global.startAdventureStage = startAdventureStage; global.useManualCatSkill = useManualCatSkill;
+  v2.adventureEngine = { resetStartingLock: resetStartingLock };
 })(window);

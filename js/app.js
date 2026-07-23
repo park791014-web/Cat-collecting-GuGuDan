@@ -388,6 +388,194 @@
 
     function disableBtns() { document.querySelectorAll('.btn-answer').forEach(b => b.disabled = true); }
 
+    async function saveCompletedGameResult(result) {
+        if (!result || !result.sessionId) return;
+        try {
+            var save = v2.storageService.loadSaveData();
+            var history = save.rewardHistory.processedOverallSessionIds || (save.rewardHistory.processedOverallSessionIds = []);
+            if (history.indexOf(result.sessionId) >= 0) {
+                console.warn('[Session Duplicate] already processed:', result.sessionId);
+                return;
+            }
+            history.push(result.sessionId);
+            save.rewardHistory.processedOverallSessionIds = history.slice(-100);
+            
+            // 로컬 기록 데이터 누적
+            v2.storageService.recordGame(result);
+            
+            // 게스트 모드가 아닐 때 Firebase 누적
+            if (!isGuestMode && currentUser && currentUserData) {
+                var todayTotal = Number(result.score || result.overallPoints || (result.correctCount * 10) || 0);
+                if (result.mode === 'classic') {
+                    todayTotal += (currentUserData.playCount * 2);
+                }
+                
+                currentUserData.playCount = (Number(currentUserData.playCount) || 0) + 1;
+                currentUserData.totalPoints = (Number(currentUserData.totalPoints) || 0) + todayTotal;
+                currentUserData.level = Math.floor(currentUserData.totalPoints / 150) + 1;
+                
+                try {
+                    await db.collection('users').doc(currentUser).set(currentUserData);
+                    
+                    // Firebase Overall 랭킹 제출
+                    await v2.rankingService.submitOverall({
+                        playerId: save.profile.playerId,
+                        nickname: currentUser,
+                        score: todayTotal,
+                        correctCount: result.correctCount,
+                        totalQuestions: result.totalQuestions || result.answeredCount || result.correctCount,
+                        accuracy: result.accuracy,
+                        sessionId: result.sessionId,
+                        playedAt: new Date().toISOString()
+                    });
+                } catch(firebaseError) {
+                    console.warn('[Firebase overall stats save failed]', firebaseError);
+                }
+            }
+        } catch (error) {
+            console.warn('[saveCompletedGameResult failed]', error);
+        }
+    }
+
+    function refreshHomeStatsFromCurrentUser() {
+        try {
+            if (!currentUser) return;
+            if (!isGuestMode && currentUserData) {
+                var levelElem = document.getElementById('lobby-level');
+                var pointsElem = document.getElementById('lobby-points');
+                if (levelElem) levelElem.innerText = currentUserData.level || 1;
+                if (pointsElem) pointsElem.innerText = currentUserData.totalPoints || 0;
+            }
+        } catch (error) {
+            console.warn('[refreshHomeStats failed]', error);
+        }
+    }
+
+    function refreshLeaderboardSummaryIfVisible() {
+        try {
+            var rankingBox = document.getElementById('ranking-box');
+            var isVisible = rankingBox && rankingBox.style.display !== 'none';
+            if (isVisible) {
+                updateGlobalRanking();
+            }
+        } catch (error) {
+            console.warn('[refreshLeaderboard failed]', error);
+        }
+    }
+
+    async function finalizeCompletedGameSession(result) {
+        if (!result || !result.sessionId) return;
+        try {
+            const correctCount = Number(result.correctCount) || 0;
+            const wrongCount = Number(result.wrongCount) || 0;
+            const total = Number(result.totalQuestions || result.answeredCount || (correctCount + wrongCount)) || 0;
+            const accuracy = total ? Math.round(correctCount / total * 100) : 0;
+            const overallPoints = Number(result.score || result.overallPoints || (correctCount * 10)) || 0;
+            
+            const cleanResult = {
+                sessionId: result.sessionId,
+                mode: result.mode,
+                correctCount: correctCount,
+                wrongCount: wrongCount,
+                totalQuestions: total,
+                answeredCount: total,
+                accuracy: accuracy,
+                overallPoints: overallPoints,
+                score: overallPoints,
+                playedAt: result.playedAt || new Date().toISOString(),
+                completedAt: result.completedAt || new Date().toISOString(),
+                stageId: result.stageId || null,
+                finishReason: result.finishReason || 'completed'
+            };
+
+            await saveCompletedGameResult(cleanResult);
+            refreshHomeStatsFromCurrentUser();
+            refreshLeaderboardSummaryIfVisible();
+        } catch (error) {
+            console.warn('[finalizeCompletedGameSession failed]', error);
+        }
+    }
+
+    function playMissionClaimEffect(options) {
+        try {
+            var anchor = options.anchorElement;
+            var rewards = options.rewards || {};
+            if (!anchor) return;
+            
+            var pop = document.createElement('div');
+            pop.style.position = 'fixed';
+            var rect = anchor.getBoundingClientRect();
+            pop.style.left = (rect.left + rect.width / 2) + 'px';
+            pop.style.top = (rect.top - 20) + 'px';
+            pop.style.transform = 'translate(-50%, -50%)';
+            pop.style.backgroundColor = '#ffd166';
+            pop.style.color = '#4b3565';
+            pop.style.padding = '8px 16px';
+            pop.style.borderRadius = '12px';
+            pop.style.fontWeight = 'bold';
+            pop.style.fontSize = '14px';
+            pop.style.boxShadow = '0 5px 15px rgba(0,0,0,0.15)';
+            pop.style.zIndex = '100000';
+            pop.style.pointerEvents = 'none';
+            pop.style.transition = 'all 0.8s ease-out';
+            pop.style.opacity = '1';
+            
+            var text = "🎁 보상 획득! ";
+            if (rewards.coins) text += "코인 +" + rewards.coins + " ";
+            if (rewards.normalTickets) text += "일반 뽑기권 +" + rewards.normalTickets + " ";
+            if (rewards.premiumTickets) text += "고급 뽑기권 +" + rewards.premiumTickets + " ";
+            pop.innerText = text;
+            document.body.appendChild(pop);
+            
+            for (var i = 0; i < 15; i++) {
+                var p = document.createElement('div');
+                p.style.position = 'fixed';
+                p.style.left = (rect.left + rect.width / 2) + 'px';
+                p.style.top = (rect.top + rect.height / 2) + 'px';
+                p.style.width = '8px';
+                p.style.height = '8px';
+                p.style.borderRadius = '50%';
+                p.style.backgroundColor = ['#ffd166', '#ff4081', '#00e5ff', '#ffeb3b'][Math.floor(Math.random() * 4)];
+                p.style.zIndex = '100001';
+                p.style.pointerEvents = 'none';
+                p.style.transition = 'all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                document.body.appendChild(p);
+                
+                var angle = Math.random() * Math.PI * 2;
+                var dist = 30 + Math.random() * 60;
+                var dx = Math.cos(angle) * dist;
+                var dy = Math.sin(angle) * dist - 20;
+                
+                (function(el, x, y) {
+                    setTimeout(function() {
+                        el.style.transform = 'translate(' + x + 'px, ' + y + 'px) scale(0)';
+                        el.style.opacity = '0';
+                    }, 10);
+                    setTimeout(function() {
+                        if (el.parentNode) el.parentNode.removeChild(el);
+                    }, 700);
+                })(p, dx, dy);
+            }
+            
+            setTimeout(function() {
+                pop.style.top = (rect.top - 60) + 'px';
+                pop.style.opacity = '0';
+            }, 50);
+            
+            setTimeout(function() {
+                if (pop.parentNode) pop.parentNode.removeChild(pop);
+            }, 800);
+        } catch (error) {
+            console.warn('[playMissionClaimEffect failed]', error);
+        }
+    }
+
+    v2.saveCompletedGameResult = saveCompletedGameResult;
+    v2.refreshHomeStatsFromCurrentUser = refreshHomeStatsFromCurrentUser;
+    v2.refreshLeaderboardSummaryIfVisible = refreshLeaderboardSummaryIfVisible;
+    v2.finalizeCompletedGameSession = finalizeCompletedGameSession;
+    global.playMissionClaimEffect = playMissionClaimEffect;
+
     async function endMarathonGame() {
         if (v2.gameState) v2.gameState.finishGame();
         document.body.classList.remove('boss-mode'); // 게임 종료 시 보스 테마 해제
@@ -407,39 +595,6 @@
         const coinReward = v2.classicRewardService.claim(classicMissionResult, localRecord.isPersonalBest);
         if (v2.seasonService && v2.isFeatureEnabled('seasonMissions')) v2.seasonService.recordGameResult(classicMissionResult);
         if (v2.dailyMissionService) v2.dailyMissionService.recordGameResult(classicMissionResult);
-
-        if (!isGuestMode) {
-            todayTotal += (currentUserData.playCount * 2); 
-            currentUserData.playCount += 1;
-            currentUserData.totalPoints += todayTotal;
-            currentUserData.level = Math.floor(currentUserData.totalPoints / 150) + 1; 
-            
-            try {
-                await db.collection('users').doc(currentUser).set(currentUserData);
-                document.getElementById('res-level').innerText = currentUserData.level;
-                document.getElementById('res-total-points').innerText = currentUserData.totalPoints;
-                document.getElementById('total-stats').style.display = 'block';
-                const save = v2.storageService.loadSaveData();
-                await v2.rankingService.submitOverall({
-                    playerId: save.profile.playerId,
-                    nickname: currentUser,
-                    score: todayTotal,
-                    correctCount: sessionCorrect,
-                    totalQuestions: totalQuestions,
-                    accuracy: accPercent,
-                    playedAt: new Date().toISOString()
-                });
-            } catch(e) {
-                alert("점수 저장에 실패했다냥!");
-            }
-        } else {
-            document.getElementById('total-stats').style.display = 'none';
-            document.getElementById('ranking-box').style.display = 'none';
-        }
-
-        document.getElementById('res-correct').innerText = sessionCorrect;
-        document.getElementById('res-acc-rate').innerText = accPercent;
-        document.getElementById('res-today').innerText = todayTotal;
         
         toggleLoading(false); 
 
