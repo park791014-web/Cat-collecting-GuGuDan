@@ -395,3 +395,163 @@ button.claim-btn.button-success-bounce {
   80% { transform: scale(1.06); }
   100% { transform: scale(1); }
 }
+
+/* --- Combo Particle Design Recovery --- */
+.combo-particle {
+  position: fixed;
+  display: block;
+  z-index: 1850;
+
+  width: var(--particle-size, 44px);
+  height: var(--particle-size, 44px);
+
+  margin: 0;
+  padding: 0;
+
+  border: 0 !important;
+  border-radius: 0 !important;
+
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+
+  color: var(--particle-color);
+  opacity: 0;
+
+  pointer-events: none;
+  user-select: none;
+
+  transform-origin: center;
+  will-change: transform, opacity, filter;
+
+  animation:
+    comboParticleBloom
+    var(--particle-duration, 1150ms)
+    cubic-bezier(0.18, 0.72, 0.25, 1)
+    forwards;
+}
+
+/* 내부 SVG */
+.combo-particle svg {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
+  padding: 0;
+  overflow: visible;
+
+  background: transparent !important;
+  box-shadow: none !important;
+
+  fill: currentColor;
+  stroke: rgba(255, 255, 255, 0.78);
+  stroke-width: 1.4;
+
+  filter:
+    drop-shadow(0 0 4px currentColor)
+    drop-shadow(0 0 11px currentColor);
+}
+
+/* 특성 파티클 */
+.combo-particle.is-special {
+  width: var(--particle-size, 52px) !important;
+  height: var(--particle-size, 52px) !important;
+}
+
+.combo-particle.is-legendary {
+  filter:
+    drop-shadow(0 0 5px currentColor)
+    drop-shadow(0 0 14px currentColor);
+}
+
+/* 동작 감소 설정 대응 */
+@media (prefers-reduced-motion: reduce) {
+  .combo-particle {
+    animation-duration: 500ms !important;
+  }
+}
+
+/* 확대 후 은은하게 사라지는 애니메이션 */
+@keyframes comboParticleBloom {
+  0% {
+    opacity: 0;
+
+    transform:
+      translate3d(0, 10px, 0)
+      rotate(var(--start-rotation, -8deg))
+      scale(0.52);
+
+    filter:
+      brightness(1.05)
+      blur(1.2px);
+  }
+
+  18% {
+    opacity: 0.95;
+
+    transform:
+      translate3d(
+        calc(var(--drift-x, 0px) * 0.15),
+        -4px,
+        0
+      )
+      rotate(var(--mid-rotation, 0deg))
+      scale(1.12);
+
+    filter:
+      brightness(1.65)
+      blur(0);
+  }
+
+  42% {
+    opacity: 1;
+
+    transform:
+      translate3d(
+        calc(var(--drift-x, 0px) * 0.4),
+        calc(var(--drift-y, -75px) * 0.35),
+        0
+      )
+      rotate(var(--mid-rotation, 0deg))
+      scale(1.3);
+
+    filter:
+      brightness(1.45)
+      blur(0);
+  }
+
+  70% {
+    opacity: 0.58;
+
+    transform:
+      translate3d(
+        calc(var(--drift-x, 0px) * 0.75),
+        calc(var(--drift-y, -75px) * 0.72),
+        0
+      )
+      rotate(var(--end-rotation, 8deg))
+      scale(1.42);
+
+    filter:
+      brightness(1.2)
+      blur(0.5px);
+  }
+
+  100% {
+    opacity: 0;
+
+    transform:
+      translate3d(
+        var(--drift-x, 0px),
+        var(--drift-y, -75px),
+        0
+      )
+      rotate(var(--end-rotation, 8deg))
+      scale(1.58);
+
+    filter:
+      brightness(1)
+      blur(2px);
+  }
+}
