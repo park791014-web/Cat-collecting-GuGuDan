@@ -1,0 +1,1 @@
+(function(global){'use strict';var v2=global.GugudanV2;if(!v2||!v2.soundService||!v2.phase56SoundService)return;v2.soundService.playCorrectSound=function(){return v2.phase56SoundService.play('correct');};v2.soundService.playWrongSound=function(){return v2.phase56SoundService.play('wrong');};})(window);

@@ -1,0 +1,1 @@
+(function(global){'use strict';global.GugudanV2=global.GugudanV2||{};global.GugudanV2.classicRewardConfig={completionCoins:30,coinsPerCorrectAnswer:5,perfectAccuracyBonus:30,personalBestBonus:50,rewardedSessionLimit:100};})(window);
