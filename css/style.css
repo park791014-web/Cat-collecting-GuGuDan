@@ -351,8 +351,8 @@ body{min-height:100vh;background-color:#d9c997;background-image:radial-gradient(
 }
 
 .collection-duplicate-stars img, .collection-cat-row__star-icon {
-  width: 12px !important;
-  height: 12px !important;
+  width: 1em !important;
+  height: 1em !important;
   object-fit: contain;
   margin: 0 !important;
   display: inline-block;
