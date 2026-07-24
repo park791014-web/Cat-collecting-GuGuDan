@@ -1,6 +1,6 @@
 // 🔥 파이어베이스 접속 키 🔥
     const firebaseConfig = {
-      apiKey: "AIzaSyAiU-wOOXF-ZGsdPtsS1hUpxEZQit8IZbI",
+      apiKey: "AIzaSyAiU-w0OXF-ZGsdPtsS1hUpxEZQit8IZbI",
       authDomain: "gugu-cat-adventrue.firebaseapp.com",
       projectId: "gugu-cat-adventrue",
       storageBucket: "gugu-cat-adventrue.firebasestorage.app",
@@ -922,7 +922,9 @@
             // 12. 첫 화면 즉시 갱신
             await reloadCurrentUserStats();
             refreshHomeStatsFromCurrentUser();
-            refreshLeaderboardSummaryIfVisible();
+            if (typeof refreshLeaderboardSummaryIfVisible === 'function') {
+                refreshLeaderboardSummaryIfVisible();
+            }
 
             if (mode === 'timeAttack') {
                 const finalUid = (auth && auth.currentUser) ? auth.currentUser.uid : currentUser;
@@ -1088,7 +1090,7 @@
 
     v2.saveCompletedGameResult = saveCompletedGameResult;
     v2.refreshHomeStatsFromCurrentUser = refreshHomeStatsFromCurrentUser;
-    v2.refreshLeaderboardSummaryIfVisible = refreshLeaderboardSummaryIfVisible;
+    v2.refreshLeaderboardSummaryIfVisible = (typeof refreshLeaderboardSummaryIfVisible === 'function') ? refreshLeaderboardSummaryIfVisible : undefined;
     v2.finalizeCompletedGameSession = finalizeCompletedGameSession;
     global.playMissionClaimEffect = playMissionClaimEffect;
 
