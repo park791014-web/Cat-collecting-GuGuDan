@@ -364,6 +364,30 @@
         }
     }
 
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
+        const target = document.getElementById(screenId);
+        if (target) {
+            target.classList.add('active-screen');
+        }
+        document.body.classList.toggle('is-admin-mode', screenId === 'admin-screen');
+    }
+
+    function toggleLoading(show) {
+        const overlay = document.getElementById('loading-overlay');
+        if (overlay) {
+            overlay.style.display = show ? 'flex' : 'none';
+        }
+        const googleBtn = document.querySelector('.btn-google');
+        if (googleBtn) {
+            googleBtn.disabled = Boolean(show);
+            const labelSpan = googleBtn.querySelector('.google-btn-label');
+            if (labelSpan) {
+                labelSpan.textContent = show ? "Google 로그인 중..." : "Google 계정으로 시작하기";
+            }
+        }
+    }
+
     async function showAdminScreen() {
         listDiv.innerHTML = '';
         try {
@@ -1126,7 +1150,8 @@
     window.toggleGameSound = function (enabled) { if (!v2.storageService) return; const data = v2.storageService.loadSaveData(); data.settings.soundEnabled = Boolean(enabled); v2.storageService.saveSaveData(data); if (v2.soundService) v2.soundService.setSoundEnabled(enabled); };
     window.getCurrentPlayerContext = function () { return { nickname: currentUser || '', isGuest: isGuestMode, userData: currentUserData }; };
 
-    window.handleAuth = handleAuth;
+    window.loginWithGoogle = loginWithGoogle;
+    window.setupNewProfile = setupNewProfile;
     window.playAsGuest = playAsGuest;
     window.logout = logout;
     window.showLobby = showLobby;
