@@ -1,4 +1,4 @@
-// 🔥 파이어베이스 접속 키 🔥
+// ?�� ?�이?�베?�스 ?�속 ???��
     const firebaseConfig = {
       apiKey: "AIzaSyAiU-w0OXF-ZGsdPtsS1hUpxEZQit8IZbI",
       authDomain: "gugu-cat-adventrue.firebaseapp.com",
@@ -19,54 +19,40 @@
             auth = firebase.auth();
             v2.auth = auth;
         } else {
-            console.warn('[Firebase] SDK를 불러오지 못했습니다. 게스트 게임은 계속 이용할 수 있습니다.');
+            console.warn('[Firebase] SDK�?불러?��? 못했?�니?? 게스??게임?� 계속 ?�용?????�습?�다.');
         }
     } catch (error) {
-        console.warn('[Firebase] 초기화에 실패했습니다. 게스트 게임은 계속 이용할 수 있습니다.', error);
+        console.warn('[Firebase] 초기?�에 ?�패?�습?�다. 게스??게임?� 계속 ?�용?????�습?�다.', error);
     }
     if (v2.rankingService) v2.rankingService.setDatabase(db, window.firebase);
 
-    // 과거 레거시 공통 키 자동 복구 방지 청소
-    ['saveData', 'userData', 'playerData', 'nyankoSave', 'currentUser', 'playerId', 'guestData'].forEach(k => {
-        try { localStorage.removeItem(k); } catch(e){}
-    });
+    window.NYANKO_APP_INFO = {
+        version: "2.1.1",
+        buildDate: "2026-07-25",
+        buildTime: "08:02",
+        dataResetversion: "2.1.1"
+    };
 
-    let audioCtx;
-    function initAudio() {
-        if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
-        if (audioCtx.state === 'suspended') { audioCtx.resume(); }
-    }
-    function playSound(type) {
-        if (v2.storageService && !v2.storageService.loadSaveData().settings.soundEnabled) return;
-        initAudio();
-        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        if (type === 'correct') {
-            osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); 
-            gain.gain.setValueAtTime(0.5, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-            osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.3);
-        } else if (type === 'wrong') {
-            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.3);
-            gain.gain.setValueAtTime(0.5, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-            osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.3);
-        } else if (type === 'legend') {
-            osc.type = 'triangle'; osc.frequency.setValueAtTime(440, audioCtx.currentTime); osc.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + 0.2); osc.frequency.linearRampToValueAtTime(1320, audioCtx.currentTime + 0.4);
-            gain.gain.setValueAtTime(0.6, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
-            osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.6);
-        } else if (type === 'siren') {
-            // 🔥 보스 등장 사이렌 사운드 🔥
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
-            osc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 0.5);
-            osc.frequency.linearRampToValueAtTime(400, audioCtx.currentTime + 1.0);
-            osc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 1.5);
-            osc.frequency.linearRampToValueAtTime(400, audioCtx.currentTime + 2.0);
-            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-            gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 2.0);
-            osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 2.0);
+    // 과거 ?�거??공통 ???�동 복구 방�? �?�� �?강제 ?�체 ?�이??초기??
+    const DATA_RESET_VERSION = window.NYANKO_APP_INFO.dataResetVersion;
+    const storedResetVersion = localStorage.getItem("nyanko:data-reset-version");
+    if (storedResetVersion !== DATA_RESET_VERSION) {
+        const keysToDelete = [
+            'saveData', 'userData', 'playerData', 'nyankoSave', 'currentUser', 'playerId', 'guestData',
+            'rewardHistory', 'processedV4Sessions', 'gugudanV2Save', 'gugudanV2AdminConfig',
+            'nyanko:google-user:',
+            'nyanko:v4:guest:cache'
+        ];
+        
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+            const key = localStorage.key(i);
+            if (key && keysToDelete.some(k => key === k || key.startsWith(k))) {
+                try { localStorage.removeItem(key); } catch(e){}
+            }
         }
-    }
-    function triggerVibration(pattern) { if ("vibrate" in navigator) { navigator.vibrate(pattern); } }
+        
+        localStorage.setItem("nyanko:data-reset-version", DATA_RESET_VERSION);
+        console.log("[Data Reset] Game storage initialized to reset version: "2.1.1"vibrate" in navigator) { navigator.vibrate(pattern); } }
 
     let currentUser = null; 
     let currentUserData = null; 
@@ -81,21 +67,21 @@
     let lastQuestionStr = ""; 
     let unsubscribeUserDoc = null;
 
-    // 4-5. 기존 기기별 데이터 안전 병합 함수 (멱등 방식)
+    // 4-5. 기존 기기�??�이???�전 병합 ?�수 (멱등 방식)
     function mergeLegacyData(remote, local) {
         if (!remote) return local;
         if (!local) return remote;
         
         const merged = JSON.parse(JSON.stringify(remote));
         
-        // 1. 보유 고양이 (합집합)
+        // 1. 보유 고양??(?�집??
         const remoteOwned = remote.collection?.ownedCatIds || ['base_normal_01'];
         const localOwned = local.collection?.ownedCatIds || ['base_normal_01'];
         const mergedOwnedSet = new Set([...remoteOwned, ...localOwned]);
         if (!merged.collection) merged.collection = {};
         merged.collection.ownedCatIds = Array.from(mergedOwnedSet);
         
-        // 2. 중복 횟수와 조각 (Math.max)
+        // 2. 중복 ?�수?� 조각 (Math.max)
         const remoteDup = remote.collection?.duplicateCounts || {};
         const localDup = local.collection?.duplicateCounts || {};
         const mergedDup = {};
@@ -113,7 +99,7 @@
         });
         merged.collection.catFragments = mergedFrags;
         
-        // 3. 코인, 뽑기권, 포인트 (Math.max)
+        // 3. 코인, 뽑기�? ?�인??(Math.max)
         if (!merged.currency) merged.currency = {};
         const remoteCoins = remote.currency?.coins || 0;
         const localCoins = local.currency?.coins || 0;
@@ -131,7 +117,7 @@
         const localPoints = local.totalPoints || 0;
         merged.totalPoints = Math.max(Number(remotePoints) || 0, Number(localPoints) || 0);
         
-        // 4. 대모험 진행도
+        // 4. ?�모험 진행??
         if (!merged.adventureProgress) merged.adventureProgress = { unlockedWorldIds: ['world_01'], unlockedStageIds: ['stage_01_01'], clearedStageIds: [], stageRecords: {} };
         const remoteAdv = remote.adventureProgress || {};
         const localAdv = local.adventureProgress || {};
@@ -169,7 +155,7 @@
         });
         merged.adventureProgress.stageRecords = mergedRecords;
         
-        // 5. 대표 고양이
+        // 5. ?�??고양??
         let selectedCat = remote.profile?.selectedCatId || '';
         if (!selectedCat || merged.collection.ownedCatIds.indexOf(selectedCat) < 0) {
             selectedCat = local.profile?.selectedCatId || '';
@@ -187,9 +173,9 @@
         auth.getRedirectResult().catch(function(err) {
             console.error("[Firebase Redirect Auth Error]", err);
             if (err.code === 'auth/unauthorized-domain') {
-                alert("Firebase 승인된 도메인 설정을 확인해 주세요.");
+                alert("Firebase ?�인???�메???�정???�인??주세??");
             } else if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
-                alert("Google 로그인이 취소되었습니다.");
+                alert("Google 로그?�이 취소?�었?�니??");
             }
         });
 
@@ -272,7 +258,7 @@
                 }
             } catch (err) {
                 console.error("[Auth Load Failed]", err);
-                alert("사용자 정보를 가져오는 도중 오류가 발생했습니다.");
+                alert("?�용???�보�?가?�오???�중 ?�류가 발생?�습?�다.");
             } finally {
                 toggleLoading(false);
             }
@@ -312,7 +298,7 @@
     async function loginWithGoogle() {
         initAudio();
         if (!auth) {
-            return alert("Firebase Auth를 사용할 수 없습니다. SDK 초기화 오류입니다.");
+            return alert("Firebase Auth�??�용?????�습?�다. SDK 초기???�류?�니??");
         }
         if (loginWithGoogle.inProgress) return;
         loginWithGoogle.inProgress = true;
@@ -337,14 +323,14 @@
                     await auth.signInWithRedirect(provider);
                 } catch (redirErr) {
                     console.error("[Google Redirect Retry Error]", redirErr);
-                    alert("로그인 처리 중 오류가 발생했습니다.");
+                    alert("로그??처리 �??�류가 발생?�습?�다.");
                 }
             } else if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
-                alert("Google 로그인이 취소되었습니다.");
+                alert("Google 로그?�이 취소?�었?�니??");
             } else if (err.code === 'auth/unauthorized-domain') {
-                alert("Firebase 승인된 도메인 설정을 확인해 주세요.");
+                alert("Firebase ?�인???�메???�정???�인??주세??");
             } else {
-                alert("로그인 처리 중 오류가 발생했습니다.");
+                alert("로그??처리 �??�류가 발생?�습?�다.");
             }
         } finally {
             loginWithGoogle.inProgress = false;
@@ -358,14 +344,14 @@
         const nickname = nicknameInput.value.trim();
 
         if (nickname.length < 2 || nickname.length > 12) {
-            return alert("닉네임은 2자 이상 12자 이하로 작성해 주세요냥!");
+            return alert("?�네?��? 2???�상 12???�하�??�성??주세?�냥!");
         }
-        if (!/^[a-zA-Z0-9가-힣ㄱ-ㅎㅏ-ㅣ\s]+$/.test(nickname)) {
-            return alert("닉네임에는 한글, 영문, 숫자만 사용할 수 있습니다냥!");
+        if (!/^[a-zA-Z0-9가-?�ㄱ-?�ㅏ-??s]+$/.test(nickname)) {
+            return alert("?�네?�에???��?, ?�문, ?�자�??�용?????�습?�다??");
         }
 
         if (!currentUser) {
-            return alert("인증 정보가 없습니다. 로그인을 다시 시도해 주세요냥.");
+            return alert("?�증 ?�보가 ?�습?�다. 로그?�을 ?�시 ?�도??주세?�냥.");
         }
 
         toggleLoading(true);
@@ -433,7 +419,7 @@
 
         } catch (err) {
             console.error("[Profile Setup Failed]", err);
-            alert("프로필 생성 중 오류가 발생했습니다. 다시 시도해 주세요냥.");
+            alert("?�로???�성 �??�류가 발생?�습?�다. ?�시 ?�도??주세?�냥.");
         } finally {
             toggleLoading(false);
         }
@@ -458,7 +444,7 @@
             googleBtn.disabled = Boolean(show);
             const labelSpan = googleBtn.querySelector('.google-btn-label');
             if (labelSpan) {
-                labelSpan.textContent = show ? "Google 로그인 중..." : "Google 계정으로 시작하기";
+                labelSpan.textContent = show ? "Google 로그??�?.." : "Google 계정?�로 ?�작?�기";
             }
         }
     }
@@ -509,7 +495,7 @@
     async function openOwnerAdminPage() {
         const user = auth ? auth.currentUser : null;
         if (!isOwnerAdmin(user)) {
-            alert("관리자 권한이 없습니다.");
+            alert("관리자 권한???�습?�다.");
             return;
         }
         if (typeof window.showAdminScreen === 'function') {
@@ -522,25 +508,25 @@
     async function showAdminScreen() {
         const userToCheck = auth ? auth.currentUser : null;
         if (!isOwnerAdmin(userToCheck)) {
-            alert("관리자 권한이 없습니다.");
+            alert("관리자 권한???�습?�다.");
             showLobby();
             return;
         }
         listDiv.innerHTML = '';
         try {
             const snapshot = await db.collection('users').get();
-            if(snapshot.empty) { listDiv.innerHTML = '<p style="text-align:center;">등록된 학생이 없습니다.</p>'; } 
+            if(snapshot.empty) { listDiv.innerHTML = '<p style="text-align:center;">?�록???�생???�습?�다.</p>'; } 
             else {
                 snapshot.forEach(doc => {
                     let u = doc.id; let data = doc.data();
                     const div = document.createElement('div'); div.className = 'ranking-item';
                     const pending = data.pendingResources || data.pendingTickets || {};
-                    const resources = [{key:'coins',label:'코인',internal:'currency.coins'},{key:'normal',label:'기본 뽑기권',internal:'currency.normalTickets'},{key:'premium',label:'고급 뽑기권',internal:'currency.premiumTickets'},{key:'season',label:'시즌 뽑기권',internal:'currency.seasonTickets.season_01'}];
-                    div.innerHTML = `<div class="admin-user-heading"><b>${u}</b><span>Lv.${data.level || 1} · ${data.totalPoints || 0}P</span></div><div class="admin-resource-header"><b>재화</b><b>내부 ID</b><b>수량</b><b>지급</b></div><div class="admin-resource-grid">${resources.map(resource=>`<div class="admin-resource-row"><span class="admin-resource-label">${resource.label}</span><code class="admin-resource-id">${resource.internal}</code><input class="admin-resource-amount" id="resource-${resource.key}-${u}" type="number" min="1" max="10000" value="1" aria-label="${u} ${resource.label} 수량"><button class="btn btn-small" onclick="grantResource('${u}','${resource.key}')">지급</button></div>`).join('')}</div><small>대기: 코인 ${pending.coins || 0} · 기본 ${pending.normal || 0} · 고급 ${pending.premium || 0} · 시즌 ${pending.season || 0}</small><div class="admin-user-actions"><button class="btn btn-small" onclick="resetUser('${u}')">초기화</button><button class="btn btn-danger btn-small" onclick="deleteUser('${u}')">삭제</button></div>`;
+                    const resources = [{key:'coins',label:'코인',internal:'currency.coins'},{key:'normal',label:'기본 뽑기�?,internal:'currency.normalTickets'},{key:'premium',label:'고급 뽑기�?,internal:'currency.premiumTickets'},{key:'season',label:'?�즌 뽑기�?,internal:'currency.seasonTickets.season_01'}];
+                    div.innerHTML = `<div class="admin-user-heading"><b>${u}</b><span>Lv.${data.level || 1} · ${data.totalPoints || 0}P</span></div><div class="admin-resource-header"><b>?�화</b><b>?��? ID</b><b>?�량</b><b>지�?/b></div><div class="admin-resource-grid">${resources.map(resource=>`<div class="admin-resource-row"><span class="admin-resource-label">${resource.label}</span><code class="admin-resource-id">${resource.internal}</code><input class="admin-resource-amount" id="resource-${resource.key}-${u}" type="number" min="1" max="10000" value="1" aria-label="${u} ${resource.label} ?�량"><button class="btn btn-small" onclick="grantResource('${u}','${resource.key}')">지�?/button></div>`).join('')}</div><small>?��? 코인 ${pending.coins || 0} · 기본 ${pending.normal || 0} · 고급 ${pending.premium || 0} · ?�즌 ${pending.season || 0}</small><div class="admin-user-actions"><button class="btn btn-small" onclick="resetUser('${u}')">초기??/button><button class="btn btn-danger btn-small" onclick="deleteUser('${u}')">??��</button></div>`;
                     listDiv.appendChild(div);
                 });
             }
-        } catch(e) { alert("데이터를 불러오지 못했다냥!"); }
+        } catch(e) { alert("?�이?��? 불러?��? 못했?�냥!"); }
         toggleLoading(false);
         showScreen('admin-screen');
     }
@@ -548,20 +534,20 @@
     async function resetUser(u) {
         const user = auth ? auth.currentUser : null;
         if (!isOwnerAdmin(user)) {
-            alert("관리자 권한이 없습니다.");
+            alert("관리자 권한???�습?�다.");
             return;
         }
-        if(confirm(`${u}의 점수를 초기화 하시겠습니까?`)) {
+        if(confirm(`${u}???�수�?초기???�시겠습?�까?`)) {
             toggleLoading(true); await db.collection('users').doc(u).update({ totalPoints: 0, level: 1, playCount: 0, rewards: [] }); showAdminScreen(); 
         }
     }
     async function deleteUser(u) {
         const user = auth ? auth.currentUser : null;
         if (!isOwnerAdmin(user)) {
-            alert("관리자 권한이 없습니다.");
+            alert("관리자 권한???�습?�다.");
             return;
         }
-        if(confirm(`${u}의 계정을 완전히 삭제하시겠습니까?`)) {
+        if(confirm(`${u}??계정???�전????��?�시겠습?�까?`)) {
             toggleLoading(true); await db.collection('users').doc(u).delete(); showAdminScreen(); 
         }
     }
@@ -602,7 +588,7 @@
         sessionStorage.removeItem(GUEST_SESSION_KEY);
         const guestSession = {
             id: (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') ? crypto.randomUUID() : 'guest_' + Math.random().toString(36).substring(2, 15),
-            nickname: "게스트",
+            nickname: "게스??,
             totalPoints: 0,
             level: 1,
             coins: 1000,
@@ -644,7 +630,7 @@
             showLobby();
         } catch (error) {
             console.error("[Guest Mode Start Error]", error);
-            alert("게스트 로그인 처리 중 오류가 발생했습니다.");
+            alert("게스??로그??처리 �??�류가 발생?�습?�다.");
         } finally {
             toggleLoading(false);
         }
@@ -697,7 +683,7 @@
         }
         const nickname = (currentUserData && currentUserData.profile && currentUserData.profile.nickname) || currentUser;
         document.getElementById('lobby-name').innerText = nickname;
-        // 기존 Firebase 보상 목록은 새 도감 DOM에 섞지 않는다.
+        // 기존 Firebase 보상 목록?� ???�감 DOM???��? ?�는??
         const grid = document.createElement('div');
         const soundToggle = document.getElementById('sound-enabled-toggle');
         if (soundToggle && v2.storageService) soundToggle.checked = v2.storageService.loadSaveData().settings.soundEnabled;
@@ -710,10 +696,10 @@
 
             if (currentUserData.rewards && currentUserData.rewards.length > 0) {
                 const rankInfo = [
-                    { id: 'UR', title: '🌟 전설 (Legend)' },
-                    { id: 'SR', title: '⭐⭐⭐ 영웅 (Super Rare)' },
-                    { id: 'R',  title: '⭐⭐ 희귀 (Rare)' },
-                    { id: 'N',  title: '⭐ 일반 (Normal)' }
+                    { id: 'UR', title: '?�� ?�설 (Legend)' },
+                    { id: 'SR', title: '⭐⭐�??�웅 (Super Rare)' },
+                    { id: 'R',  title: '⭐⭐ ?��? (Rare)' },
+                    { id: 'N',  title: '�??�반 (Normal)' }
                 ];
 
                 rankInfo.forEach(r => {
@@ -734,7 +720,7 @@
                             const badge = document.createElement('div'); badge.className = 'rarity-badge'; badge.innerText = cat.rank; badge.style.backgroundColor = cat.border;
                             item.appendChild(badge);
                             
-                            const img = document.createElement('img'); img.src = `https://robohash.org/${cat.id}.png?set=set4&size=100x100`; img.alt = `${r.title} 고양이`;
+                            const img = document.createElement('img'); img.src = `https://robohash.org/${cat.id}.png?set=set4&size=100x100`; img.alt = `${r.title} 고양??;
                             if (v2.assetLoader) v2.assetLoader.applyImageFallback(img, '');
                             item.appendChild(img);
                             groupDiv.appendChild(item);
@@ -742,7 +728,7 @@
                         grid.appendChild(groupDiv);
                     }
                 });
-            } else { grid.innerHTML = '<p style="color:#999; margin:10px; font-size:14px;">아직 모은 고양이가 없다냥. 레벨업을 해보라냥!</p>'; }
+            } else { grid.innerHTML = '<p style="color:#999; margin:10px; font-size:14px;">?�직 모�? 고양?��? ?�다?? ?�벨?�을 ?�보?�냥!</p>'; }
         } else {
             document.getElementById('lobby-stats-box').style.display = 'none'; document.getElementById('collection-box').style.display = 'none';
         }
@@ -756,13 +742,13 @@
 
     function updateLiveAccuracy() {
         let currentAcc = currentQIndex > 1 ? Math.floor((sessionCorrect / (currentQIndex - 1)) * 100) : 100;
-        document.getElementById('current-accuracy').innerText = `정답률: ${currentAcc}%`;
+        document.getElementById('current-accuracy').innerText = `?�답�? ${currentAcc}%`;
     }
 
     function updateLivePoints() {
         const livePts = document.getElementById('live-points');
         const currentPoints = sessionCorrect * 10 + sessionSpeedScore;
-        livePts.innerText = `현재 획득: ${currentPoints}P`;
+        livePts.innerText = `?�재 ?�득: ${currentPoints}P`;
         
         livePts.classList.remove('point-anim');
         void livePts.offsetWidth; 
@@ -775,18 +761,18 @@
         if (v2.gameState) v2.gameState.startGame('classic');
         currentQIndex = 0; sessionCorrect = 0; sessionSpeedScore = 0; classicTenComboShown = false;
         lastQuestionStr = ""; 
-        document.body.classList.remove('boss-mode'); // 보스 모드 해제
+        document.body.classList.remove('boss-mode'); // 보스 모드 ?�제
         document.getElementById('reward-box').style.display = 'none';
         updateLivePoints(); 
         
         showScreen('play-screen'); nextMarathonQuestionFlow();
     }
 
-    // 🔥 보스전 흐름 제어 함수 🔥
+    // ?�� 보스???�름 ?�어 ?�수 ?��
     function nextMarathonQuestionFlow() {
         if (currentQIndex >= totalQuestions) return endMarathonGame();
         
-        // 18번 문제를 막 끝내고 19번으로 넘어갈 차례일 때 보스 경고 발생!
+        // 18�?문제�?�??�내�?19번으�??�어�?차�?????보스 경고 발생!
         if (currentQIndex === 18) {
             triggerBossWarning();
         } else {
@@ -794,7 +780,7 @@
         }
     }
 
-    // 🚨 보스 경고 이벤트 발동 🚨
+    // ?�� 보스 경고 ?�벤??발동 ?��
     function triggerBossWarning() {
         playSound('siren');
         triggerVibration([500, 200, 500]);
@@ -802,7 +788,7 @@
         const warningScreen = document.getElementById('boss-warning');
         warningScreen.style.display = 'flex';
         
-        // 2초 후 경고창 닫고 보스 테마 적용 후 19번 문제 시작
+        // 2�???경고�??�고 보스 ?�마 ?�용 ??19�?문제 ?�작
         setTimeout(() => {
             warningScreen.style.display = 'none';
             document.body.classList.add('boss-mode');
@@ -810,7 +796,7 @@
         }, 2000);
     }
 
-    // 실제 문제 생성 로직
+    // ?�제 문제 ?�성 로직
     function generateNextQuestion() {
         currentQIndex++; updateLiveAccuracy();
         answerLocked = false;
@@ -818,9 +804,9 @@
         document.getElementById('progress-bar').style.width = `${(currentQIndex / totalQuestions) * 100}%`;
         document.getElementById('feedback').innerText = "";
         
-        // 1~18번은 4지선다, 19~20번(보스전)은 8지선다
+        // 1~18번�? 4지?�다, 19~20�?보스???� 8지?�다
         let optionsCount = (currentQIndex <= 18) ? 4 : 8; 
-        // 16~20번 구간부터는 일의 자리 함정 적용
+        // 16~20�?구간부?�는 ?�의 ?�리 ?�정 ?�용
         let needsTrap = (currentQIndex >= 16); 
 
         let m1, m2; let loopCount = 0;
@@ -879,7 +865,7 @@
         if (answerLocked) return;
         answerLocked = true;
         clearInterval(timerInterval); clearInterval(countdownInterval); document.getElementById('timer-bar').style.width = '0%';
-        const feedback = document.getElementById('feedback'); feedback.innerText = "⏰ 시간 초과냥!"; feedback.className = "wrong-anim";
+        const feedback = document.getElementById('feedback'); feedback.innerText = "???�간 초과??"; feedback.className = "wrong-anim";
         document.getElementById('question').className = "question-text wrong-anim";
         playSound('wrong'); triggerVibration([400, 100, 400]);
         if (v2.gameState) v2.gameState.recordWrongAnswer();
@@ -904,12 +890,12 @@
             try { praise = v2.effectService.playCorrect(effectCombo); }
             catch (error) { console.error('[Classic correct effect error]', error); }
             if (combo >= 10) classicTenComboShown = true;
-            if (currentQIndex % 5 === 0 && sessionCorrect === currentQIndex) praise = '퍼펙트! 완벽한 계산이다냥!';
+            if (currentQIndex % 5 === 0 && sessionCorrect === currentQIndex) praise = '?�펙?? ?�벽??계산?�다??';
             feedback.innerText = praise; feedback.className = "correct-anim"; document.getElementById('question').className = "question-text correct-anim";
             try { if (v2.soundService) v2.soundService.playCorrectSound(); else playSound('correct'); if(v2.catPresentationRuntime)v2.catPresentationRuntime.playFeedback('correct'); } catch(e) { playSound('correct'); } triggerVibration([100, 50, 100]); 
         } else {
             if (v2.gameState) v2.gameState.recordWrongAnswer();
-            feedback.innerText = "💦 틀렸다냥!"; feedback.className = "wrong-anim"; document.getElementById('question').className = "question-text wrong-anim";
+            feedback.innerText = "?�� ?�?�다??"; feedback.className = "wrong-anim"; document.getElementById('question').className = "question-text wrong-anim";
             try { if (v2.soundService) v2.soundService.playWrongSound(); else playSound('wrong'); if(v2.catPresentationRuntime)v2.catPresentationRuntime.playFeedback('wrong'); } catch(e) { playSound('wrong'); } triggerVibration([300, 100, 300, 100, 300]); 
         }
         disableBtns(); setTimeout(nextMarathonQuestionFlow, 1000);
@@ -944,12 +930,12 @@
     }
     v2.calculateSessionPoints = calculateSessionPoints;
 
-    // V4 레벨업 알림 팝업
+    // V4 ?�벨???�림 ?�업
     function showLevelUpAlertV4(newLevel, ticketCount) {
-        alert("🎉 레벨 업! 🎉\n\n레벨 " + newLevel + "을 달성했다냥!\n고급 뽑기권 " + ticketCount + "장을 받았어요.");
+        alert("?�� ?�벨 ?? ?��\n\n?�벨 " + newLevel + "???�성?�다??\n고급 뽑기�?" + ticketCount + "?�을 받았?�요.");
     }
 
-    // V4 공통 결과 처리 함수
+    // V4 공통 결과 처리 ?�수
     async function finalizeGameResultV4(result) {
         if (!result || !result.sessionId) return;
         v2.finalizingSessionIdsV4 = v2.finalizingSessionIdsV4 || {};
@@ -968,7 +954,7 @@
             var completedAt = result.completedAt || result.playedAt || new Date().toISOString();
             var stageId = result.stageId || null;
 
-            // 1. LocalStorage 중복 검증
+            // 1. LocalStorage 중복 검�?
             var save = v2.storageService.loadSaveData();
             save.rewardHistory = save.rewardHistory || {};
             var processedV4 = save.rewardHistory.processedV4Sessions || (save.rewardHistory.processedV4Sessions = []);
@@ -996,7 +982,7 @@
             };
             v2.storageService.recordGame(cleanResult);
 
-            // 일일 미션 진행도 계산 및 갱신 (요구사항 6)
+            // ?�일 미션 진행??계산 �?갱신 (?�구?�항 6)
             if (window.recordDailyMissionProgress && currentUser) {
                 var isSuccess = false;
                 if (mode === 'adventure') {
@@ -1023,7 +1009,7 @@
                 }
             }
 
-            // 2. Firebase가 온라인이고 로그인 상태일 때 통합 업데이트
+            // 2. Firebase가 ?�라?�이�?로그???�태?????�합 ?�데?�트
             if (!isGuestMode && currentUser) {
                 var userRef = db.collection('users').doc(currentUser);
                 var sessionRef = db.collection('processedGameSessions_v4').doc(currentUser + '_' + result.sessionId);
@@ -1041,7 +1027,7 @@
                     var userSnap = await transaction.get(userRef);
                     var uData = userSnap.exists ? userSnap.data() : {};
 
-                    // stats V4 초기화 보장
+                    // stats V4 초기??보장
                     uData.scoringVersion = 4;
                     uData.totalPoints = Number(uData.totalPoints) || 0;
                     uData.monthlyScore = Number(uData.monthlyScore) || 0;
@@ -1053,15 +1039,15 @@
                         uData.modePoints[m] = Number(uData.modePoints[m]) || 0;
                     });
 
-                    // 포인트 누적
+                    // ?�인???�적
                     uData.totalPoints += earnedPoints;
                     uData.monthlyScore += earnedPoints;
                     uData.modePoints[mode] += earnedPoints;
 
-                    // 레벨 재계산
+                    // ?�벨 ?�계??
                     newLevel = calculateLevelFromPoints(uData.totalPoints);
 
-                    // 레벨업 보상 (V4 룰)
+                    // ?�벨??보상 (V4 �?
                     gainedLevels = Math.max(0, newLevel - uData.lastRewardedLevel);
                     if (gainedLevels > 0) {
                         premiumTicketsToGrant = gainedLevels;
@@ -1101,7 +1087,7 @@
                     currentUserData = uData;
                 });
 
-                // V4 랭킹 제출 (사용자 고유 UID 기준 동기화)
+                // V4 ??�� ?�출 (?�용??고유 UID 기�? ?�기??
                 const uid = (auth && auth.currentUser) ? auth.currentUser.uid : currentUser;
                 const targetNickname = (currentUserData.profile && currentUserData.profile.nickname) || currentUser;
                 await v2.rankingService.submitOverall({
@@ -1127,7 +1113,7 @@
                     });
                 }
 
-                // 레벨업 팝업 호출
+                // ?�벨???�업 ?�출
                 if (gainedLevels > 0) {
                     setTimeout(function() {
                         showLevelUpAlertV4(newLevel, premiumTicketsToGrant);
@@ -1135,7 +1121,7 @@
                 }
             }
 
-            // 12. 첫 화면 즉시 갱신
+            // 12. �??�면 즉시 갱신
             await reloadCurrentUserStats();
             refreshHomeStatsFromCurrentUser();
             if (typeof refreshLeaderboardSummaryIfVisible === 'function') {
@@ -1167,7 +1153,7 @@
     }
     v2.finalizeGameResultV4 = finalizeGameResultV4;
 
-    // 하위 호환성용 래퍼
+    // ?�위 ?�환?�용 ?�퍼
     async function finalizeCompletedGameSession(result) {
         return finalizeGameResultV4(result);
     }
@@ -1264,8 +1250,8 @@
                 if (box) {
                     box.innerHTML = 
                         '<div style="text-align: left; padding: 5px;">' +
-                            '<p style="margin: 3px 0; font-size: 1.1em; font-weight: bold; color: #4b3565;">🏆 내 레벨: <span class="highlight" id="lobby-level">Lv.' + level + '</span></p>' +
-                            '<p style="margin: 3px 0; font-size: 1.1em; font-weight: bold; color: #4b3565;">💰 전체 포인트: <span class="highlight" id="lobby-points">' + totalPoints.toLocaleString() + 'P</span></p>' +
+                            '<p style="margin: 3px 0; font-size: 1.1em; font-weight: bold; color: #4b3565;">?�� ???�벨: <span class="highlight" id="lobby-level">Lv.' + level + '</span></p>' +
+                            '<p style="margin: 3px 0; font-size: 1.1em; font-weight: bold; color: #4b3565;">?�� ?�체 ?�인?? <span class="highlight" id="lobby-points">' + totalPoints.toLocaleString() + 'P</span></p>' +
                             progressHtml +
                         '</div>';
                 }
@@ -1300,10 +1286,10 @@
             pop.style.transition = 'all 0.8s ease-out';
             pop.style.opacity = '1';
             
-            var text = "🎁 보상 획득! ";
+            var text = "?�� 보상 ?�득! ";
             if (rewards.coins) text += "코인 +" + rewards.coins + " ";
-            if (rewards.normalTickets) text += "일반 뽑기권 +" + rewards.normalTickets + " ";
-            if (rewards.premiumTickets) text += "고급 뽑기권 +" + rewards.premiumTickets + " ";
+            if (rewards.normalTickets) text += "?�반 뽑기�?+" + rewards.normalTickets + " ";
+            if (rewards.premiumTickets) text += "고급 뽑기�?+" + rewards.premiumTickets + " ";
             pop.innerText = text;
             document.body.appendChild(pop);
             
@@ -1358,7 +1344,7 @@
 
     async function endMarathonGame() {
         if (v2.gameState) v2.gameState.finishGame();
-        document.body.classList.remove('boss-mode'); // 게임 종료 시 보스 테마 해제
+        document.body.classList.remove('boss-mode'); // 게임 종료 ??보스 ?�마 ?�제
         toggleLoading(true); 
         const baseScore = sessionCorrect * 10;
         let todayTotal = baseScore + sessionSpeedScore;
@@ -1381,7 +1367,7 @@
         const rewardBox = document.getElementById('reward-box');
         if (coinReward.ok) {
             const p = coinReward.parts;
-            rewardBox.innerHTML = '<h3>획득 보상</h3><ul><li>기본 완료 보상 +'+p.completion+'코인</li><li>정답 보상 +'+p.correct+'코인</li>'+(p.perfect?'<li>완벽한 정확도 +'+p.perfect+'코인</li>':'')+(p.personalBest?'<li>개인 최고 기록 +'+p.personalBest+'코인</li>':'')+'</ul><strong>총 획득 코인 +'+p.total+'코인</strong>';
+            rewardBox.innerHTML = '<h3>?�득 보상</h3><ul><li>기본 ?�료 보상 +'+p.completion+'코인</li><li>?�답 보상 +'+p.correct+'코인</li>'+(p.perfect?'<li>?�벽???�확??+'+p.perfect+'코인</li>':'')+(p.personalBest?'<li>개인 최고 기록 +'+p.personalBest+'코인</li>':'')+'</ul><strong>�??�득 코인 +'+p.total+'코인</strong>';
             rewardBox.style.display = 'block';
         }
 
@@ -1402,7 +1388,7 @@
             
             listDiv.innerHTML = '';
             if(snapshot.empty) {
-                listDiv.innerHTML = '<p style="text-align:center;">아직 랭킹이 없습니다.</p>';
+                listDiv.innerHTML = '<p style="text-align:center;">?�직 ??��???�습?�다.</p>';
                 return;
             }
 
@@ -1410,7 +1396,7 @@
             snapshot.forEach(doc => {
                 let u = doc.id; let data = doc.data();
                 const div = document.createElement('div'); div.className = 'ranking-item';
-                const rankIcon = index === 0 ? '👑' : `${index + 1}위`;
+                const rankIcon = index === 0 ? '?��' : `${index + 1}??;
                 
                 const highlightMe = (u === currentUser) ? 'color: #FF69B4; font-weight: bold;' : '';
                 
@@ -1422,8 +1408,8 @@
         } catch(e) {
             console.error(e);
             const code = e && e.code ? e.code : '';
-            const guide = code.includes('permission') ? 'Firebase에서 users 읽기 권한을 확인해 주세요.' : '인터넷 연결과 Firebase 설정을 확인해 주세요.';
-            listDiv.innerHTML = `<p style="text-align:center; color:#B00020;">순위를 불러오지 못했어요.<br><small>${guide}</small></p>`;
+            const guide = code.includes('permission') ? 'Firebase?�서 users ?�기 권한???�인??주세??' : '?�터???�결�?Firebase ?�정???�인??주세??';
+            listDiv.innerHTML = `<p style="text-align:center; color:#B00020;">?�위�?불러?��? 못했?�요.<br><small>${guide}</small></p>`;
         }
     }
 
@@ -1434,9 +1420,9 @@
         try {
             toggleLoading(true);
             await db.collection('users').doc(userId).update({ [field]: firebase.firestore.FieldValue.increment(count) });
-            alert(`${userId}님에게 재화 ${count}개를 지급했습니다. 다음 로그인 때 자동 수령됩니다.`);
+            alert(`${userId}?�에�??�화 ${count}개�? 지급했?�니?? ?�음 로그?????�동 ?�령?�니??`);
             await showAdminScreen();
-        } catch (error) { console.error('[Admin ticket grant error]', error); alert('티켓 지급에 실패했습니다.'); toggleLoading(false); }
+        } catch (error) { console.error('[Admin ticket grant error]', error); alert('?�켓 지급에 ?�패?�습?�다.'); toggleLoading(false); }
     }
 
     async function receivePendingTickets(userRef, userData) {
@@ -1451,9 +1437,9 @@
         save.currency.normalTickets += normal;
         save.currency.premiumTickets += premium;
         save.currency.seasonTickets.season_01 = (save.currency.seasonTickets.season_01 || 0) + season;
-        if (!v2.storageService.saveSaveData(save)) throw new Error('로컬 티켓 저장 실패');
+        if (!v2.storageService.saveSaveData(save)) throw new Error('로컬 ?�켓 ?�???�패');
         await userRef.update({ pendingResources: { coins: 0, normal: 0, premium: 0, season: 0 }, pendingTickets: { normal: 0, premium: 0 }, ticketsReceivedAt: firebase.firestore.FieldValue.serverTimestamp() });
-        alert(`관리자 선물 도착! 코인 ${coins} · 기본 ${normal} · 고급 ${premium}을 받았습니다.`);
+        alert(`관리자 ?�물 ?�착! 코인 ${coins} · 기본 ${normal} · 고급 ${premium}??받았?�니??`);
     }
 
     async function syncCurrentCurrencyToFirebase(userRef) {
@@ -1466,7 +1452,7 @@
 
     if (v2.validators) v2.validators.validateAll();
     window.toggleGameSound = function (enabled) { if (!v2.storageService) return; const data = v2.storageService.loadSaveData(); data.settings.soundEnabled = Boolean(enabled); v2.storageService.saveSaveData(data); if (v2.soundService) v2.soundService.setSoundEnabled(enabled); };
-    window.getCurrentPlayerContext = function () { return { nickname: (currentUserData && currentUserData.profile && currentUserData.profile.nickname) ? currentUserData.profile.nickname : (isGuestMode ? '게스트' : (currentUser || '')), isGuest: isGuestMode, userData: currentUserData }; };
+    window.getCurrentPlayerContext = function () { return { nickname: (currentUserData && currentUserData.profile && currentUserData.profile.nickname) ? currentUserData.profile.nickname : (isGuestMode ? '게스?? : (currentUser || '')), isGuest: isGuestMode, userData: currentUserData }; };
 
     window.loginWithGoogle = loginWithGoogle;
     window.setupNewProfile = setupNewProfile;
@@ -1480,3 +1466,39 @@
 
     if (v2.initBackButtonHandler) v2.initBackButtonHandler();
     if (v2.initPwaManager) v2.initPwaManager();
+
+    function initVersionDisplay() {
+        const info = window.NYANKO_APP_INFO;
+        if (!info) return;
+        
+        const vLabel = document.getElementById('version-label');
+        if (vLabel) {
+            vLabel.textContent = "Ver. " + info.version;
+        }
+        
+        const vText = document.getElementById('version-text');
+        if (vText) {
+            vText.textContent = `버전 ${info.version} · ?�데?�트 ${info.buildDate.replace(/-/g, '.')} ${info.buildTime}`;
+        }
+        
+        const LAST_SEEN_VERSION_KEY = "nyanko:last-seen-version";
+        const lastSeen = localStorage.getItem(LAST_SEEN_VERSION_KEY);
+        const badge = document.getElementById('version-new-badge');
+        
+        if (badge) {
+            if (!lastSeen || lastSeen !== info.version) {
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+        
+        localStorage.setItem(LAST_SEEN_VERSION_KEY, info.version);
+    }
+    
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initVersionDisplay);
+    } else {
+        initVersionDisplay();
+    }
+
