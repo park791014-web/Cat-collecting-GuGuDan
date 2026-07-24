@@ -34,19 +34,28 @@
 <div id="game-container">
     <div id="login-screen" class="screen active-screen">
         <h1>🌟 구구단 냥코 대모험 🌟</h1>
-        <p class="version-label" id="version-label">V2.0.0</p>
+        <p class="version-label" id="version-label">V2.0.15</p>
         <p style="font-size: 16px;">백점 맞고 전설의 고양이를 뽑자냥!</p>
         <img src="assets/cats/base/base_legendary_01-transparent.png" width="140" height="140" alt="황금 전설 냥이" style="margin:5px; object-fit:contain; background:linear-gradient(145deg,#FFF9D8,#FFE8A3); border-radius:50%; border:3px solid #FFD166; box-shadow:0 5px 18px rgba(224,170,30,.28);">
-        <div class="input-group">
+        <div class="input-group" style="display:none;">
             <input type="text" id="username-input" class="input-field" placeholder="내 이름 (아이디)">
         </div>
-        <div class="input-group">
+        <div class="input-group" style="display:none;">
             <input type="password" id="password-input" class="input-field" placeholder="비밀번호">
         </div>
-        <button class="btn btn-success" onclick="handleAuth('login')">로그인</button>
-        <button class="btn" onclick="handleAuth('signup')">새로 가입</button>
+        <button class="btn btn-success btn-google" onclick="loginWithGoogle()" style="background-color: #4285F4; border-color: #4285F4; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; box-sizing: border-box; color: white;"><svg width="18" height="18" viewBox="0 0 18 18" style="fill: white; flex-shrink: 0;"><path d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.47h4.84c-.21 1.12-.84 2.07-1.79 2.7v2.24h2.9c1.69-1.55 2.69-3.84 2.69-6.57z" fill="#4285F4"/><path d="M9 18c2.43 0 4.47-.8 5.96-2.23l-2.9-2.24c-.8.54-1.84.87-3.06.87-2.35 0-4.34-1.58-5.05-3.72H.93v2.3C2.41 15.93 5.43 18 9 18z" fill="#34A853"/><path d="M3.95 10.68c-.18-.54-.28-1.12-.28-1.68s.1-1.14.28-1.68V5.02H.93C.34 6.22 0 7.57 0 9s.34 2.78.93 3.98l3.02-2.3z" fill="#FBBC05"/><path d="M9 3.58c1.32 0 2.5.45 3.44 1.35L15 2.3C13.47.87 11.43 0 9 0 5.43 0 2.41 2.07.93 5.02l3.02 2.3c.71-2.14 2.7-3.74 5.05-3.74z" fill="#EA4335"/></svg>Google 계정으로 시작하기</button><p style="font-size: 13px; color: #666; margin-top: 10px; line-height: 1.4; text-align: center;">같은 Google 계정으로 로그인하면 컴퓨터와 휴대폰에서 같은 게임 데이터를 사용할 수 있어요.</p>
+        <!-- Legacy signup btn removed -->
         <hr style="border: 1px dashed #DDD; margin: 15px 0;">
         <button class="btn btn-guest" onclick="playAsGuest()">GUEST로 하기</button>
+    </div>
+
+    <div id="profile-setup-screen" class="screen">
+        <h1>냥코 대모험 프로필 설정</h1>
+        <p style="font-size: 16px;">게임에서 사용할 닉네임을 설정해 주세요냥!</p>
+        <div class="input-group" style="margin: 20px 0;">
+            <input type="text" id="new-nickname-input" class="input-field" placeholder="닉네임 (2~12자, 한글/영문/숫자)">
+        </div>
+        <button class="btn btn-success" onclick="setupNewProfile()">설정 완료냥!</button>
     </div>
 
     <div id="admin-screen" class="screen">
@@ -247,7 +256,7 @@
     <script src="js/services/catPresentationRuntime.js?v=2.0.13"></script>
     <script src="js/ui/seasonController.js"></script>
     <script src="js/ui/dailyMissionController.js?v=2.0.9"></script>
-    <script src="js/app.js?v=2.0.14"></script>
+    <script src="js/app.js?v=2.0.15"></script>
     <script src="js/ui/adminAccountManager.js?v=2.0.12"></script>
     <script src="js/game/modeEngine.js?v=2.0.13"></script>
     <script src="js/ui/leaderboardV3Controller.js?v=2.0.14"></script>

@@ -177,294 +177,191 @@
     }
 
     if (auth) {
+        auth.getRedirectResult().catch(function(err) {
+            console.error("[Firebase Redirect Auth Error]", err);
+            if (err.code === 'auth/unauthorized-domain') {
+                alert("Firebase 승인된 도메인 설정을 확인해 주세요.");
+            } else if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
+                alert("Google 로그인이 취소되었습니다.");
+            }
+        });
+
         auth.onAuthStateChanged(async function(user) {
-            // 1. 이전 사용자 실시간 구독 해제
             if (unsubscribeUserDoc) {
                 unsubscribeUserDoc();
                 unsubscribeUserDoc = null;
             }
 
-            // 2. 이전 계정의 메모리 상태 초기화
             currentUser = null;
             currentUserData = null;
             isGuestMode = false;
 
             if (!user) {
-                // 로그인되어 있지 않은 경우 게스트용 기본 키 설정
                 v2.storageService.setStorageKey("nyanko:v4:guest:cache");
                 showScreen('login-screen');
                 return;
             }
 
-            // 3. 현재 Firebase UID 확인 및 디버그 출력
             const uid = user.uid;
-            console.debug("[Authenticated User]", {
-                uid: uid,
-                email: user.email ?? null
-            });
+            console.debug("[Google Authenticated User]", { uid: uid, email: user.email });
 
-            // 스토리지 키 변경
-            v2.storageService.setStorageKey(`nyanko:v4:user:${uid}:cache`);
+            const cacheKey = `nyanko:google-user:${uid}:cache`;
+            v2.storageService.setStorageKey(cacheKey);
             toggleLoading(true);
 
             try {
-                // 4. 해당 UID의 원격 사용자 문서 읽기
                 const userRef = db.collection('users').doc(uid);
                 const doc = await userRef.get();
 
-                // 로컬의 병합 대상 데이터 가져오기
-                const localRaw = localStorage.getItem("gugudanV2Save") || localStorage.getItem(`nyanko:v4:user:${uid}:cache`);
-                let localData = null;
-                if (localRaw) {
-                    try {
-                        localData = JSON.parse(localRaw);
-                    } catch (e) {
-                        console.warn("[sync] Local cache parse failed", e);
-                    }
-                }
-
-                let finalData = null;
-
                 if (doc.exists) {
-                    // Firebase 데이터 우선하여 로컬 데이터와 안전 병합
                     const remoteData = doc.data();
-                    finalData = mergeLegacyData(remoteData, localData);
+                    currentUser = uid;
+                    currentUserData = remoteData;
+                    v2.storageService.saveSaveData(remoteData);
+                    showLobby();
+                    connectRealtimeListener(userRef, uid);
                 } else {
-                    // Firebase 문서가 존재하지 않을 때만 로컬 레거시 데이터 기반 생성
-                    if (localData) {
-                        finalData = localData;
-                    } else {
-                        // 아예 신규 가입일 경우 defaults 기반 초기 설정
-                        finalData = JSON.parse(JSON.stringify(v2.storageService.defaults));
-                    }
-                    finalData.scoringVersion = 4;
-                    finalData.totalPoints = 0;
-                    finalData.level = 1;
-                    finalData.lastRewardedLevel = 1;
+                    currentUser = uid;
+                    showScreen('profile-setup-screen');
                 }
-
-                // 닉네임 유실 방지
-                if (!finalData.profile) finalData.profile = {};
-                const hexUsername = user.email ? user.email.split('@')[0] : '';
-                let decodedNickname = '';
-                try {
-                    decodedNickname = hexToString(hexUsername);
-                } catch (e) {
-                    decodedNickname = hexUsername;
-                }
-                finalData.profile.nickname = finalData.profile.nickname || decodedNickname || '익명냥';
-
-                // Firebase에 병합된 최종 결과 저장
-                await userRef.set(finalData, { merge: true });
-
-                // 6. UID별 로컬 캐시 갱신 및 상태 구성
-                currentUser = uid;
-                currentUserData = finalData;
-                v2.storageService.saveSaveData(finalData);
-
-                // 마이그레이션 v4 reset 1회 보장
-                var migrations = currentUserData.migrations || (currentUserData.migrations = {});
-                if (!migrations['scoring_v4_reset']) {
-                    currentUserData.scoringVersion = 4;
-                    currentUserData.totalPoints = 0;
-                    currentUserData.totalScore = 0;
-                    currentUserData.monthlyScore = 0;
-                    currentUserData.level = 1;
-                    currentUserData.lastRewardedLevel = 1;
-                    currentUserData.modePoints = { classic: 0, timeAttack: 0, adventure: 0 };
-                    migrations['scoring_v4_reset'] = { completed: true, completedAt: new Date().toISOString() };
-                    currentUserData.migrations = migrations;
-                    await userRef.set(currentUserData, { merge: true });
-                }
-
-                // 7. 화면 렌더링
-                showLobby();
-
-                // 8. 실시간 구독 연결
-                unsubscribeUserDoc = userRef.onSnapshot(function(snapshot) {
-                    if (snapshot.exists) {
-                        const nextData = snapshot.data();
-                        
-                        // 현재 사용자가 게임 플레이 중일 때는 방해하지 않음
-                        const activeScreen = document.querySelector('.screen.active-screen');
-                        const isPlaying = activeScreen && (activeScreen.id === 'play-screen' || activeScreen.id === 'adventure-screen' || (window.NyankoGameState && window.NyankoGameState.isPlaying));
-
-                        if (!isPlaying) {
-                            currentUserData = nextData;
-                            v2.storageService.saveSaveData(nextData);
-                            
-                            // 로비 UI 통계 및 대표 고양이 등 실시간 갱신
-                            if (typeof refreshHomeStatsFromCurrentUser === 'function') {
-                                refreshHomeStatsFromCurrentUser();
-                            }
-                            if (typeof renderPhase4Currency === 'function') {
-                                renderPhase4Currency();
-                            }
-                            console.debug("[User Sync]", {
-                                uid: uid,
-                                source: "firebase",
-                                ownedCatCount: nextData.collection?.ownedCatIds?.length || 0,
-                                totalPoints: nextData.totalPoints || 0,
-                                level: nextData.level || 1,
-                                representativeCatId: nextData.profile?.selectedCatId || 'base_normal_01'
-                            });
-                        }
-                    }
-                });
-
             } catch (err) {
-                console.error("[onAuthStateChanged] load failed", err);
-                alert("사용자 정보를 동기화하는 도중 오류가 발생했습니다.");
+                console.error("[Auth Load Failed]", err);
+                alert("사용자 정보를 가져오는 도중 오류가 발생했습니다.");
             } finally {
                 toggleLoading(false);
             }
         });
     }
-    
-    function showScreen(screenId) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
-        document.getElementById(screenId).classList.add('active-screen');
-        document.body.classList.toggle('is-admin-mode', screenId === 'admin-screen');
-    }
-    function toggleLoading(show) { document.getElementById('loading-overlay').style.display = show ? 'flex' : 'none'; }
-    function clearClassicRuntime() { clearInterval(timerInterval); clearInterval(countdownInterval); timerInterval = null; countdownInterval = null; }
-    window.clearClassicRuntime = clearClassicRuntime;
 
-    function stringToHex(str) {
-        let hex = '';
-        for (let i = 0; i < str.length; i++) {
-            let code = str.charCodeAt(i).toString(16);
-            hex += code.padStart(4, '0');
-        }
-        return hex;
-    }
+    function connectRealtimeListener(userRef, uid) {
+        unsubscribeUserDoc = userRef.onSnapshot(function(snapshot) {
+            if (snapshot.exists) {
+                const nextData = snapshot.data();
+                const activeScreen = document.querySelector('.screen.active-screen');
+                const isPlaying = activeScreen && (activeScreen.id === 'play-screen' || activeScreen.id === 'adventure-screen' || (window.NyankoGameState && window.NyankoGameState.isPlaying));
 
-    function hexToString(hex) {
-        let str = '';
-        for (let i = 0; i < hex.length; i += 4) {
-            let code = parseInt(hex.substr(i, 4), 16);
-            if (!isNaN(code)) {
-                str += String.fromCharCode(code);
+                if (!isPlaying) {
+                    currentUserData = nextData;
+                    v2.storageService.saveSaveData(nextData);
+                    
+                    if (typeof refreshHomeStatsFromCurrentUser === 'function') {
+                        refreshHomeStatsFromCurrentUser();
+                    }
+                    if (typeof renderPhase4Currency === 'function') {
+                        renderPhase4Currency();
+                    }
+                    console.debug("[User Sync]", {
+                        uid: uid,
+                        source: "firebase",
+                        ownedCatCount: nextData.collection?.ownedCatIds?.length || 0,
+                        totalPoints: nextData.totalPoints || 0,
+                        level: nextData.level || 1,
+                        representativeCatId: nextData.profile?.selectedCatId || 'base_normal_01'
+                    });
+                }
             }
-        }
-        return str;
+        });
     }
 
-    function getAuthEmail(username) {
-        const clean = username.trim().toLowerCase();
-        // 영문 소문자, 숫자, 밑줄(_)만 허용되는 지시된 규칙 패턴인 경우
-        if (/^[a-z0-9_]+$/.test(clean)) {
-            return clean + "@nyanko.local";
-        }
-        // 한글 등 기타 특수 문자가 들어간 레거시 계정 마이그레이션 및 로그인 지원용 hex 변환 가상 이메일
-        return stringToHex(clean) + "@nyanko.local";
-    }
-
-    async function handleAuth(type) {
+    async function loginWithGoogle() {
         initAudio();
-        const rawUsername = document.getElementById('username-input').value;
-        const password = document.getElementById('password-input').value.trim();
-        if(!rawUsername || !password) return alert("이름과 비밀번호를 입력해 주세요!");
-
-        const username = rawUsername.trim().toLowerCase();
-
-        if (username === 'admin' && password === 'admin1234') { currentUser = 'admin'; window.__nyankoAdminSession = true; showAdminScreen(); return; }
-
         if (!auth) {
             return alert("Firebase Auth를 사용할 수 없습니다. SDK 초기화 오류입니다.");
+        }
+        
+        toggleLoading(true);
+        const provider = new firebase.auth.GoogleAuthProvider();
+        
+        try {
+            await auth.signInWithPopup(provider);
+        } catch (err) {
+            console.warn("[Google popup failed, trying redirect]", err);
+            if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request' || /Mobi|Android|iPhone/i.test(navigator.userAgent)) {
+                if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
+                    alert("Google 로그인이 취소되었습니다.");
+                    toggleLoading(false);
+                    return;
+                }
+                try {
+                    await auth.signInWithRedirect(provider);
+                } catch (redirErr) {
+                    console.error("[Google redirect login failed]", redirErr);
+                    if (redirErr.code === 'auth/unauthorized-domain') {
+                        alert("Firebase 승인된 도메인 설정을 확인해 주세요.");
+                    } else {
+                        alert("로그인 처리 중 오류가 발생했습니다.");
+                    }
+                    toggleLoading(false);
+                }
+            } else {
+                if (err.code === 'auth/unauthorized-domain') {
+                    alert("Firebase 승인된 도메인 설정을 확인해 주세요.");
+                } else {
+                    alert("로그인 처리 중 오류가 발생했습니다.");
+                }
+                toggleLoading(false);
+            }
+        }
+    }
+
+    async function setupNewProfile() {
+        const nicknameInput = document.getElementById('new-nickname-input');
+        if (!nicknameInput) return;
+        const nickname = nicknameInput.value.trim();
+
+        if (nickname.length < 2 || nickname.length > 12) {
+            return alert("닉네임은 2자 이상 12자 이하로 작성해 주세요냥!");
+        }
+        if (!/^[a-zA-Z0-9가-힣ㄱ-ㅎㅏ-ㅣ\s]+$/.test(nickname)) {
+            return alert("닉네임에는 한글, 영문, 숫자만 사용할 수 있습니다냥!");
+        }
+
+        if (!currentUser) {
+            return alert("인증 정보가 없습니다. 로그인을 다시 시도해 주세요냥.");
         }
 
         toggleLoading(true);
         try {
-            const email = getAuthEmail(username);
+            const uid = currentUser;
+            const userRef = db.collection('users').doc(uid);
+            
+            const defaults = JSON.parse(JSON.stringify(v2.storageService.defaults || {
+                profile: { selectedCatId: 'base_normal_01', nickname: nickname },
+                collection: { ownedCatIds: ['base_normal_01'], duplicateCounts: {} },
+                currency: { coins: 1000, normalTickets: 3, premiumTickets: 0, seasonTickets: {} },
+                classicRecord: { totalPoints: 0, bestCombo: 0, bestAccuracy: 0, playedCount: 0 },
+                timeAttackRecord: { bestCorrectCount: 0, bestAccuracy: 0, playedCount: 0 },
+                adventureProgress: { clearedStageIds: [], unlockedWorldIds: ['world_01'], unlockedStageIds: ['stage_01_01'], stageRecords: {} },
+                settings: { soundEnabled: true },
+                unclaimedAchievements: [],
+                completedAchievements: []
+            }));
 
-            if (type === 'signup') {
-                if (username === 'admin') { alert("사용할 수 없는 이름입니다."); toggleLoading(false); return; }
-                
-                // 가입 시 아이디 유효성 검사 (영문자, 숫자, 밑줄만 허용)
-                if (!/^[a-z0-9_]+$/.test(username)) {
-                    alert("아이디는 영문 소문자, 숫자, 밑줄(_)만 사용할 수 있다냥!");
-                    toggleLoading(false);
-                    return;
-                }
+            defaults.profile.nickname = nickname;
+            defaults.profile.selectedCatId = defaults.profile.selectedCatId || 'base_normal_01';
+            defaults.scoringVersion = 4;
+            defaults.totalPoints = 0;
+            defaults.level = 1;
+            defaults.lastRewardedLevel = 1;
+            defaults.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            defaults.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
 
-                try {
-                    await auth.createUserWithEmailAndPassword(email, password);
-                    alert("가입 완료냥! 로그인을 진행해달라냥.");
-                } catch (signupErr) {
-                    console.error('[Firebase Auth Signup Error]', signupErr);
-                    const isConfigError = (signupErr && signupErr.code === 'auth/configuration-not-found') || (signupErr && signupErr.message && signupErr.message.includes('CONFIGURATION_NOT_FOUND'));
-                    if (isConfigError) {
-                        console.error("[Firebase Auth Configuration Error]", {
-                            code: signupErr?.code,
-                            message: signupErr?.message,
-                            serverMessage: signupErr?.customData?._tokenResponse?.error?.message ?? null,
-                            projectId: firebaseConfig?.projectId ?? null,
-                            authDomain: firebaseConfig?.authDomain ?? null
-                        });
-                        alert("로그인 설정을 확인하고 있습니다. 관리자에게 Firebase 인증 설정을 확인해 달라고 알려주세요.");
-                    } else if (signupErr.code === 'auth/email-already-in-use') {
-                        alert("이미 사용 중인 아이디입니다.");
-                    } else {
-                        alert("가입 처리 중 오류가 발생했습니다.");
-                    }
-                }
-            } else {
-                try {
-                    await auth.signInWithEmailAndPassword(email, password);
-                } catch (loginErr) {
-                    console.error('[Firebase Auth Login Error]', loginErr);
-                    
-                    // 11. 로그인 실패 시 1회성 마이그레이션 검사
-                    if (loginErr.code === 'auth/user-not-found' || loginErr.code === 'auth/wrong-password') {
-                        try {
-                            const legacyDocRef = db.collection('users').doc(username);
-                            const legacyDoc = await legacyDocRef.get();
-                            if (legacyDoc.exists && legacyDoc.data().password === password) {
-                                const legacyData = legacyDoc.data();
-                                // 새 Auth 생성
-                                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-                                const newUid = userCredential.user.uid;
-                                // UID 기준으로 기존 데이터 마이그레이션 저장
-                                await db.collection('users').doc(newUid).set(legacyData);
-                                // 기존 문서 삭제
-                                await legacyDocRef.delete();
-                                console.log('[Auth Migrated User]', username, 'to', newUid);
-                                // 최종 로그인 완료
-                                await auth.signInWithEmailAndPassword(email, password);
-                                toggleLoading(false);
-                                return;
-                            }
-                        } catch (migErr) {
-                            console.error('[Legacy Login Migration Failed]', migErr);
-                        }
-                    }
+            await userRef.set(defaults);
+            currentUserData = defaults;
+            v2.storageService.saveSaveData(defaults);
 
-                    // 12. 이해하기 쉬운 에러 메시지 분기 처리
-                    const isConfigError = (loginErr && loginErr.code === 'auth/configuration-not-found') || (loginErr && loginErr.message && loginErr.message.includes('CONFIGURATION_NOT_FOUND'));
-                    if (isConfigError) {
-                        console.error("[Firebase Auth Configuration Error]", {
-                            code: loginErr?.code,
-                            message: loginErr?.message,
-                            serverMessage: loginErr?.customData?._tokenResponse?.error?.message ?? null,
-                            projectId: firebaseConfig?.projectId ?? null,
-                            authDomain: firebaseConfig?.authDomain ?? null
-                        });
-                        alert("로그인 설정을 확인하고 있습니다. 관리자에게 Firebase 인증 설정을 확인해 달라고 알려주세요.");
-                    } else if (loginErr.code === 'auth/user-not-found') {
-                        alert("존재하지 않는 아이디입니다.");
-                    } else if (loginErr.code === 'auth/wrong-password') {
-                        alert("비밀번호가 올바르지 않습니다.");
-                    } else {
-                        alert("로그인 처리 중 오류가 발생했습니다.");
-                    }
-                }
-            }
-        } catch (error) {
-            alert("서버 연결에 실패했다냥!");
-            console.error(error);
+            console.log("[New User Profile Created]", uid, nickname);
+            nicknameInput.value = '';
+
+            showLobby();
+            connectRealtimeListener(userRef, uid);
+
+        } catch (err) {
+            console.error("[Profile Setup Failed]", err);
+            alert("프로필 생성 중 오류가 발생했습니다. 다시 시도해 주세요냥.");
+        } finally {
+            toggleLoading(false);
         }
-        toggleLoading(false);
     }
 
     async function showAdminScreen() {
@@ -523,8 +420,10 @@
         isGuestMode = false;
         document.getElementById('lobby-selected-cat').innerHTML = '';
         document.getElementById('collection-grid').innerHTML = '';
-        document.getElementById('username-input').value = "";
-        document.getElementById('password-input').value = "";
+        const uIn = document.getElementById('username-input');
+        if (uIn) uIn.value = "";
+        const pIn = document.getElementById('password-input');
+        if (pIn) pIn.value = "";
         if (auth) {
             auth.signOut();
         } else {
@@ -535,7 +434,8 @@
     function showLobby() {
         clearClassicRuntime();
         if (window.clearPhase2Runtime) window.clearPhase2Runtime();
-        document.getElementById('lobby-name').innerText = currentUser;
+        const nickname = (currentUserData && currentUserData.profile && currentUserData.profile.nickname) || currentUser;
+        document.getElementById('lobby-name').innerText = nickname;
         // 기존 Firebase 보상 목록은 새 도감 DOM에 섞지 않는다.
         const grid = document.createElement('div');
         const soundToggle = document.getElementById('sound-enabled-toggle');
