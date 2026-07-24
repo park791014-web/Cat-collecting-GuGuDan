@@ -9,3 +9,28 @@
 .mode-ranking-item.is-me,.ranking-own-outside{background:#fff0f7;border:1px solid #f1b8d4}
 .ranking-own-outside{margin-top:14px}
 .ranking-empty,.ranking-error{text-align:center}.ranking-error{color:#b00020}
+
+.google-login-action {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.google-login-button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  width: min(100%, 380px);
+  margin: 0 auto;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+  .google-login-button {
+    width: calc(100% - 32px);
+    max-width: 380px;
+  }
+}

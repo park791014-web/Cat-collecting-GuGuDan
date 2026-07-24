@@ -26,6 +26,11 @@
     }
     if (v2.rankingService) v2.rankingService.setDatabase(db, window.firebase);
 
+    // 과거 레거시 공통 키 자동 복구 방지 청소
+    ['saveData', 'userData', 'playerData', 'nyankoSave', 'currentUser', 'playerId', 'guestData'].forEach(k => {
+        try { localStorage.removeItem(k); } catch(e){}
+    });
+
     let audioCtx;
     function initAudio() {
         if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
@@ -197,6 +202,17 @@
             isGuestMode = false;
 
             if (!user) {
+                const guestSessionStr = sessionStorage.getItem("nyanko:guest:temporary-session");
+                if (guestSessionStr) {
+                    try {
+                        const guestSession = JSON.parse(guestSessionStr);
+                        applyGuestState(guestSession);
+                        showLobby();
+                        return;
+                    } catch (e) {
+                        console.warn("[Guest Session Restore Error]", e);
+                    }
+                }
                 v2.storageService.setStorageKey("nyanko:v4:guest:cache");
                 showScreen('login-screen');
                 return;
@@ -496,19 +512,78 @@
         }
     }
 
-    function playAsGuest() {
-        initAudio();
-        currentUser = "GUEST";
+    const GUEST_SESSION_KEY = "nyanko:guest:temporary-session";
+
+    function applyGuestState(session) {
+        currentUser = session.id;
+        currentUserData = {
+            profile: { nickname: session.nickname, selectedCatId: session.representativeCatId },
+            collection: { ownedCatIds: session.ownedCats, duplicateCounts: {} },
+            currency: { coins: session.coins, normalTickets: 0, premiumTickets: 0, seasonTickets: {} },
+            totalPoints: session.totalPoints,
+            level: session.level,
+            classicRecord: { totalPoints: session.totalPoints, bestCombo: 0, bestAccuracy: 0, playedCount: 0 },
+            timeAttackRecord: { bestCorrectCount: 0, bestAccuracy: 0, playedCount: 0 },
+            adventureProgress: { clearedStageIds: [], unlockedWorldIds: ['world_01'], unlockedStageIds: ['stage_01_01'], stageRecords: {} },
+            settings: { soundEnabled: true }
+        };
         isGuestMode = true;
         v2.storageService.setStorageKey("nyanko:v4:guest:cache");
-        if (v2.storageService && typeof v2.storageService.setUserContext === 'function') {
-            v2.storageService.setUserContext({ type:'guest' });
-        }
-        currentUserData = v2.storageService.loadSaveData();
-        showLobby();
+        v2.storageService.saveSaveData(currentUserData);
     }
-    function logout() {
+
+    function createFreshGuestSession() {
+        sessionStorage.removeItem(GUEST_SESSION_KEY);
+        const guestSession = {
+            id: (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') ? crypto.randomUUID() : 'guest_' + Math.random().toString(36).substring(2, 15),
+            nickname: "게스트",
+            totalPoints: 0,
+            level: 1,
+            coins: 1000,
+            ownedCats: ['base_normal_01'],
+            representativeCatId: 'base_normal_01',
+            createdAt: Date.now()
+        };
+        sessionStorage.setItem(GUEST_SESSION_KEY, JSON.stringify(guestSession));
+        applyGuestState(guestSession);
+    }
+
+    function clearGuestState() {
+        currentUser = null;
+        currentUserData = null;
+        isGuestMode = false;
+        if (v2.storageService && typeof v2.storageService.clearInMemoryUserState === 'function') {
+            v2.storageService.clearInMemoryUserState();
+        }
+    }
+
+    async function playAsGuest() {
+        initAudio();
+        toggleLoading(true);
+        try {
+            if (auth && auth.currentUser) {
+                await auth.signOut();
+            }
+            if (unsubscribeUserDoc) {
+                unsubscribeUserDoc();
+                unsubscribeUserDoc = null;
+            }
+            clearGuestState();
+            createFreshGuestSession();
+            showLobby();
+        } catch (error) {
+            console.error("[Guest Mode Start Error]", error);
+            alert("게스트 로그인 처리 중 오류가 발생했습니다.");
+        } finally {
+            toggleLoading(false);
+        }
+    }
+    async function logout() {
         window.__nyankoAdminSession = false;
+        sessionStorage.removeItem("nyanko:guest:temporary-session");
+        const adminBtnContainer = document.getElementById('admin-button-container');
+        if (adminBtnContainer) adminBtnContainer.innerHTML = '';
+
         if (v2.storageService) {
             var currentSave = v2.storageService.loadSaveData();
             v2.storageService.saveSaveData(currentSave);
@@ -525,11 +600,15 @@
         if (uIn) uIn.value = "";
         const pIn = document.getElementById('password-input');
         if (pIn) pIn.value = "";
-        if (auth) {
-            auth.signOut();
-        } else {
-            showScreen('login-screen');
+
+        if (auth && auth.currentUser) {
+            try {
+                await auth.signOut();
+            } catch (err) {
+                console.error("[Logout signout error]", err);
+            }
         }
+        showScreen('login-screen');
     }
 
     function showLobby() {
