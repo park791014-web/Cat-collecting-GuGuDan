@@ -263,8 +263,14 @@
 
                 // 닉네임 유실 방지
                 if (!finalData.profile) finalData.profile = {};
-                const nicknameFromEmail = user.email ? user.email.split('@')[0] : '';
-                finalData.profile.nickname = finalData.profile.nickname || nicknameFromEmail || '익명냥';
+                const hexUsername = user.email ? user.email.split('@')[0] : '';
+                let decodedNickname = '';
+                try {
+                    decodedNickname = hexToString(hexUsername);
+                } catch (e) {
+                    decodedNickname = hexUsername;
+                }
+                finalData.profile.nickname = finalData.profile.nickname || decodedNickname || '익명냥';
 
                 // Firebase에 병합된 최종 결과 저장
                 await userRef.set(finalData, { merge: true });
@@ -340,6 +346,26 @@
     function clearClassicRuntime() { clearInterval(timerInterval); clearInterval(countdownInterval); timerInterval = null; countdownInterval = null; }
     window.clearClassicRuntime = clearClassicRuntime;
 
+    function stringToHex(str) {
+        let hex = '';
+        for (let i = 0; i < str.length; i++) {
+            let code = str.charCodeAt(i).toString(16);
+            hex += code.padStart(4, '0');
+        }
+        return hex;
+    }
+
+    function hexToString(hex) {
+        let str = '';
+        for (let i = 0; i < hex.length; i += 4) {
+            let code = parseInt(hex.substr(i, 4), 16);
+            if (!isNaN(code)) {
+                str += String.fromCharCode(code);
+            }
+        }
+        return str;
+    }
+
     async function handleAuth(type) {
         initAudio();
         const username = document.getElementById('username-input').value.trim();
@@ -354,7 +380,7 @@
 
         toggleLoading(true);
         try {
-            const email = username + "@nyanko.gugudan";
+            const email = stringToHex(username) + "@nyanko.gugudan";
             if (type === 'signup') {
                 if (username === 'admin') { alert("사용할 수 없는 이름입니다."); toggleLoading(false); return; }
                 
