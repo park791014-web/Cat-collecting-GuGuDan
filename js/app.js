@@ -426,7 +426,36 @@
         console.debug("[Lobby] Classic runtime cleanup skipped: no active runtime");
     }
 
+    const OWNER_ADMIN_EMAIL = "park791014@gmail.com";
+
+    function isOwnerAdmin(user) {
+        if (!user) return false;
+        const email = String(user.email ?? "").trim().toLowerCase();
+        return (
+            user.isAnonymous !== true &&
+            user.emailVerified === true &&
+            email === OWNER_ADMIN_EMAIL
+        );
+    }
+
+    async function openAdminPage() {
+        const user = auth ? auth.currentUser : null;
+        if (!isOwnerAdmin(user)) {
+            alert("관리자 권한이 없습니다.");
+            showLobby();
+            return;
+        }
+        showAdminScreen();
+    }
+    window.openAdminPage = openAdminPage;
+
     async function showAdminScreen() {
+        const userToCheck = auth ? auth.currentUser : null;
+        if (!isOwnerAdmin(userToCheck)) {
+            alert("관리자 권한이 없습니다.");
+            showLobby();
+            return;
+        }
         listDiv.innerHTML = '';
         try {
             const snapshot = await db.collection('users').get();
@@ -447,11 +476,21 @@
     }
     
     async function resetUser(u) {
+        const user = auth ? auth.currentUser : null;
+        if (!isOwnerAdmin(user)) {
+            alert("관리자 권한이 없습니다.");
+            return;
+        }
         if(confirm(`${u}의 점수를 초기화 하시겠습니까?`)) {
             toggleLoading(true); await db.collection('users').doc(u).update({ totalPoints: 0, level: 1, playCount: 0, rewards: [] }); showAdminScreen(); 
         }
     }
     async function deleteUser(u) {
+        const user = auth ? auth.currentUser : null;
+        if (!isOwnerAdmin(user)) {
+            alert("관리자 권한이 없습니다.");
+            return;
+        }
         if(confirm(`${u}의 계정을 완전히 삭제하시겠습니까?`)) {
             toggleLoading(true); await db.collection('users').doc(u).delete(); showAdminScreen(); 
         }
@@ -1201,6 +1240,10 @@
     window.playAsGuest = playAsGuest;
     window.logout = logout;
     window.showLobby = showLobby;
+    window.grantResource = grantResource;
+    window.resetUser = resetUser;
+    window.deleteUser = deleteUser;
+    window.showAdminScreen = showAdminScreen;
 
     if (v2.initBackButtonHandler) v2.initBackButtonHandler();
     if (v2.initPwaManager) v2.initPwaManager();

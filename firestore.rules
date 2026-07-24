@@ -1,0 +1,22 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 관리자 확인 함수
+    function isOwnerAdmin() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email == "park791014@gmail.com";
+    }
+
+    match /users/{userId} {
+      // 본인의 데이터만 읽고 쓰기 허용, 또는 관리자 허용
+      allow read, write: if (request.auth != null && request.auth.uid == userId) || isOwnerAdmin();
+    }
+    
+    // 기타 컬렉션 (랭킹, 로그 등)
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
