@@ -215,11 +215,16 @@
 
                 if (doc.exists) {
                     const remoteData = doc.data();
-                    currentUser = uid;
-                    currentUserData = remoteData;
-                    v2.storageService.saveSaveData(remoteData);
-                    showLobby();
-                    connectRealtimeListener(userRef, uid);
+                    if (remoteData.profile && remoteData.profile.nickname) {
+                        currentUser = uid;
+                        currentUserData = remoteData;
+                        v2.storageService.saveSaveData(remoteData);
+                        showLobby();
+                        connectRealtimeListener(userRef, uid);
+                    } else {
+                        currentUser = uid;
+                        showScreen('profile-setup-screen');
+                    }
                 } else {
                     currentUser = uid;
                     showScreen('profile-setup-screen');
@@ -325,32 +330,45 @@
             const uid = currentUser;
             const userRef = db.collection('users').doc(uid);
             
-            const defaults = JSON.parse(JSON.stringify(v2.storageService.defaults || {
-                profile: { selectedCatId: 'base_normal_01', nickname: nickname },
-                collection: { ownedCatIds: ['base_normal_01'], duplicateCounts: {} },
-                currency: { coins: 1000, normalTickets: 3, premiumTickets: 0, seasonTickets: {} },
-                classicRecord: { totalPoints: 0, bestCombo: 0, bestAccuracy: 0, playedCount: 0 },
-                timeAttackRecord: { bestCorrectCount: 0, bestAccuracy: 0, playedCount: 0 },
-                adventureProgress: { clearedStageIds: [], unlockedWorldIds: ['world_01'], unlockedStageIds: ['stage_01_01'], stageRecords: {} },
-                settings: { soundEnabled: true },
-                unclaimedAchievements: [],
-                completedAchievements: []
-            }));
+            const checkDoc = await userRef.get();
+            let finalData = null;
 
-            defaults.profile.nickname = nickname;
-            defaults.profile.selectedCatId = defaults.profile.selectedCatId || 'base_normal_01';
-            defaults.scoringVersion = 4;
-            defaults.totalPoints = 0;
-            defaults.level = 1;
-            defaults.lastRewardedLevel = 1;
-            defaults.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-            defaults.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+            if (checkDoc.exists) {
+                await userRef.set({
+                    profile: { nickname: nickname }
+                }, { merge: true });
+                const refreshedDoc = await userRef.get();
+                finalData = refreshedDoc.data();
+            } else {
+                const defaults = JSON.parse(JSON.stringify(v2.storageService.defaults || {
+                    profile: { selectedCatId: 'base_normal_01', nickname: nickname },
+                    collection: { ownedCatIds: ['base_normal_01'], duplicateCounts: {} },
+                    currency: { coins: 1000, normalTickets: 3, premiumTickets: 0, seasonTickets: {} },
+                    classicRecord: { totalPoints: 0, bestCombo: 0, bestAccuracy: 0, playedCount: 0 },
+                    timeAttackRecord: { bestCorrectCount: 0, bestAccuracy: 0, playedCount: 0 },
+                    adventureProgress: { clearedStageIds: [], unlockedWorldIds: ['world_01'], unlockedStageIds: ['stage_01_01'], stageRecords: {} },
+                    settings: { soundEnabled: true },
+                    unclaimedAchievements: [],
+                    completedAchievements: []
+                }));
 
-            await userRef.set(defaults);
-            currentUserData = defaults;
-            v2.storageService.saveSaveData(defaults);
+                defaults.profile.nickname = nickname;
+                defaults.profile.selectedCatId = defaults.profile.selectedCatId || 'base_normal_01';
+                defaults.scoringVersion = 4;
+                defaults.totalPoints = 0;
+                defaults.level = 1;
+                defaults.lastRewardedLevel = 1;
+                defaults.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                defaults.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
 
-            console.log("[New User Profile Created]", uid, nickname);
+                await userRef.set(defaults);
+                finalData = defaults;
+            }
+
+            currentUserData = finalData;
+            v2.storageService.saveSaveData(finalData);
+
+            console.log("[New User Profile Created/Merged]", uid, nickname);
             nicknameInput.value = '';
 
             showLobby();
@@ -386,6 +404,26 @@
                 labelSpan.textContent = show ? "Google 로그인 중..." : "Google 계정으로 시작하기";
             }
         }
+    }
+
+    function clearClassicRuntime() {
+        clearInterval(timerInterval);
+        clearInterval(countdownInterval);
+        timerInterval = null;
+        countdownInterval = null;
+    }
+    window.clearClassicRuntime = clearClassicRuntime;
+
+    function safelyClearClassicRuntime() {
+        if (typeof clearClassicRuntime === 'function') {
+            try {
+                clearClassicRuntime();
+                return;
+            } catch (e) {
+                console.warn("[Lobby] Classic runtime cleanup failed", e);
+            }
+        }
+        console.debug("[Lobby] Classic runtime cleanup skipped: no active runtime");
     }
 
     async function showAdminScreen() {
@@ -456,8 +494,16 @@
     }
 
     function showLobby() {
-        clearClassicRuntime();
-        if (window.clearPhase2Runtime) window.clearPhase2Runtime();
+        try {
+            safelyClearClassicRuntime();
+        } catch (error) {
+            console.warn("[Lobby Runtime Cleanup Warning]", error);
+        }
+        try {
+            if (window.clearPhase2Runtime) window.clearPhase2Runtime();
+        } catch (error) {
+            console.warn("[Lobby Phase2 Runtime Cleanup Warning]", error);
+        }
         const nickname = (currentUserData && currentUserData.profile && currentUserData.profile.nickname) || currentUser;
         document.getElementById('lobby-name').innerText = nickname;
         // 기존 Firebase 보상 목록은 새 도감 DOM에 섞지 않는다.
