@@ -372,6 +372,25 @@
                 try {
                     await auth.signInWithEmailAndPassword(email, password);
                 } catch (loginErr) {
+                    if (loginErr.code === 'auth/user-not-found' || loginErr.code === 'auth/wrong-password') {
+                        try {
+                            const legacyDocRef = db.collection('users').doc(username);
+                            const legacyDoc = await legacyDocRef.get();
+                            if (legacyDoc.exists && legacyDoc.data().password === password) {
+                                const legacyData = legacyDoc.data();
+                                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                                const newUid = userCredential.user.uid;
+                                await db.collection('users').doc(newUid).set(legacyData);
+                                await legacyDocRef.delete();
+                                console.log('[Auth Migrated User]', username, 'to', newUid);
+                                await auth.signInWithEmailAndPassword(email, password);
+                                toggleLoading(false);
+                                return;
+                            }
+                        } catch (migErr) {
+                            console.error('[Legacy Login Migration Failed]', migErr);
+                        }
+                    }
                     alert("정보가 맞지 않다냥.");
                 }
             }
