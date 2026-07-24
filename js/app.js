@@ -235,6 +235,7 @@
                         currentUser = uid;
                         currentUserData = remoteData;
                         v2.storageService.saveSaveData(remoteData);
+                        refreshAdminAccessUI(user);
                         showLobby();
                         connectRealtimeListener(userRef, uid);
                     } else {
@@ -387,6 +388,7 @@
             console.log("[New User Profile Created/Merged]", uid, nickname);
             nicknameInput.value = '';
 
+            refreshAdminAccessUI(auth ? auth.currentUser : null);
             showLobby();
             connectRealtimeListener(userRef, uid);
 
@@ -445,25 +447,36 @@
     const OWNER_ADMIN_EMAIL = "park791014@gmail.com";
 
     function isOwnerAdmin(user) {
-        if (!user) return false;
-        const email = String(user.email ?? "").trim().toLowerCase();
-        return (
-            user.isAnonymous !== true &&
-            user.emailVerified === true &&
-            email === OWNER_ADMIN_EMAIL
+        if (!user || user.isAnonymous) return false;
+        const email = String(user.email || "").trim().toLowerCase();
+        const isGoogleUser = user.providerData?.some(
+            provider => provider.providerId === "google.com"
         );
+        return email === OWNER_ADMIN_EMAIL && isGoogleUser;
     }
 
-    async function openAdminPage() {
+    function refreshAdminAccessUI(user) {
+        const allowed = isOwnerAdmin(user);
+        document.querySelectorAll("[data-owner-admin-only]").forEach(element => {
+            element.hidden = !allowed;
+            element.style.display = allowed ? "" : "none";
+        });
+        const currentSession = window.currentSession || {};
+        currentSession.isAdmin = allowed;
+        window.currentSession = currentSession;
+    }
+    window.refreshAdminAccessUI = refreshAdminAccessUI;
+
+    async function openOwnerAdminPage() {
         const user = auth ? auth.currentUser : null;
         if (!isOwnerAdmin(user)) {
             alert("관리자 권한이 없습니다.");
-            showLobby();
             return;
         }
         showAdminScreen();
     }
-    window.openAdminPage = openAdminPage;
+    window.openOwnerAdminPage = openOwnerAdminPage;
+    window.openAdminPage = openOwnerAdminPage; // fallback
 
     async function showAdminScreen() {
         const userToCheck = auth ? auth.currentUser : null;
@@ -569,6 +582,7 @@
                 unsubscribeUserDoc = null;
             }
             clearGuestState();
+            refreshAdminAccessUI(null);
             createFreshGuestSession();
             showLobby();
         } catch (error) {
@@ -581,6 +595,7 @@
     async function logout() {
         window.__nyankoAdminSession = false;
         sessionStorage.removeItem("nyanko:guest:temporary-session");
+        refreshAdminAccessUI(null);
         const adminBtnContainer = document.getElementById('admin-button-container');
         if (adminBtnContainer) adminBtnContainer.innerHTML = '';
 
@@ -612,6 +627,7 @@
     }
 
     function showLobby() {
+        refreshAdminAccessUI(auth ? auth.currentUser : null);
         try {
             safelyClearClassicRuntime();
         } catch (error) {

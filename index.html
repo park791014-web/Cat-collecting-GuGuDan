@@ -85,7 +85,9 @@
         </div>
         <nav class="utility-nav" aria-label="보조 메뉴"><button onclick="openCardPackScreen()">고양이 뽑기</button><button onclick="openCollectionScreen()">도감</button><button onclick="openRankings()">순위</button><button onclick="openSettingsScreen()">설정</button></nav>
         <button id="pwa-install-btn" class="btn btn-pwa" style="display:none; margin-top: 10px; background-color: #FFD166; color: #4B3565; font-weight: bold; width: 100%;">홈 화면에 추가</button>
-        <div id="admin-button-container" style="margin-top: 10px;"></div>
+        <div id="admin-button-container" style="margin-top: 10px;">
+            <button type="button" id="owner-admin-button" class="btn btn-admin" style="background-color: #E040FB; color: white; font-weight: bold; width: 100%; border: none; padding: 12px; border-radius: 8px; cursor: pointer; box-sizing: border-box;" data-owner-admin-only hidden onclick="openOwnerAdminPage()">관리자 페이지</button>
+        </div>
         <button class="btn btn-guest" onclick="logout()">로그아웃</button>
     </div>
 
@@ -149,21 +151,11 @@
         
         <div id="reward-box" class="reward-container" aria-live="polite"></div>
 
-        <div class="result-box legacy-result">
-            <p style="margin: 5px;">맞춘 개수: <span class="highlight" id="res-correct">0</span>/20 (정답률 <span id="res-acc-rate">0</span>%)</p>
-            <p style="margin: 5px;">획득 포인트: <span class="highlight" id="res-today">0</span>P</p>
-        </div>
-
         <div id="phase2-result-panel" class="result-box phase2-result" tabindex="-1" style="display:none;">
             <h2 id="phase2-result-title">도전 종료</h2>
             <div id="phase2-result-stats"></div>
             <p id="phase2-best-badge" class="best-badge" style="display:none;">🏆 개인 최고 기록!</p>
             <p id="phase2-ranking-status" class="ranking-status"></p>
-        </div>
-        
-        <div class="result-box" id="total-stats" style="background-color: #BAE1FF; display:none;">
-            <p style="margin: 5px;">🏆 최종 레벨: Lv.<span class="highlight" id="res-level">1</span></p>
-            <p style="margin: 5px;">💰 총 누적 포인트: <span class="highlight" id="res-total-points">0</span>P</p>
         </div>
 
         <div class="ranking-box" id="ranking-box">
@@ -254,7 +246,7 @@
     <script src="js/services/catPresentationRuntime.js?v=2.0.13"></script>
     <script src="js/ui/seasonController.js"></script>
     <script src="js/ui/dailyMissionController.js?v=2.0.9"></script>
-    <script src="js/app.js?v=2.0.19"></script>
+    <script src="js/app.js?v=2.0.20"></script>
     <script src="js/ui/adminAccountManager.js?v=2.0.12"></script>
     <script src="js/game/modeEngine.js?v=2.0.13"></script>
     <script src="js/ui/leaderboardV3Controller.js?v=2.0.14"></script>
