@@ -11,10 +11,13 @@
     const v2 = window.GugudanV2 || {};
     const gameConfig = v2.gameConfig || {};
     let db = null;
+    let auth = null;
     try {
         if (window.firebase) {
             firebase.initializeApp(firebaseConfig);
             db = firebase.firestore();
+            auth = firebase.auth();
+            v2.auth = auth;
         } else {
             console.warn('[Firebase] SDK를 불러오지 못했습니다. 게스트 게임은 계속 이용할 수 있습니다.');
         }
@@ -31,6 +34,24 @@
     function playSound(type) {
         if (v2.storageService && !v2.storageService.loadSaveData().settings.soundEnabled) return;
         initAudio();
+        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        if (type === 'correct') {
+            osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); 
+            gain.gain.setValueAtTime(0.5, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.3);
+        } else if (type === 'wrong') {
+            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.5, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.3);
+        } else if (type === 'legend') {
+            osc.type = 'triangle'; osc.frequency.setValueAtTime(440, audioCtx.currentTime); osc.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + 0.2); osc.frequency.linearRampToValueAtTime(1320, audioCtx.currentTime + 0.4);
+            gain.gain.setValueAtTime(0.6, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
+            osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.6);
+        } else if (type === 'siren') {
+            // 🔥 보스 등장 사이렌 사운드 🔥
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
         const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
         osc.connect(gain); gain.connect(audioCtx.destination);
         if (type === 'correct') {
@@ -69,7 +90,247 @@
     let answerLocked = false;
     
     let lastQuestionStr = ""; 
+    let unsubscribeUserDoc = null;
 
+    // 4-5. 기존 기기별 데이터 안전 병합 함수 (멱등 방식)
+    function mergeLegacyData(remote, local) {
+        if (!remote) return local;
+        if (!local) return remote;
+        
+        const merged = JSON.parse(JSON.stringify(remote));
+        
+        // 1. 보유 고양이 (합집합)
+        const remoteOwned = remote.collection?.ownedCatIds || ['base_normal_01'];
+        const localOwned = local.collection?.ownedCatIds || ['base_normal_01'];
+        const mergedOwnedSet = new Set([...remoteOwned, ...localOwned]);
+        if (!merged.collection) merged.collection = {};
+        merged.collection.ownedCatIds = Array.from(mergedOwnedSet);
+        
+        // 2. 중복 횟수와 조각 (Math.max)
+        const remoteDup = remote.collection?.duplicateCounts || {};
+        const localDup = local.collection?.duplicateCounts || {};
+        const mergedDup = {};
+        const allCatIds = new Set([...Object.keys(remoteDup), ...Object.keys(localDup)]);
+        allCatIds.forEach(catId => {
+            mergedDup[catId] = Math.max(Number(remoteDup[catId]) || 0, Number(localDup[catId]) || 0);
+        });
+        merged.collection.duplicateCounts = mergedDup;
+        
+        const remoteFrags = remote.collection?.catFragments || {};
+        const localFrags = local.collection?.catFragments || {};
+        const mergedFrags = {};
+        ['normal', 'rare', 'hero', 'legendary'].forEach(rarity => {
+            mergedFrags[rarity] = Math.max(Number(remoteFrags[rarity]) || 0, Number(localFrags[rarity]) || 0);
+        });
+        merged.collection.catFragments = mergedFrags;
+        
+        // 3. 코인, 뽑기권, 포인트 (Math.max)
+        if (!merged.currency) merged.currency = {};
+        const remoteCoins = remote.currency?.coins || 0;
+        const localCoins = local.currency?.coins || 0;
+        merged.currency.coins = Math.max(Number(remoteCoins) || 0, Number(localCoins) || 0);
+        
+        const remoteNormal = remote.currency?.normalTickets || 0;
+        const localNormal = local.currency?.normalTickets || 0;
+        merged.currency.normalTickets = Math.max(Number(remoteNormal) || 0, Number(localNormal) || 0);
+        
+        const remotePremium = remote.currency?.premiumTickets || 0;
+        const localPremium = local.currency?.premiumTickets || 0;
+        merged.currency.premiumTickets = Math.max(Number(remotePremium) || 0, Number(localPremium) || 0);
+        
+        const remotePoints = remote.totalPoints || 0;
+        const localPoints = local.totalPoints || 0;
+        merged.totalPoints = Math.max(Number(remotePoints) || 0, Number(localPoints) || 0);
+        
+        // 4. 대모험 진행도
+        if (!merged.adventureProgress) merged.adventureProgress = { unlockedWorldIds: ['world_01'], unlockedStageIds: ['stage_01_01'], clearedStageIds: [], stageRecords: {} };
+        const remoteAdv = remote.adventureProgress || {};
+        const localAdv = local.adventureProgress || {};
+        
+        const remoteCleared = remoteAdv.clearedStageIds || [];
+        const localCleared = localAdv.clearedStageIds || [];
+        merged.adventureProgress.clearedStageIds = Array.from(new Set([...remoteCleared, ...localCleared]));
+        
+        const remoteUnlockedW = remoteAdv.unlockedWorldIds || ['world_01'];
+        const localUnlockedW = localAdv.unlockedWorldIds || ['world_01'];
+        merged.adventureProgress.unlockedWorldIds = Array.from(new Set([...remoteUnlockedW, ...localUnlockedW]));
+        
+        const remoteUnlockedS = remoteAdv.unlockedStageIds || ['stage_01_01'];
+        const localUnlockedS = localAdv.unlockedStageIds || ['stage_01_01'];
+        merged.adventureProgress.unlockedStageIds = Array.from(new Set([...remoteUnlockedS, ...localUnlockedS]));
+        
+        const remoteRecords = remoteAdv.stageRecords || {};
+        const localRecords = localAdv.stageRecords || {};
+        const mergedRecords = {};
+        const allStageIds = new Set([...Object.keys(remoteRecords), ...Object.keys(localRecords)]);
+        allStageIds.forEach(stageId => {
+            const rRec = remoteRecords[stageId] || {};
+            const lRec = localRecords[stageId] || {};
+            mergedRecords[stageId] = {
+                cleared: Boolean(rRec.cleared || lRec.cleared),
+                bestStars: Math.max(Number(rRec.bestStars) || 0, Number(lRec.bestStars) || 0),
+                bestScore: Math.max(Number(rRec.bestScore) || 0, Number(lRec.bestScore) || 0),
+                bestAccuracy: Math.max(Number(rRec.bestAccuracy) || 0, Number(lRec.bestAccuracy) || 0),
+                bestCombo: Math.max(Number(rRec.bestCombo) || 0, Number(lRec.bestCombo) || 0),
+                bestRemainingLives: Math.max(Number(rRec.bestRemainingLives) || 0, Number(lRec.bestRemainingLives) || 0),
+                clearCount: (Number(rRec.clearCount) || 0) + (Number(lRec.clearCount) || 0),
+                firstClearedAt: rRec.firstClearedAt || lRec.firstClearedAt || null,
+                lastPlayedAt: rRec.lastPlayedAt || lRec.lastPlayedAt || null
+            };
+        });
+        merged.adventureProgress.stageRecords = mergedRecords;
+        
+        // 5. 대표 고양이
+        let selectedCat = remote.profile?.selectedCatId || '';
+        if (!selectedCat || merged.collection.ownedCatIds.indexOf(selectedCat) < 0) {
+            selectedCat = local.profile?.selectedCatId || '';
+        }
+        if (!selectedCat || merged.collection.ownedCatIds.indexOf(selectedCat) < 0) {
+            selectedCat = 'base_normal_01';
+        }
+        if (!merged.profile) merged.profile = {};
+        merged.profile.selectedCatId = selectedCat;
+        
+        return merged;
+    }
+
+    if (auth) {
+        auth.onAuthStateChanged(async function(user) {
+            // 1. 이전 사용자 실시간 구독 해제
+            if (unsubscribeUserDoc) {
+                unsubscribeUserDoc();
+                unsubscribeUserDoc = null;
+            }
+
+            // 2. 이전 계정의 메모리 상태 초기화
+            currentUser = null;
+            currentUserData = null;
+            isGuestMode = false;
+
+            if (!user) {
+                // 로그인되어 있지 않은 경우 게스트용 기본 키 설정
+                v2.storageService.setStorageKey("nyanko:v4:guest:cache");
+                showScreen('login-screen');
+                return;
+            }
+
+            // 3. 현재 Firebase UID 확인 및 디버그 출력
+            const uid = user.uid;
+            console.debug("[Authenticated User]", {
+                uid: uid,
+                email: user.email ?? null
+            });
+
+            // 스토리지 키 변경
+            v2.storageService.setStorageKey(`nyanko:v4:user:${uid}:cache`);
+            toggleLoading(true);
+
+            try {
+                // 4. 해당 UID의 원격 사용자 문서 읽기
+                const userRef = db.collection('users').doc(uid);
+                const doc = await userRef.get();
+
+                // 로컬의 병합 대상 데이터 가져오기
+                const localRaw = localStorage.getItem("gugudanV2Save") || localStorage.getItem(`nyanko:v4:user:${uid}:cache`);
+                let localData = null;
+                if (localRaw) {
+                    try {
+                        localData = JSON.parse(localRaw);
+                    } catch (e) {
+                        console.warn("[sync] Local cache parse failed", e);
+                    }
+                }
+
+                let finalData = null;
+
+                if (doc.exists) {
+                    // Firebase 데이터 우선하여 로컬 데이터와 안전 병합
+                    const remoteData = doc.data();
+                    finalData = mergeLegacyData(remoteData, localData);
+                } else {
+                    // Firebase 문서가 존재하지 않을 때만 로컬 레거시 데이터 기반 생성
+                    if (localData) {
+                        finalData = localData;
+                    } else {
+                        // 아예 신규 가입일 경우 defaults 기반 초기 설정
+                        finalData = JSON.parse(JSON.stringify(v2.storageService.defaults));
+                    }
+                    finalData.scoringVersion = 4;
+                    finalData.totalPoints = 0;
+                    finalData.level = 1;
+                    finalData.lastRewardedLevel = 1;
+                }
+
+                // 닉네임 유실 방지
+                if (!finalData.profile) finalData.profile = {};
+                const nicknameFromEmail = user.email ? user.email.split('@')[0] : '';
+                finalData.profile.nickname = finalData.profile.nickname || nicknameFromEmail || '익명냥';
+
+                // Firebase에 병합된 최종 결과 저장
+                await userRef.set(finalData, { merge: true });
+
+                // 6. UID별 로컬 캐시 갱신 및 상태 구성
+                currentUser = uid;
+                currentUserData = finalData;
+                v2.storageService.saveSaveData(finalData);
+
+                // 마이그레이션 v4 reset 1회 보장
+                var migrations = currentUserData.migrations || (currentUserData.migrations = {});
+                if (!migrations['scoring_v4_reset']) {
+                    currentUserData.scoringVersion = 4;
+                    currentUserData.totalPoints = 0;
+                    currentUserData.totalScore = 0;
+                    currentUserData.monthlyScore = 0;
+                    currentUserData.level = 1;
+                    currentUserData.lastRewardedLevel = 1;
+                    currentUserData.modePoints = { classic: 0, timeAttack: 0, adventure: 0 };
+                    migrations['scoring_v4_reset'] = { completed: true, completedAt: new Date().toISOString() };
+                    currentUserData.migrations = migrations;
+                    await userRef.set(currentUserData, { merge: true });
+                }
+
+                // 7. 화면 렌더링
+                showLobby();
+
+                // 8. 실시간 구독 연결
+                unsubscribeUserDoc = userRef.onSnapshot(function(snapshot) {
+                    if (snapshot.exists) {
+                        const nextData = snapshot.data();
+                        
+                        // 현재 사용자가 게임 플레이 중일 때는 방해하지 않음
+                        const activeScreen = document.querySelector('.screen.active-screen');
+                        const isPlaying = activeScreen && (activeScreen.id === 'play-screen' || activeScreen.id === 'adventure-screen' || (window.NyankoGameState && window.NyankoGameState.isPlaying));
+
+                        if (!isPlaying) {
+                            currentUserData = nextData;
+                            v2.storageService.saveSaveData(nextData);
+                            
+                            // 로비 UI 통계 및 대표 고양이 등 실시간 갱신
+                            if (typeof refreshHomeStatsFromCurrentUser === 'function') {
+                                refreshHomeStatsFromCurrentUser();
+                            }
+                            if (typeof renderPhase4Currency === 'function') {
+                                renderPhase4Currency();
+                            }
+                            console.debug("[User Sync]", {
+                                uid: uid,
+                                source: "firebase",
+                                ownedCatCount: nextData.collection?.ownedCatIds?.length || 0,
+                                totalPoints: nextData.totalPoints || 0,
+                                level: nextData.level || 1,
+                                representativeCatId: nextData.profile?.selectedCatId || 'base_normal_01'
+                            });
+                        }
+                    }
+                });
+
+            } catch (err) {
+                console.error("[onAuthStateChanged] load failed", err);
+                alert("사용자 정보를 동기화하는 도중 오류가 발생했습니다.");
+            } finally {
+                toggleLoading(false);
+            }
+        });
     function showScreen(screenId) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
         document.getElementById(screenId).classList.add('active-screen');
@@ -87,76 +348,41 @@
 
         if (username === 'admin' && password === 'admin1234') { currentUser = 'admin'; window.__nyankoAdminSession = true; showAdminScreen(); return; }
 
+        if (!auth) {
+            return alert("Firebase Auth를 사용할 수 없습니다. SDK 초기화 오류입니다.");
+        }
+
         toggleLoading(true);
         try {
-            const userRef = db.collection('users').doc(username);
-            const doc = await userRef.get();
-
+            const email = username + "@nyanko.gugudan";
             if (type === 'signup') {
                 if (username === 'admin') { alert("사용할 수 없는 이름입니다."); toggleLoading(false); return; }
-                if (doc.exists) { alert("이미 등록된 이름입니다."); toggleLoading(false); return; }
                 
-                const migrationId = v2.releaseResetMigrationService.RESET_MIGRATION_ID;
-                const newData = { password: password, totalPoints: 0, level: 1, playCount: 0, rewards: [], migrations: {} };
-                newData.migrations[migrationId] = { completed: true, previousRank: 0, premiumTicketsGranted: 0, completedAt: firebase.firestore.FieldValue.serverTimestamp(), migrationNoticeSeen: true };
-                await userRef.set(newData);
-                alert("가입 완료냥! 로그인을 진행해달라냥.");
-            } else {
-                if (!doc.exists || doc.data().password !== password) { alert("정보가 맞지 않다냥."); toggleLoading(false); return; }
-                currentUser = username;
-                currentUserData = doc.data(); 
-                isGuestMode = false;
-                v2.storageService.handleAuthenticatedUserChanged({ type:'authenticated', userId:username, nickname:username });
-                let resetMigration = null;
                 try {
-                    resetMigration = await v2.releaseResetMigrationService.run({ db: db, firebase: firebase, userRef: userRef, userId: username, userData: currentUserData });
-                    if (resetMigration && resetMigration.userData) currentUserData = resetMigration.userData;
-                } catch (migrationError) {
-                    console.error('[Release reset migration error]', migrationError);
-                }
-                try {
-                    var migrations = currentUserData.migrations || (currentUserData.migrations = {});
-                    if (!migrations['scoring_v4_reset']) {
-                        currentUserData.scoringVersion = 4;
-                        currentUserData.totalPoints = 0;
-                        currentUserData.totalScore = 0;
-                        currentUserData.monthlyScore = 0;
-                        currentUserData.level = 1;
-                        currentUserData.lastRewardedLevel = 1;
-                        currentUserData.modePoints = {
-                            classic: 0,
-                            timeAttack: 0,
-                            adventure: 0
-                        };
-                        migrations['scoring_v4_reset'] = {
-                            completed: true,
-                            completedAt: new Date().toISOString()
-                        };
-                        currentUserData.migrations = migrations;
-                        
-                        await userRef.set(currentUserData, { merge: true });
-                        console.log('[scoring_v4_reset migration complete]', username);
+                    await auth.createUserWithEmailAndPassword(email, password);
+                    alert("가입 완료냥! 로그인을 진행해달라냥.");
+                } catch (signupErr) {
+                    if (signupErr.code === 'auth/email-already-in-use') {
+                        alert("이미 등록된 이름입니다.");
+                    } else {
+                        alert("가입 실패: " + signupErr.message);
                     }
-                } catch (migErr) {
-                    console.warn('[scoring_v4_reset migration failed]', migErr);
                 }
-                await receivePendingTickets(userRef, currentUserData);
-                await syncCurrentCurrencyToFirebase(userRef);
-                showLobby();
-                if (resetMigration && resetMigration.ok) {
-                    v2.releaseResetMigrationService.showNoticeIfNeeded({ userRef: userRef, userData: currentUserData, migration: resetMigration.migration });
+            } else {
+                try {
+                    await auth.signInWithEmailAndPassword(email, password);
+                } catch (loginErr) {
+                    alert("정보가 맞지 않다냥.");
                 }
             }
         } catch (error) {
-            alert("서버 연결에 실패했다냥! 설정 코드를 확인해라냥!");
+            alert("서버 연결에 실패했다냥!");
             console.error(error);
         }
         toggleLoading(false);
     }
 
     async function showAdminScreen() {
-        toggleLoading(true);
-        const listDiv = document.getElementById('admin-list');
         listDiv.innerHTML = '';
         try {
             const snapshot = await db.collection('users').get();
@@ -187,8 +413,39 @@
         }
     }
 
-    function playAsGuest() { initAudio(); currentUser = "GUEST"; isGuestMode = true; v2.storageService.setUserContext({ type:'guest' }); showLobby(); }
-    function logout() { window.__nyankoAdminSession = false; if (v2.storageService) { var currentSave=v2.storageService.loadSaveData(); v2.storageService.saveSaveData(currentSave); v2.storageService.clearInMemoryUserState(); } currentUser = null; currentUserData = null; isGuestMode = false; document.getElementById('lobby-selected-cat').innerHTML=''; document.getElementById('collection-grid').innerHTML=''; document.getElementById('username-input').value = ""; document.getElementById('password-input').value = ""; showScreen('login-screen'); }
+    function playAsGuest() {
+        initAudio();
+        currentUser = "GUEST";
+        isGuestMode = true;
+        v2.storageService.setStorageKey("nyanko:v4:guest:cache");
+        if (v2.storageService && typeof v2.storageService.setUserContext === 'function') {
+            v2.storageService.setUserContext({ type:'guest' });
+        }
+        currentUserData = v2.storageService.loadSaveData();
+        showLobby();
+    }
+    function logout() {
+        window.__nyankoAdminSession = false;
+        if (v2.storageService) {
+            var currentSave = v2.storageService.loadSaveData();
+            v2.storageService.saveSaveData(currentSave);
+            if (typeof v2.storageService.clearInMemoryUserState === 'function') {
+                v2.storageService.clearInMemoryUserState();
+            }
+        }
+        currentUser = null;
+        currentUserData = null;
+        isGuestMode = false;
+        document.getElementById('lobby-selected-cat').innerHTML = '';
+        document.getElementById('collection-grid').innerHTML = '';
+        document.getElementById('username-input').value = "";
+        document.getElementById('password-input').value = "";
+        if (auth) {
+            auth.signOut();
+        } else {
+            showScreen('login-screen');
+        }
+    }
 
     function showLobby() {
         clearClassicRuntime();
@@ -563,10 +820,12 @@
                     currentUserData = uData;
                 });
 
-                // V4 랭킹 제출
+                // V4 랭킹 제출 (사용자 고유 UID 기준 동기화)
+                const uid = (auth && auth.currentUser) ? auth.currentUser.uid : currentUser;
+                const targetNickname = (currentUserData.profile && currentUserData.profile.nickname) || currentUser;
                 await v2.rankingService.submitOverall({
-                    playerId: save.profile.playerId,
-                    nickname: currentUser,
+                    playerId: uid,
+                    nickname: targetNickname,
                     points: currentUserData.totalPoints,
                     monthlyPoints: currentUserData.monthlyScore,
                     score: earnedPoints,
@@ -576,8 +835,8 @@
                 if (mode === 'timeAttack' && currentUserData.timeAttackBestObjV4) {
                     var bestObj = currentUserData.timeAttackBestObjV4;
                     await v2.rankingService.submitScore({
-                        playerId: save.profile.playerId,
-                        nickname: currentUser,
+                        playerId: uid,
+                        nickname: targetNickname,
                         correctCount: bestObj.bestCorrectCount,
                         wrongCount: bestObj.wrongCount,
                         accuracy: bestObj.accuracy,
@@ -599,6 +858,19 @@
             await reloadCurrentUserStats();
             refreshHomeStatsFromCurrentUser();
             refreshLeaderboardSummaryIfVisible();
+
+            if (mode === 'timeAttack') {
+                const finalUid = (auth && auth.currentUser) ? auth.currentUser.uid : currentUser;
+                console.debug("[Time Attack Finalized]", {
+                    sessionId: result.sessionId,
+                    uid: finalUid,
+                    correctCount: correctCount,
+                    sessionPoints: earnedPoints,
+                    totalPointsAfter: currentUserData.totalPoints,
+                    monthlyBestAfter: (currentUserData.timeAttackBestObjV4 ? currentUserData.timeAttackBestObjV4.bestCorrectCount : 0),
+                    allTimeBestAfter: (currentUserData.timeAttackBestObjV4 ? currentUserData.timeAttackBestObjV4.bestCorrectCount : 0)
+                });
+            }
 
         } catch (error) {
             if (error.message === 'session_already_processed') {
@@ -626,7 +898,8 @@
     async function reloadCurrentUserStats() {
         if (isGuestMode || !currentUser) return;
         try {
-            var doc = await db.collection('users').doc(currentUser).get();
+            const uid = (auth && auth.currentUser) ? auth.currentUser.uid : currentUser;
+            var doc = await db.collection('users').doc(uid).get();
             if (doc.exists) {
                 currentUserData = doc.data();
             }
