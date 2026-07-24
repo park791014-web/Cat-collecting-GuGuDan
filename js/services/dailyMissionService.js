@@ -63,8 +63,15 @@
     claiming[id] = true;
     try {
       var config = v2.dailyMissionConfig[id], save = v2.storageService.loadSaveData(), daily = ensure(save), state = daily.missions[id];
-      if (!config || daily.activeMissionIds.indexOf(id) < 0 || !state) return { ok: false, reason: 'missing' };
-      if (!state.completed || state.claimed) return { ok: false, reason: state.claimed ? 'claimed' : 'incomplete' };
+      if (!config || daily.activeMissionIds.indexOf(id) < 0 || !state) {
+        console.error("[Daily Mission Claim Error]", { code: "mission_not_found", message: "Mission config or state not found for: " + id });
+        return { ok: false, reason: 'missing' };
+      }
+      if (!state.completed || state.claimed) {
+        var errCode = state.claimed ? 'mission_already_claimed' : 'mission_not_completed';
+        console.error("[Daily Mission Claim Error]", { code: errCode, message: "Mission cannot be claimed" });
+        return { ok: false, reason: errCode };
+      }
       var reward = config.reward || {};
       
       var context = window.getCurrentPlayerContext ? window.getCurrentPlayerContext() : { isGuest: true };
@@ -78,33 +85,51 @@
           return { ok: true, reward: reward };
       }
 
-      var uid = (global.auth && global.auth.currentUser) ? global.auth.currentUser.uid : global.currentUser;
-      if (!uid) return { ok: false, reason: 'unauthorized' };
-
-      var success = false;
-      var db = global.db || (global.firebase && global.firebase.firestore());
-      if (db) {
-          var userRef = db.collection('users').doc(uid);
-          await db.runTransaction(async function(tx) {
-              var snap = await tx.get(userRef);
-              if (!snap.exists) throw new Error('missing_user');
-              var uData = snap.data() || {};
-              uData.dailyMissions = uData.dailyMissions || {};
-              uData.dailyMissions.missions = uData.dailyMissions.missions || {};
-              var dbState = uData.dailyMissions.missions[id];
-              if (!dbState || !dbState.completed || dbState.claimed) {
-                  throw new Error('already_claimed_or_incomplete');
-              }
-              uData.currency = uData.currency || {};
-              uData.currency.coins = (Number(uData.currency.coins) || 0) + (reward.coins || 0);
-              uData.currency.normalTickets = (Number(uData.currency.normalTickets) || 0) + (reward.normalTickets || 0);
-              uData.currency.premiumTickets = (Number(uData.currency.premiumTickets) || 0) + (reward.premiumTickets || 0);
-              dbState.claimed = true;
-              dbState.claimedAt = firebase.firestore.FieldValue.serverTimestamp();
-              tx.set(userRef, uData, { merge: true });
-              success = true;
-          });
+      var user = global.auth && global.auth.currentUser;
+      if (!user || user.isAnonymous) {
+          console.error("[Daily Mission Claim Error]", { code: "authenticated_user_required", message: "User must be authenticated to claim online rewards" });
+          return { ok: false, reason: 'authenticated_user_required' };
       }
+      var uid = user.uid;
+      var db = global.db || (global.firebase && global.firebase.firestore());
+      if (!db) {
+          console.error("[Daily Mission Claim Error]", { code: "database_unavailable", message: "Firestore database is not available" });
+          return { ok: false, reason: 'database_unavailable' };
+      }
+
+      var userRef = db.collection('users').doc(uid);
+      var success = false;
+
+      await db.runTransaction(async function(tx) {
+          var snap = await tx.get(userRef);
+          if (!snap.exists) {
+              throw { code: "missing_user", message: "User document does not exist in Firestore" };
+          }
+          var uData = snap.data() || {};
+          uData.dailyMissions = uData.dailyMissions || {};
+          uData.dailyMissions.missions = uData.dailyMissions.missions || {};
+          var dbState = uData.dailyMissions.missions[id];
+          if (!dbState || !dbState.completed || dbState.claimed) {
+              var tErrCode = (dbState && dbState.claimed) ? 'mission_already_claimed' : 'mission_not_completed';
+              throw { code: tErrCode, message: "Firestore state does not allow claim: " + tErrCode };
+          }
+
+          var updates = {};
+          if (reward.coins) {
+              updates["currency.coins"] = firebase.firestore.FieldValue.increment(reward.coins);
+          }
+          if (reward.normalTickets) {
+              updates["currency.normalTickets"] = firebase.firestore.FieldValue.increment(reward.normalTickets);
+          }
+          if (reward.premiumTickets) {
+              updates["currency.premiumTickets"] = firebase.firestore.FieldValue.increment(reward.premiumTickets);
+          }
+          updates["dailyMissions.missions." + id + ".claimed"] = true;
+          updates["dailyMissions.missions." + id + ".claimedAt"] = firebase.firestore.FieldValue.serverTimestamp();
+          
+          tx.update(userRef, updates);
+          success = true;
+      });
 
       if (success) {
           save.currency.coins += reward.coins || 0;
@@ -113,21 +138,28 @@
           state.claimed = true;
           state.claimedAt = new Date().toISOString();
           v2.storageService.saveSaveData(save);
+
           if (typeof global.reloadCurrentUserStats === 'function') {
               await global.reloadCurrentUserStats();
           }
-          console.debug("[Reward Applied]", {
-              source: "dailyMission",
-              rewardId: id,
-              rewardTypes: Object.keys(reward),
-              saved: true
+
+          console.debug("[Mission Reward Applied]", {
+              missionId: id,
+              uid: uid,
+              rewardCoins: reward.coins || 0,
+              rewardNormal: reward.normalTickets || 0,
+              rewardPremium: reward.premiumTickets || 0
           });
+
           return { ok: true, reward: reward };
       }
       return { ok: false, reason: 'transaction_failed' };
     } catch (err) {
-      console.error('[claimMission error]', err);
-      return { ok: false, reason: err.message || 'error' };
+      console.error('[claimMission error]', {
+          code: err.code || 'unknown',
+          message: err.message || String(err)
+      });
+      return { ok: false, reason: err.code || 'error' };
     } finally {
       claiming[id] = false;
     }

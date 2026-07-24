@@ -226,6 +226,11 @@
 
             const uid = user.uid;
             console.debug("[Google Authenticated User]", { uid: uid, email: user.email });
+            console.debug("[Admin UID Verification Check]", {
+                currentUid: uid,
+                targetAdminUid: OWNER_ADMIN_UID,
+                isMatch: uid === OWNER_ADMIN_UID
+            });
 
             currentSession = {
                 uid: user.uid,
@@ -309,39 +314,41 @@
         if (!auth) {
             return alert("Firebase Auth를 사용할 수 없습니다. SDK 초기화 오류입니다.");
         }
-        
+        if (loginWithGoogle.inProgress) return;
+        loginWithGoogle.inProgress = true;
         toggleLoading(true);
+
         const provider = new firebase.auth.GoogleAuthProvider();
-        
+        const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
+
         try {
-            await auth.signInWithPopup(provider);
+            if (isMobile) {
+                await auth.signInWithRedirect(provider);
+            } else {
+                await auth.signInWithPopup(provider);
+            }
         } catch (err) {
-            console.warn("[Google popup failed, trying redirect]", err);
-            if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request' || /Mobi|Android|iPhone/i.test(navigator.userAgent)) {
-                if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
-                    alert("Google 로그인이 취소되었습니다.");
-                    toggleLoading(false);
-                    return;
-                }
+            console.error("[Google Login Error]", {
+                code: err?.code,
+                message: err?.message
+            });
+            if (err.code === 'auth/popup-blocked') {
                 try {
                     await auth.signInWithRedirect(provider);
                 } catch (redirErr) {
-                    console.error("[Google redirect login failed]", redirErr);
-                    if (redirErr.code === 'auth/unauthorized-domain') {
-                        alert("Firebase 승인된 도메인 설정을 확인해 주세요.");
-                    } else {
-                        alert("로그인 처리 중 오류가 발생했습니다.");
-                    }
-                    toggleLoading(false);
-                }
-            } else {
-                if (err.code === 'auth/unauthorized-domain') {
-                    alert("Firebase 승인된 도메인 설정을 확인해 주세요.");
-                } else {
+                    console.error("[Google Redirect Retry Error]", redirErr);
                     alert("로그인 처리 중 오류가 발생했습니다.");
                 }
-                toggleLoading(false);
+            } else if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
+                alert("Google 로그인이 취소되었습니다.");
+            } else if (err.code === 'auth/unauthorized-domain') {
+                alert("Firebase 승인된 도메인 설정을 확인해 주세요.");
+            } else {
+                alert("로그인 처리 중 오류가 발생했습니다.");
             }
+        } finally {
+            loginWithGoogle.inProgress = false;
+            toggleLoading(false);
         }
     }
 
@@ -366,40 +373,48 @@
             const uid = currentUser;
             const userRef = db.collection('users').doc(uid);
             
-            const checkDoc = await userRef.get();
             let finalData = null;
 
-            if (checkDoc.exists) {
-                await userRef.set({
-                    profile: { nickname: nickname }
-                }, { merge: true });
-                const refreshedDoc = await userRef.get();
-                finalData = refreshedDoc.data();
-            } else {
-                const defaults = JSON.parse(JSON.stringify(v2.storageService.defaults || {
-                    profile: { selectedCatId: 'base_normal_01', nickname: nickname },
-                    collection: { ownedCatIds: ['base_normal_01'], duplicateCounts: {} },
-                    currency: { coins: 1000, normalTickets: 3, premiumTickets: 0, seasonTickets: {} },
-                    classicRecord: { totalPoints: 0, bestCombo: 0, bestAccuracy: 0, playedCount: 0 },
-                    timeAttackRecord: { bestCorrectCount: 0, bestAccuracy: 0, playedCount: 0 },
-                    adventureProgress: { clearedStageIds: [], unlockedWorldIds: ['world_01'], unlockedStageIds: ['stage_01_01'], stageRecords: {} },
-                    settings: { soundEnabled: true },
-                    unclaimedAchievements: [],
-                    completedAchievements: []
-                }));
+            await db.runTransaction(async function(transaction) {
+                const snapshot = await transaction.get(userRef);
+                if (snapshot.exists) {
+                    const currentData = snapshot.data() || {};
+                    const updatedProfile = currentData.profile || {};
+                    updatedProfile.nickname = nickname;
+                    updatedProfile.selectedCatId = updatedProfile.selectedCatId || 'base_normal_01';
+                    
+                    transaction.set(userRef, {
+                        profile: updatedProfile,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                } else {
+                    const defaults = JSON.parse(JSON.stringify(v2.storageService.defaults || {
+                        profile: { selectedCatId: 'base_normal_01', nickname: nickname },
+                        collection: { ownedCatIds: ['base_normal_01'], duplicateCounts: {} },
+                        currency: { coins: 1000, normalTickets: 3, premiumTickets: 0, seasonTickets: {} },
+                        classicRecord: { totalPoints: 0, bestCombo: 0, bestAccuracy: 0, playedCount: 0 },
+                        timeAttackRecord: { bestCorrectCount: 0, bestAccuracy: 0, playedCount: 0 },
+                        adventureProgress: { clearedStageIds: [], unlockedWorldIds: ['world_01'], unlockedStageIds: ['stage_01_01'], stageRecords: {} },
+                        settings: { soundEnabled: true },
+                        unclaimedAchievements: [],
+                        completedAchievements: []
+                    }));
 
-                defaults.profile.nickname = nickname;
-                defaults.profile.selectedCatId = defaults.profile.selectedCatId || 'base_normal_01';
-                defaults.scoringVersion = 4;
-                defaults.totalPoints = 0;
-                defaults.level = 1;
-                defaults.lastRewardedLevel = 1;
-                defaults.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-                defaults.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+                    defaults.profile.nickname = nickname;
+                    defaults.profile.selectedCatId = defaults.profile.selectedCatId || 'base_normal_01';
+                    defaults.scoringVersion = 4;
+                    defaults.totalPoints = 0;
+                    defaults.level = 1;
+                    defaults.lastRewardedLevel = 1;
+                    defaults.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                    defaults.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
 
-                await userRef.set(defaults);
-                finalData = defaults;
-            }
+                    transaction.set(userRef, defaults);
+                }
+            });
+
+            const refreshedDoc = await userRef.get();
+            finalData = refreshedDoc.data();
 
             currentUserData = finalData;
             currentProfile = {
@@ -468,15 +483,14 @@
         console.debug("[Lobby] Classic runtime cleanup skipped: no active runtime");
     }
 
-    const OWNER_ADMIN_EMAIL = "park791014@gmail.com";
+    const OWNER_ADMIN_UID = "9K1X8FA8MvYLOycqZrc6Iw0s5cC3";
 
     function isOwnerAdmin(user) {
-        if (!user || user.isAnonymous) return false;
-        const email = String(user.email || "").trim().toLowerCase();
-        const isGoogleUser = user.providerData?.some(
-            provider => provider.providerId === "google.com"
+        return Boolean(
+            user &&
+            user.isAnonymous !== true &&
+            user.uid === OWNER_ADMIN_UID
         );
-        return email === OWNER_ADMIN_EMAIL && isGoogleUser;
     }
     window.isOwnerAdmin = isOwnerAdmin;
 
@@ -498,7 +512,9 @@
             alert("관리자 권한이 없습니다.");
             return;
         }
-        showAdminScreen();
+        if (typeof window.showAdminScreen === 'function') {
+            window.showAdminScreen();
+        }
     }
     window.openOwnerAdminPage = openOwnerAdminPage;
     window.openAdminPage = openOwnerAdminPage; // fallback
@@ -986,18 +1002,25 @@
                 if (mode === 'adventure') {
                     isSuccess = Boolean(result.cleared || result.success);
                 }
-                await window.recordDailyMissionProgress({
-                    uid: currentUser,
-                    sessionId: result.sessionId,
-                    mode: mode,
-                    correctCount: correctCount,
-                    answeredCount: answeredCount,
-                    accuracy: answeredCount ? Math.round(correctCount / answeredCount * 100) : 0,
-                    completedAt: completedAt,
-                    success: isSuccess,
-                    isBoss: Boolean(result.isBoss || (result.bossHp !== undefined && result.bossHp <= 0)),
-                    bestCombo: Number(result.bestCombo) || 0
-                });
+                try {
+                    await window.recordDailyMissionProgress({
+                        uid: currentUser,
+                        sessionId: result.sessionId,
+                        mode: mode,
+                        correctCount: correctCount,
+                        answeredCount: answeredCount,
+                        accuracy: answeredCount ? Math.round(correctCount / answeredCount * 100) : 0,
+                        completedAt: completedAt,
+                        success: isSuccess,
+                        isBoss: Boolean(result.isBoss || (result.bossHp !== undefined && result.bossHp <= 0)),
+                        bestCombo: Number(result.bestCombo) || 0
+                    });
+                } catch (missionError) {
+                    console.error("[Daily Mission Progress Record Error]", {
+                        code: missionError?.code || 'unknown',
+                        message: missionError?.message || String(missionError)
+                    });
+                }
             }
 
             // 2. Firebase가 온라인이고 로그인 상태일 때 통합 업데이트
