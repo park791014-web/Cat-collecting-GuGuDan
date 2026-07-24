@@ -393,7 +393,17 @@
                     alert("가입 완료냥! 로그인을 진행해달라냥.");
                 } catch (signupErr) {
                     console.error('[Firebase Auth Signup Error]', signupErr);
-                    if (signupErr.code === 'auth/email-already-in-use') {
+                    const isConfigError = (signupErr && signupErr.code === 'auth/configuration-not-found') || (signupErr && signupErr.message && signupErr.message.includes('CONFIGURATION_NOT_FOUND'));
+                    if (isConfigError) {
+                        console.error("[Firebase Auth Configuration Error]", {
+                            code: signupErr?.code,
+                            message: signupErr?.message,
+                            serverMessage: signupErr?.customData?._tokenResponse?.error?.message ?? null,
+                            projectId: firebaseConfig?.projectId ?? null,
+                            authDomain: firebaseConfig?.authDomain ?? null
+                        });
+                        alert("로그인 설정을 확인하고 있습니다. 관리자에게 Firebase 인증 설정을 확인해 달라고 알려주세요.");
+                    } else if (signupErr.code === 'auth/email-already-in-use') {
                         alert("이미 사용 중인 아이디입니다.");
                     } else {
                         alert("가입 처리 중 오류가 발생했습니다.");
@@ -431,7 +441,17 @@
                     }
 
                     // 12. 이해하기 쉬운 에러 메시지 분기 처리
-                    if (loginErr.code === 'auth/user-not-found') {
+                    const isConfigError = (loginErr && loginErr.code === 'auth/configuration-not-found') || (loginErr && loginErr.message && loginErr.message.includes('CONFIGURATION_NOT_FOUND'));
+                    if (isConfigError) {
+                        console.error("[Firebase Auth Configuration Error]", {
+                            code: loginErr?.code,
+                            message: loginErr?.message,
+                            serverMessage: loginErr?.customData?._tokenResponse?.error?.message ?? null,
+                            projectId: firebaseConfig?.projectId ?? null,
+                            authDomain: firebaseConfig?.authDomain ?? null
+                        });
+                        alert("로그인 설정을 확인하고 있습니다. 관리자에게 Firebase 인증 설정을 확인해 달라고 알려주세요.");
+                    } else if (loginErr.code === 'auth/user-not-found') {
                         alert("존재하지 않는 아이디입니다.");
                     } else if (loginErr.code === 'auth/wrong-password') {
                         alert("비밀번호가 올바르지 않습니다.");
@@ -1092,7 +1112,7 @@
     v2.refreshHomeStatsFromCurrentUser = refreshHomeStatsFromCurrentUser;
     v2.refreshLeaderboardSummaryIfVisible = (typeof refreshLeaderboardSummaryIfVisible === 'function') ? refreshLeaderboardSummaryIfVisible : undefined;
     v2.finalizeCompletedGameSession = finalizeCompletedGameSession;
-    global.playMissionClaimEffect = playMissionClaimEffect;
+    globalThis.playMissionClaimEffect = playMissionClaimEffect;
 
     async function endMarathonGame() {
         if (v2.gameState) v2.gameState.finishGame();
