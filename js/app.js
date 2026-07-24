@@ -366,11 +366,23 @@
         return str;
     }
 
+    function getAuthEmail(username) {
+        const clean = username.trim().toLowerCase();
+        // 영문 소문자, 숫자, 밑줄(_)만 허용되는 지시된 규칙 패턴인 경우
+        if (/^[a-z0-9_]+$/.test(clean)) {
+            return clean + "@nyanko.local";
+        }
+        // 한글 등 기타 특수 문자가 들어간 레거시 계정 마이그레이션 및 로그인 지원용 hex 변환 가상 이메일
+        return stringToHex(clean) + "@nyanko.local";
+    }
+
     async function handleAuth(type) {
         initAudio();
-        const username = document.getElementById('username-input').value.trim();
+        const rawUsername = document.getElementById('username-input').value;
         const password = document.getElementById('password-input').value.trim();
-        if(!username || !password) return alert("이름과 비밀번호를 입력해 주세요!");
+        if(!rawUsername || !password) return alert("이름과 비밀번호를 입력해 주세요!");
+
+        const username = rawUsername.trim().toLowerCase();
 
         if (username === 'admin' && password === 'admin1234') { currentUser = 'admin'; window.__nyankoAdminSession = true; showAdminScreen(); return; }
 
@@ -380,35 +392,51 @@
 
         toggleLoading(true);
         try {
-            const email = stringToHex(username) + "@nyanko.gugudan";
+            const email = getAuthEmail(username);
+
             if (type === 'signup') {
                 if (username === 'admin') { alert("사용할 수 없는 이름입니다."); toggleLoading(false); return; }
                 
+                // 가입 시 아이디 유효성 검사 (영문자, 숫자, 밑줄만 허용)
+                if (!/^[a-z0-9_]+$/.test(username)) {
+                    alert("아이디는 영문 소문자, 숫자, 밑줄(_)만 사용할 수 있다냥!");
+                    toggleLoading(false);
+                    return;
+                }
+
                 try {
                     await auth.createUserWithEmailAndPassword(email, password);
                     alert("가입 완료냥! 로그인을 진행해달라냥.");
                 } catch (signupErr) {
+                    console.error('[Firebase Auth Signup Error]', signupErr);
                     if (signupErr.code === 'auth/email-already-in-use') {
-                        alert("이미 등록된 이름입니다.");
+                        alert("이미 사용 중인 아이디입니다.");
                     } else {
-                        alert("가입 실패: " + signupErr.message);
+                        alert("가입 처리 중 오류가 발생했습니다.");
                     }
                 }
             } else {
                 try {
                     await auth.signInWithEmailAndPassword(email, password);
                 } catch (loginErr) {
+                    console.error('[Firebase Auth Login Error]', loginErr);
+                    
+                    // 11. 로그인 실패 시 1회성 마이그레이션 검사
                     if (loginErr.code === 'auth/user-not-found' || loginErr.code === 'auth/wrong-password') {
                         try {
                             const legacyDocRef = db.collection('users').doc(username);
                             const legacyDoc = await legacyDocRef.get();
                             if (legacyDoc.exists && legacyDoc.data().password === password) {
                                 const legacyData = legacyDoc.data();
+                                // 새 Auth 생성
                                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                                 const newUid = userCredential.user.uid;
+                                // UID 기준으로 기존 데이터 마이그레이션 저장
                                 await db.collection('users').doc(newUid).set(legacyData);
+                                // 기존 문서 삭제
                                 await legacyDocRef.delete();
                                 console.log('[Auth Migrated User]', username, 'to', newUid);
+                                // 최종 로그인 완료
                                 await auth.signInWithEmailAndPassword(email, password);
                                 toggleLoading(false);
                                 return;
@@ -417,7 +445,15 @@
                             console.error('[Legacy Login Migration Failed]', migErr);
                         }
                     }
-                    alert("정보가 맞지 않다냥.");
+
+                    // 12. 이해하기 쉬운 에러 메시지 분기 처리
+                    if (loginErr.code === 'auth/user-not-found') {
+                        alert("존재하지 않는 아이디입니다.");
+                    } else if (loginErr.code === 'auth/wrong-password') {
+                        alert("비밀번호가 올바르지 않습니다.");
+                    } else {
+                        alert("로그인 처리 중 오류가 발생했습니다.");
+                    }
                 }
             }
         } catch (error) {
