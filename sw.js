@@ -1,4 +1,4 @@
-var CACHE_NAME = "nyanko-admin-access-fix-01";
+var CACHE_NAME = "nyanko-admin-access-fix-02";
 var ASSETS = [
   "/Cat-collecting-GuGuDan/",
   "/Cat-collecting-GuGuDan/index.html",

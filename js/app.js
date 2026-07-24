@@ -71,6 +71,8 @@
     let currentUser = null; 
     let currentUserData = null; 
     let isGuestMode = false;
+    let currentSession = null;
+    let currentProfile = null;
     let currentQIndex = 0; const totalQuestions = gameConfig.classic ? gameConfig.classic.totalQuestions : 20; let answerContent = 0; let questionStartTime = 0;
     const maxTime = gameConfig.classic ? gameConfig.classic.secondsPerQuestion : 5; let timeLeft = 0; let timerInterval = null; let countdownInterval = null;
     let sessionCorrect = 0; let sessionSpeedScore = 0; let classicTenComboShown = false;
@@ -200,6 +202,10 @@
             currentUser = null;
             currentUserData = null;
             isGuestMode = false;
+            currentSession = null;
+            currentProfile = null;
+            window.currentSession = null;
+            window.currentProfile = null;
 
             if (!user) {
                 const guestSessionStr = sessionStorage.getItem("nyanko:guest:temporary-session");
@@ -221,6 +227,14 @@
             const uid = user.uid;
             console.debug("[Google Authenticated User]", { uid: uid, email: user.email });
 
+            currentSession = {
+                uid: user.uid,
+                email: user.email,
+                isGuest: false,
+                isAdmin: isOwnerAdmin(user)
+            };
+            window.currentSession = currentSession;
+
             const cacheKey = `nyanko:google-user:${uid}:cache`;
             v2.storageService.setStorageKey(cacheKey);
             toggleLoading(true);
@@ -234,6 +248,11 @@
                     if (remoteData.profile && remoteData.profile.nickname) {
                         currentUser = uid;
                         currentUserData = remoteData;
+                        currentProfile = {
+                            ...remoteData,
+                            uid: uid
+                        };
+                        window.currentProfile = currentProfile;
                         v2.storageService.saveSaveData(remoteData);
                         refreshAdminAccessUI(user);
                         showLobby();
@@ -383,6 +402,11 @@
             }
 
             currentUserData = finalData;
+            currentProfile = {
+                ...finalData,
+                uid: uid
+            };
+            window.currentProfile = currentProfile;
             v2.storageService.saveSaveData(finalData);
 
             console.log("[New User Profile Created/Merged]", uid, nickname);
@@ -454,6 +478,7 @@
         );
         return email === OWNER_ADMIN_EMAIL && isGoogleUser;
     }
+    window.isOwnerAdmin = isOwnerAdmin;
 
     function refreshAdminAccessUI(user) {
         const allowed = isOwnerAdmin(user);
@@ -541,6 +566,18 @@
             settings: { soundEnabled: true }
         };
         isGuestMode = true;
+        currentSession = {
+            uid: session.id,
+            email: "",
+            isGuest: true,
+            isAdmin: false
+        };
+        currentProfile = {
+            ...currentUserData,
+            uid: session.id
+        };
+        window.currentSession = currentSession;
+        window.currentProfile = currentProfile;
         v2.storageService.setStorageKey("nyanko:v4:guest:cache");
         v2.storageService.saveSaveData(currentUserData);
     }
@@ -565,6 +602,10 @@
         currentUser = null;
         currentUserData = null;
         isGuestMode = false;
+        currentSession = null;
+        currentProfile = null;
+        window.currentSession = null;
+        window.currentProfile = null;
         if (v2.storageService && typeof v2.storageService.clearInMemoryUserState === 'function') {
             v2.storageService.clearInMemoryUserState();
         }
@@ -939,6 +980,26 @@
             };
             v2.storageService.recordGame(cleanResult);
 
+            // 일일 미션 진행도 계산 및 갱신 (요구사항 6)
+            if (window.recordDailyMissionProgress && currentUser) {
+                var isSuccess = false;
+                if (mode === 'adventure') {
+                    isSuccess = Boolean(result.cleared || result.success);
+                }
+                await window.recordDailyMissionProgress({
+                    uid: currentUser,
+                    sessionId: result.sessionId,
+                    mode: mode,
+                    correctCount: correctCount,
+                    answeredCount: answeredCount,
+                    accuracy: answeredCount ? Math.round(correctCount / answeredCount * 100) : 0,
+                    completedAt: completedAt,
+                    success: isSuccess,
+                    isBoss: Boolean(result.isBoss || (result.bossHp !== undefined && result.bossHp <= 0)),
+                    bestCombo: Number(result.bestCombo) || 0
+                });
+            }
+
             // 2. Firebase가 온라인이고 로그인 상태일 때 통합 업데이트
             if (!isGuestMode && currentUser) {
                 var userRef = db.collection('users').doc(currentUser);
@@ -1003,6 +1064,14 @@
 
                     uData.totalScore = uData.totalPoints;
                     uData.playCount = (Number(uData.playCount) || 0) + 1;
+
+                    var localData = v2.storageService.loadSaveData();
+                    uData.adventureProgress = localData.adventureProgress;
+                    uData.collection = localData.collection;
+                    uData.currency = localData.currency;
+                    uData.dailyMissions = localData.dailyMissions;
+                    uData.rewardHistory = localData.rewardHistory;
+                    uData.profile = localData.profile;
 
                     transaction.set(userRef, uData, { merge: true });
                     transaction.set(sessionRef, { processedAt: firebase.firestore.FieldValue.serverTimestamp() });
@@ -1099,6 +1168,52 @@
         }
     }
     v2.reloadCurrentUserStats = reloadCurrentUserStats;
+
+    async function syncLocalSaveToFirestore() {
+        if (isGuestMode || !currentUser) return;
+        try {
+            const uid = (auth && auth.currentUser) ? auth.currentUser.uid : currentUser;
+            const localData = v2.storageService.loadSaveData();
+            const userRef = db.collection('users').doc(uid);
+            
+            console.debug("[User Context]", {
+                uid: uid,
+                isGuest: false,
+                profileLoaded: Boolean(currentUserData)
+            });
+
+            await userRef.set({
+                adventureProgress: localData.adventureProgress,
+                collection: localData.collection,
+                currency: localData.currency,
+                dailyMissions: localData.dailyMissions,
+                rewardHistory: localData.rewardHistory,
+                profile: localData.profile,
+                totalPoints: localData.totalPoints || 0,
+                level: localData.level || 1,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+            
+            currentUserData = localData;
+            currentProfile = {
+                ...localData,
+                uid: uid
+            };
+            window.currentProfile = currentProfile;
+        } catch (e) {
+            console.error("[syncLocalSaveToFirestore] Sync failed", e);
+        }
+    }
+    v2.syncLocalSaveToFirestore = syncLocalSaveToFirestore;
+    window.syncLocalSaveToFirestore = syncLocalSaveToFirestore;
+
+    async function recordDailyMissionProgress(input) {
+        if (v2.dailyMissionService) {
+            return await v2.dailyMissionService.recordDailyMissionProgress(input);
+        }
+        return false;
+    }
+    window.recordDailyMissionProgress = recordDailyMissionProgress;
 
     function refreshHomeStatsFromCurrentUser() {
         try {
@@ -1328,7 +1443,7 @@
 
     if (v2.validators) v2.validators.validateAll();
     window.toggleGameSound = function (enabled) { if (!v2.storageService) return; const data = v2.storageService.loadSaveData(); data.settings.soundEnabled = Boolean(enabled); v2.storageService.saveSaveData(data); if (v2.soundService) v2.soundService.setSoundEnabled(enabled); };
-    window.getCurrentPlayerContext = function () { return { nickname: currentUser || '', isGuest: isGuestMode, userData: currentUserData }; };
+    window.getCurrentPlayerContext = function () { return { nickname: (currentUserData && currentUserData.profile && currentUserData.profile.nickname) ? currentUserData.profile.nickname : (isGuestMode ? '게스트' : (currentUser || '')), isGuest: isGuestMode, userData: currentUserData }; };
 
     window.loginWithGoogle = loginWithGoogle;
     window.setupNewProfile = setupNewProfile;

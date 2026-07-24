@@ -1,57 +1,53 @@
 {
   "indexes": [
     {
-      "collectionGroup": "leaderboardsV3",
+      "collectionGroup": "rankings_v4",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "rankingVersion", "order": "ASCENDING" },
-        { "fieldPath": "mode", "order": "ASCENDING" },
+        { "fieldPath": "category", "order": "ASCENDING" },
         { "fieldPath": "periodType", "order": "ASCENDING" },
         { "fieldPath": "monthKey", "order": "ASCENDING" },
-        { "fieldPath": "monthlyScore", "order": "DESCENDING" },
-        { "fieldPath": "correctCount", "order": "DESCENDING" },
-        { "fieldPath": "accuracy", "order": "DESCENDING" },
-        { "fieldPath": "playedAtTimestamp", "order": "ASCENDING" }
+        { "fieldPath": "points", "order": "DESCENDING" },
+        { "fieldPath": "updatedAt", "order": "ASCENDING" }
       ]
     },
     {
-      "collectionGroup": "leaderboardsV3",
+      "collectionGroup": "rankings_v4",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "rankingVersion", "order": "ASCENDING" },
-        { "fieldPath": "mode", "order": "ASCENDING" },
+        { "fieldPath": "category", "order": "ASCENDING" },
         { "fieldPath": "periodType", "order": "ASCENDING" },
-        { "fieldPath": "totalScore", "order": "DESCENDING" },
-        { "fieldPath": "correctCount", "order": "DESCENDING" },
-        { "fieldPath": "accuracy", "order": "DESCENDING" },
-        { "fieldPath": "playedAtTimestamp", "order": "ASCENDING" }
+        { "fieldPath": "points", "order": "DESCENDING" },
+        { "fieldPath": "updatedAt", "order": "ASCENDING" }
       ]
     },
     {
-      "collectionGroup": "leaderboardsV3",
+      "collectionGroup": "rankings_v4",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "rankingVersion", "order": "ASCENDING" },
-        { "fieldPath": "mode", "order": "ASCENDING" },
+        { "fieldPath": "category", "order": "ASCENDING" },
         { "fieldPath": "periodType", "order": "ASCENDING" },
-        { "fieldPath": "weekKey", "order": "ASCENDING" },
-        { "fieldPath": "correctCount", "order": "DESCENDING" },
+        { "fieldPath": "monthKey", "order": "ASCENDING" },
+        { "fieldPath": "bestCorrectCount", "order": "DESCENDING" },
         { "fieldPath": "accuracy", "order": "DESCENDING" },
         { "fieldPath": "wrongCount", "order": "ASCENDING" },
-        { "fieldPath": "playedAtTimestamp", "order": "ASCENDING" }
+        { "fieldPath": "achievedAt", "order": "ASCENDING" }
       ]
     },
     {
-      "collectionGroup": "leaderboardsV3",
+      "collectionGroup": "rankings_v4",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "rankingVersion", "order": "ASCENDING" },
-        { "fieldPath": "mode", "order": "ASCENDING" },
+        { "fieldPath": "category", "order": "ASCENDING" },
         { "fieldPath": "periodType", "order": "ASCENDING" },
-        { "fieldPath": "correctCount", "order": "DESCENDING" },
+        { "fieldPath": "bestCorrectCount", "order": "DESCENDING" },
         { "fieldPath": "accuracy", "order": "DESCENDING" },
         { "fieldPath": "wrongCount", "order": "ASCENDING" },
-        { "fieldPath": "playedAtTimestamp", "order": "ASCENDING" }
+        { "fieldPath": "achievedAt", "order": "ASCENDING" }
       ]
     }
   ],
