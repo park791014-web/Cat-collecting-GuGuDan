@@ -52,24 +52,6 @@
             // 🔥 보스 등장 사이렌 사운드 🔥
             osc.type = 'square';
             osc.frequency.setValueAtTime(400, audioCtx.currentTime);
-        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        if (type === 'correct') {
-            osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); 
-            gain.gain.setValueAtTime(0.5, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-            osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.3);
-        } else if (type === 'wrong') {
-            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.3);
-            gain.gain.setValueAtTime(0.5, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-            osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.3);
-        } else if (type === 'legend') {
-            osc.type = 'triangle'; osc.frequency.setValueAtTime(440, audioCtx.currentTime); osc.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + 0.2); osc.frequency.linearRampToValueAtTime(1320, audioCtx.currentTime + 0.4);
-            gain.gain.setValueAtTime(0.6, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
-            osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.6);
-        } else if (type === 'siren') {
-            // 🔥 보스 등장 사이렌 사운드 🔥
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
             osc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 0.5);
             osc.frequency.linearRampToValueAtTime(400, audioCtx.currentTime + 1.0);
             osc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 1.5);
@@ -337,6 +319,8 @@
                 toggleLoading(false);
             }
         });
+    }
+    
     function showScreen(screenId) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
         document.getElementById(screenId).classList.add('active-screen');
@@ -1219,6 +1203,11 @@
     if (v2.validators) v2.validators.validateAll();
     window.toggleGameSound = function (enabled) { if (!v2.storageService) return; const data = v2.storageService.loadSaveData(); data.settings.soundEnabled = Boolean(enabled); v2.storageService.saveSaveData(data); if (v2.soundService) v2.soundService.setSoundEnabled(enabled); };
     window.getCurrentPlayerContext = function () { return { nickname: currentUser || '', isGuest: isGuestMode, userData: currentUserData }; };
+
+    window.handleAuth = handleAuth;
+    window.playAsGuest = playAsGuest;
+    window.logout = logout;
+    window.showLobby = showLobby;
 
     if (v2.initBackButtonHandler) v2.initBackButtonHandler();
     if (v2.initPwaManager) v2.initPwaManager();
