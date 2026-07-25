@@ -1,15 +1,15 @@
-var CACHE_NAME = "nyanko-cache-v2.1.1";
+var CACHE_NAME = "nyanko-admin-auth-integration-01";
 var ASSETS = [
   "/Cat-collecting-GuGuDan/",
   "/Cat-collecting-GuGuDan/index.html",
-  "/Cat-collecting-GuGuDan/css/style.css?v=2.1.1",
+  "/Cat-collecting-GuGuDan/css/style.css?v=2.0.48",
   "/Cat-collecting-GuGuDan/css/phase56.css",
   "/Cat-collecting-GuGuDan/css/phase561.css",
   "/Cat-collecting-GuGuDan/css/phase562.css",
-  "/Cat-collecting-GuGuDan/css/releasePatch.css?v=2.1.1",
-  "/Cat-collecting-GuGuDan/js/app.js?v=2.1.1",
-  "/Cat-collecting-GuGuDan/js/game/modeEngine.js?v=2.1.1",
-  "/Cat-collecting-GuGuDan/js/game/adventureEngine.js?v=2.1.1",
+  "/Cat-collecting-GuGuDan/css/releasePatch.css?v=2.0.48",
+  "/Cat-collecting-GuGuDan/js/app.js?v=2.0.48",
+  "/Cat-collecting-GuGuDan/js/game/modeEngine.js?v=2.0.48",
+  "/Cat-collecting-GuGuDan/js/game/adventureEngine.js?v=2.0.48",
   "/Cat-collecting-GuGuDan/js/data/worlds.js",
   "/Cat-collecting-GuGuDan/js/data/adventureStoryData.js",
   "/Cat-collecting-GuGuDan/js/services/rankingService.js",
@@ -50,7 +50,7 @@ self.addEventListener("fetch", function(e) {
         return cachedResponse;
       }
       return fetch(e.request).catch(function() {
-        // ?�트?�크 ?�패 ???�프?�인 Fallback?�로 root index ?�공
+        // 네트워크 실패 시 오프라인 Fallback으로 root index 제공
         if (e.request.mode === "navigate") {
           return caches.match("/Cat-collecting-GuGuDan/");
         }
@@ -58,4 +58,3 @@ self.addEventListener("fetch", function(e) {
     })
   );
 });
-

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>?�� ?�근?�근 구구???�모험 ?��</title>
+    <title>🌟 두근두근 구구단 대모험 🌟</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -13,175 +13,171 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=2.1.1">
+    <link rel="stylesheet" href="css/style.css?v=2.0.13">
     <link rel="stylesheet" href="css/phase56.css">
     <link rel="stylesheet" href="css/phase561.css">
     <link rel="stylesheet" href="css/phase562.css">
-    <link rel="stylesheet" href="css/releasePatch.css?v=2.1.1">
+    <link rel="stylesheet" href="css/releasePatch.css?v=2.0.14">
     <link rel="manifest" href="/manifest.json">
 </head>
 <body>
 
-<div id="loading-overlay">?�� ?�버 ?�신 �?.. ??</div>
+<div id="loading-overlay">📡 서버 통신 중... 냥!</div>
 
 <div id="boss-warning">
-    <div style="font-size: 80px; margin-bottom: 20px;">??</div>
+    <div style="font-size: 80px; margin-bottom: 20px;">💀</div>
     <div>경고! 보스 출현!</div>
-    <div style="font-size: 20px; margin-top: 10px;">?�정??조심?�라??!</div>
+    <div style="font-size: 20px; margin-top: 10px;">함정을 조심하라냥!!</div>
 </div>
 
 <div id="game-effect-layer" class="game-effect-layer" aria-hidden="true"></div>
 <div id="game-container">
     <div id="login-screen" class="screen active-screen">
-        <h1>?�� 구구???�코 ?�모험 ?��</h1>
+        <h1>🌟 구구단 냥코 대모험 🌟</h1>
         <p class="version-label" id="version-label">V2.0.19</p>
-        <p style="font-size: 16px;">백점 맞고 ?�설??고양?��? 뽑자??</p>
-        <img src="assets/cats/base/base_legendary_01-transparent.png" width="140" height="140" alt="?�금 ?�설 ?�이" style="margin:5px; object-fit:contain; background:linear-gradient(145deg,#FFF9D8,#FFE8A3); border-radius:50%; border:3px solid #FFD166; box-shadow:0 5px 18px rgba(224,170,30,.28);">
+        <p style="font-size: 16px;">백점 맞고 전설의 고양이를 뽑자냥!</p>
+        <img src="assets/cats/base/base_legendary_01-transparent.png" width="140" height="140" alt="황금 전설 냥이" style="margin:5px; object-fit:contain; background:linear-gradient(145deg,#FFF9D8,#FFE8A3); border-radius:50%; border:3px solid #FFD166; box-shadow:0 5px 18px rgba(224,170,30,.28);">
         
         <div class="google-login-action">
-            <button class="btn btn-success btn-google google-login-button" onclick="loginWithGoogle()" style="background-color: #4285F4; border-color: #4285F4; color: white;"><svg width="18" height="18" viewBox="0 0 18 18" style="fill: white; flex-shrink: 0;"><path d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.47h4.84c-.21 1.12-.84 2.07-1.79 2.7v2.24h2.9c1.69-1.55 2.69-3.84 2.69-6.57z" fill="#4285F4"/><path d="M9 18c2.43 0 4.47-.8 5.96-2.23l-2.9-2.24c-.8.54-1.84.87-3.06.87-2.35 0-4.34-1.58-5.05-3.72H.93v2.3C2.41 15.93 5.43 18 9 18z" fill="#34A853"/><path d="M3.95 10.68c-.18-.54-.28-1.12-.28-1.68s.1-1.14.28-1.68V5.02H.93C.34 6.22 0 7.57 0 9s.34 2.78.93 3.98l3.02-2.3z" fill="#FBBC05"/><path d="M9 3.58c1.32 0 2.5.45 3.44 1.35L15 2.3C13.47.87 11.43 0 9 0 5.43 0 2.41 2.07.93 5.02l3.02 2.3c.71-2.14 2.7-3.74 5.05-3.74z" fill="#EA4335"/></svg><span class="google-btn-label">Google 계정?�로 ?�작?�기</span></button>
+            <button class="btn btn-success btn-google google-login-button" onclick="loginWithGoogle()" style="background-color: #4285F4; border-color: #4285F4; color: white;"><svg width="18" height="18" viewBox="0 0 18 18" style="fill: white; flex-shrink: 0;"><path d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.47h4.84c-.21 1.12-.84 2.07-1.79 2.7v2.24h2.9c1.69-1.55 2.69-3.84 2.69-6.57z" fill="#4285F4"/><path d="M9 18c2.43 0 4.47-.8 5.96-2.23l-2.9-2.24c-.8.54-1.84.87-3.06.87-2.35 0-4.34-1.58-5.05-3.72H.93v2.3C2.41 15.93 5.43 18 9 18z" fill="#34A853"/><path d="M3.95 10.68c-.18-.54-.28-1.12-.28-1.68s.1-1.14.28-1.68V5.02H.93C.34 6.22 0 7.57 0 9s.34 2.78.93 3.98l3.02-2.3z" fill="#FBBC05"/><path d="M9 3.58c1.32 0 2.5.45 3.44 1.35L15 2.3C13.47.87 11.43 0 9 0 5.43 0 2.41 2.07.93 5.02l3.02 2.3c.71-2.14 2.7-3.74 5.05-3.74z" fill="#EA4335"/></svg><span class="google-btn-label">Google 계정으로 시작하기</span></button>
         </div>
-        <p style="font-size: 13px; color: #666; margin-top: 10px; line-height: 1.4; text-align: center;">같�? Google 계정?�로 로그?�하�?컴퓨?��? ?��??�에??같�? 게임 ?�이?��? ?�용?????�어??</p>
+        <p style="font-size: 13px; color: #666; margin-top: 10px; line-height: 1.4; text-align: center;">같은 Google 계정으로 로그인하면 컴퓨터와 휴대폰에서 같은 게임 데이터를 사용할 수 있어요.</p>
         <hr style="border: 1px dashed #DDD; margin: 15px 0;">
-        <button class="btn btn-guest" onclick="playAsGuest()">GUEST�??�기</button>
-        <div id="app-version-info" class="app-version-info" style="font-size: 11px; color: #aaa; margin-top: 15px; text-align: center; line-height: 1.5;">
-            <span id="version-text">버전 2.1.0 · ?�데?�트 2026.07.25 07:00</span>
-            <span id="version-new-badge" style="display: none; background-color: #FF5A5F; color: white; padding: 1px 4px; border-radius: 3px; font-weight: bold; margin-left: 4px; font-size: 9px; vertical-align: middle;">NEW ?�데?�트??/span>
-        </div>
+        <button class="btn btn-guest" onclick="playAsGuest()">GUEST로 하기</button>
     </div>
 
     <div id="profile-setup-screen" class="screen">
-        <h1>?�코 ?�모험 ?�로???�정</h1>
-        <p style="font-size: 16px;">게임?�서 ?�용???�네?�을 ?�정??주세?�냥!</p>
+        <h1>냥코 대모험 프로필 설정</h1>
+        <p style="font-size: 16px;">게임에서 사용할 닉네임을 설정해 주세요냥!</p>
         <div class="input-group" style="margin: 20px 0;">
-            <input type="text" id="new-nickname-input" class="input-field" placeholder="?�네??(2~12?? ?��?/?�문/?�자)">
+            <input type="text" id="new-nickname-input" class="input-field" placeholder="닉네임 (2~12자, 한글/영문/숫자)">
         </div>
-        <button class="btn btn-success" onclick="setupNewProfile()">?�정 ?�료??</button>
+        <button class="btn btn-success" onclick="setupNewProfile()">설정 완료냥!</button>
     </div>
 
     <div id="admin-screen" class="screen">
-        <h1>?���?글로벌 ?�코 관리소 ?���?/h1>
+        <h1>🛠️ 글로벌 냥코 관리소 🛠️</h1>
         <div class="collection-box" style="border-color: #FFB347; padding: 10px;">
             <div id="admin-list" style="text-align: left;"></div>
         </div>
-        <button class="btn btn-guest" style="margin-top: 15px;" onclick="logout()">처음?�로</button>
+        <button class="btn btn-guest" style="margin-top: 15px;" onclick="logout()">처음으로</button>
     </div>
 
     <div id="lobby-screen" class="screen">
-        <h1>?�녕, <span id="lobby-name" style="color:#FF69B4;"></span>!</h1>
+        <h1>안녕, <span id="lobby-name" style="color:#FF69B4;"></span>!</h1>
         <div class="result-box" id="lobby-stats-box" style="background-color: #BAE1FF; padding: 10px;">
-            <p style="margin: 5px;">?�� ???�벨: Lv.<span class="highlight" id="lobby-level">1</span></p>
-            <p style="margin: 5px;">?�� ?�적 ?�인?? <span class="highlight" id="lobby-points">0</span>P</p>
+            <p style="margin: 5px;">🏆 내 레벨: Lv.<span class="highlight" id="lobby-level">1</span></p>
+            <p style="margin: 5px;">💰 누적 포인트: <span class="highlight" id="lobby-points">0</span>P</p>
         </div>
         
         <div class="collection-box collection-summary-box" id="collection-box">
-            <div class="collection-summary-head"><div><h3>고양???�감</h3><p id="collection-owned-summary">보유 고양??1�?/p></div><button class="game-button secondary" onclick="openCollectionScreen()">?�감 ?�기</button></div>
+            <div class="collection-summary-head"><div><h3>고양이 도감</h3><p id="collection-owned-summary">보유 고양이 1종</p></div><button class="game-button secondary" onclick="openCollectionScreen()">도감 열기</button></div>
             <div id="lobby-selected-cat" class="selected-cat-summary compact"></div>
             <div id="currency-summary" class="currency-summary"></div>
         </div>
         <div id="season-banner-slot"></div>
-        <section id="daily-missions" class="daily-missions" aria-label="?�늘??미션"></section>
+        <section id="daily-missions" class="daily-missions" aria-label="오늘의 미션"></section>
 
-        <div class="mode-grid" aria-label="게임 모드 ?�택">
-            <button class="mode-card adventure-main" onclick="openAdventureMap()"><strong>구구???�모험</strong><span>지??�� ?�험?�며 ?�테?��??� 보스�??�복?�세??</span><em>?�드�??�기 ??/em></button>
-            <button class="mode-card classic" onclick="startMarathonGame()"><strong>기본 게임</strong><span>구구??문제�?차근차근 ?�?�보?�요.</span></button>
-            <button class="mode-card time-attack" onclick="startPhase2Mode('timeAttack')"><strong>?�?�어??/strong><span>?�한 ?�간 ?�안 최고 ?�수???�전?�세??</span></button>
+        <div class="mode-grid" aria-label="게임 모드 선택">
+            <button class="mode-card adventure-main" onclick="openAdventureMap()"><strong>구구단 대모험</strong><span>지역을 탐험하며 스테이지와 보스를 정복하세요.</span><em>월드맵 열기 →</em></button>
+            <button class="mode-card classic" onclick="startMarathonGame()"><strong>기본 게임</strong><span>구구단 문제를 차근차근 풀어보세요.</span></button>
+            <button class="mode-card time-attack" onclick="startPhase2Mode('timeAttack')"><strong>타임어택</strong><span>제한 시간 동안 최고 점수에 도전하세요.</span></button>
         </div>
-        <nav class="utility-nav" aria-label="보조 메뉴"><button onclick="openCardPackScreen()">고양??뽑기</button><button onclick="openCollectionScreen()">?�감</button><button onclick="openRankings()">?�위</button><button onclick="openSettingsScreen()">?�정</button></nav>
-        <button id="pwa-install-btn" class="btn btn-pwa" style="display:none; margin-top: 10px; background-color: #FFD166; color: #4B3565; font-weight: bold; width: 100%;">???�면??추�?</button>
+        <nav class="utility-nav" aria-label="보조 메뉴"><button onclick="openCardPackScreen()">고양이 뽑기</button><button onclick="openCollectionScreen()">도감</button><button onclick="openRankings()">순위</button><button onclick="openSettingsScreen()">설정</button></nav>
+        <button id="pwa-install-btn" class="btn btn-pwa" style="display:none; margin-top: 10px; background-color: #FFD166; color: #4B3565; font-weight: bold; width: 100%;">홈 화면에 추가</button>
         <div id="admin-button-container" style="margin-top: 10px;">
-            <button type="button" id="owner-admin-button" class="btn btn-admin" style="background-color: #E040FB; color: white; font-weight: bold; width: 100%; border: none; padding: 12px; border-radius: 8px; cursor: pointer; box-sizing: border-box;" data-owner-admin-only hidden onclick="openOwnerAdminPage()">관리자 ?�이지</button>
+            <button type="button" id="owner-admin-button" class="btn btn-admin" style="background-color: #E040FB; color: white; font-weight: bold; width: 100%; border: none; padding: 12px; border-radius: 8px; cursor: pointer; box-sizing: border-box;" data-owner-admin-only hidden onclick="openOwnerAdminPage()">관리자 페이지</button>
         </div>
-        <button class="btn btn-guest" onclick="logout()">로그?�웃</button>
+        <button class="btn btn-guest" onclick="logout()">로그아웃</button>
     </div>
 
     <section id="adventure-map-screen" class="screen adventure-screen" aria-labelledby="adventure-map-title">
-        <header class="screen-header"><button class="icon-button" onclick="showLobby()" aria-label="메인?�로 ?�아가�?>??/button><div><h2 id="adventure-map-title" tabindex="-1">구구???�모험</h2><p>지??�� ?�택??모험???�어가?�요.</p></div><div class="star-total"><span>?�득 �?/span><strong id="adventure-total-stars">0</strong></div></header>
+        <header class="screen-header"><button class="icon-button" onclick="showLobby()" aria-label="메인으로 돌아가기">←</button><div><h2 id="adventure-map-title" tabindex="-1">구구단 대모험</h2><p>지역을 선택해 모험을 이어가세요.</p></div><div class="star-total"><span>획득 별</span><strong id="adventure-total-stars">0</strong></div></header>
         <div id="world-list" class="world-list"></div>
     </section>
 
     <section id="stage-select-screen" class="screen adventure-screen" aria-labelledby="stage-select-title">
-        <header class="screen-header"><button class="icon-button" onclick="openAdventureMap()" aria-label="?�드맵으�??�아가�?>??/button><div><h2 id="stage-select-title" tabindex="-1">?�테?��? ?�택</h2><p id="stage-select-subtitle"></p></div></header>
+        <header class="screen-header"><button class="icon-button" onclick="openAdventureMap()" aria-label="월드맵으로 돌아가기">←</button><div><h2 id="stage-select-title" tabindex="-1">스테이지 선택</h2><p id="stage-select-subtitle"></p></div></header>
         <div id="stage-grid" class="stage-grid"></div>
     </section>
 
     <section id="stage-ready-screen" class="screen adventure-screen" aria-labelledby="stage-ready-title">
-        <header class="screen-header"><button class="icon-button" onclick="backToStageSelect()" aria-label="?�테?��? ?�택?�로 ?�아가�?>??/button><div><span id="ready-stage-number" class="eyebrow"></span><h2 id="stage-ready-title" tabindex="-1">?�전 준�?/h2></div></header>
+        <header class="screen-header"><button class="icon-button" onclick="backToStageSelect()" aria-label="스테이지 선택으로 돌아가기">←</button><div><span id="ready-stage-number" class="eyebrow"></span><h2 id="stage-ready-title" tabindex="-1">도전 준비</h2></div></header>
         <div id="stage-ready-card" class="ready-card"></div>
-        <div class="action-row"><button class="game-button secondary" onclick="backToStageSelect()">?�로</button><button class="game-button primary" onclick="startAdventureStage()">?�전 ?�작</button></div>
+        <div class="action-row"><button class="game-button secondary" onclick="backToStageSelect()">뒤로</button><button class="game-button primary" onclick="startAdventureStage()">도전 시작</button></div>
     </section>
 
     <section id="adventure-result-screen" class="screen adventure-screen" aria-labelledby="adventure-result-title">
-        <div id="adventure-result-card" class="adventure-result-card" tabindex="-1"><p class="eyebrow" id="adventure-result-number"></p><h2 id="adventure-result-title">?�테?��? 결과</h2><div id="adventure-result-cat" class="result-cat"></div><div id="adventure-result-stars" class="result-stars"></div><div id="adventure-result-stats" class="result-stat-grid"></div><div id="adventure-rewards" class="adventure-rewards"></div><p id="adventure-unlock-copy" class="unlock-copy"></p><div id="adventure-result-actions" class="result-actions"></div></div>
+        <div id="adventure-result-card" class="adventure-result-card" tabindex="-1"><p class="eyebrow" id="adventure-result-number"></p><h2 id="adventure-result-title">스테이지 결과</h2><div id="adventure-result-cat" class="result-cat"></div><div id="adventure-result-stars" class="result-stars"></div><div id="adventure-result-stats" class="result-stat-grid"></div><div id="adventure-rewards" class="adventure-rewards"></div><p id="adventure-unlock-copy" class="unlock-copy"></p><div id="adventure-result-actions" class="result-actions"></div></div>
     </section>
 
-    <section id="card-pack-screen" class="screen" aria-labelledby="card-pack-title"><header class="screen-header"><button class="icon-button" onclick="showLobby()" aria-label="메인?�로 ?�아가�?>??/button><div><h2 id="card-pack-title" tabindex="-1">고양??뽑기</h2><p>게임?�서 모�? 코인?�로 기본 고양?��? 만나보세??</p></div></header><div id="pack-currency" class="pack-currency"></div><div id="pack-list" class="pack-list"></div><p id="pack-message" role="status"></p><div id="pack-result" class="pack-result" tabindex="-1" hidden></div></section>
+    <section id="card-pack-screen" class="screen" aria-labelledby="card-pack-title"><header class="screen-header"><button class="icon-button" onclick="showLobby()" aria-label="메인으로 돌아가기">←</button><div><h2 id="card-pack-title" tabindex="-1">고양이 뽑기</h2><p>게임에서 모은 코인으로 기본 고양이를 만나보세요.</p></div></header><div id="pack-currency" class="pack-currency"></div><div id="pack-list" class="pack-list"></div><p id="pack-message" role="status"></p><div id="pack-result" class="pack-result" tabindex="-1" hidden></div></section>
 
     
     <section id="collection-screen" class="screen collection-screen" aria-labelledby="collection-title">
-        <header class="screen-header"><button class="icon-button" onclick="showLobby()" aria-label="메인?�로 ?�아가�?>??/button><div><h2 id="collection-title" tabindex="-1">고양???�감</h2><p id="collection-screen-summary">보유??고양?��? 관리하?�요.</p></div></header>
-        <div id="collection-filters" class="collection-filters" aria-label="?�감 검?�과 ?�터"></div>
+        <header class="screen-header"><button class="icon-button" onclick="showLobby()" aria-label="메인으로 돌아가기">←</button><div><h2 id="collection-title" tabindex="-1">고양이 도감</h2><p id="collection-screen-summary">보유한 고양이를 관리하세요.</p></div></header>
+        <div id="collection-filters" class="collection-filters" aria-label="도감 검색과 필터"></div>
         <div id="collection-grid" class="collection-grid collection-list-view"></div>
-        <p id="collection-empty-message" class="collection-empty-message" hidden>조건??맞는 보유 고양?��? ?�습?�다.</p>
+        <p id="collection-empty-message" class="collection-empty-message" hidden>조건에 맞는 보유 고양이가 없습니다.</p>
     </section>
 
-    <section id="settings-screen" class="screen" aria-labelledby="settings-title"><header class="screen-header"><button class="icon-button" onclick="showLobby()" aria-label="메인?�로 ?�아가�?>??/button><div><h2 id="settings-title" tabindex="-1">?�정�??�용 ?�내</h2><p id="settings-version"></p></div></header><div id="settings-content" class="settings-sections"></div></section>
-    <div id="cat-detail-modal" class="modal-backdrop" hidden><section class="cat-detail-modal" role="dialog" aria-modal="true" aria-labelledby="cat-detail-name"><button id="cat-detail-close" class="modal-close" aria-label="카드 ?�세 ?�기" onclick="closeCatDetail()">×</button><div id="cat-detail-content"></div></section></div>
-    <div id="onboarding-modal" class="modal-backdrop" hidden><section class="onboarding-modal" role="dialog" aria-modal="true" aria-labelledby="onboarding-title"><p id="onboarding-step"></p><h2 id="onboarding-title">게임 ?�내</h2><p id="onboarding-copy"></p><div><button id="onboarding-skip" onclick="finishOnboarding()">건너?�기</button><button id="onboarding-prev" onclick="moveOnboarding(-1)">?�전</button><button id="onboarding-next" class="game-button primary" onclick="moveOnboarding(1)">?�음</button></div></section></div>
+    <section id="settings-screen" class="screen" aria-labelledby="settings-title"><header class="screen-header"><button class="icon-button" onclick="showLobby()" aria-label="메인으로 돌아가기">←</button><div><h2 id="settings-title" tabindex="-1">설정과 이용 안내</h2><p id="settings-version"></p></div></header><div id="settings-content" class="settings-sections"></div></section>
+    <div id="cat-detail-modal" class="modal-backdrop" hidden><section class="cat-detail-modal" role="dialog" aria-modal="true" aria-labelledby="cat-detail-name"><button id="cat-detail-close" class="modal-close" aria-label="카드 상세 닫기" onclick="closeCatDetail()">×</button><div id="cat-detail-content"></div></section></div>
+    <div id="onboarding-modal" class="modal-backdrop" hidden><section class="onboarding-modal" role="dialog" aria-modal="true" aria-labelledby="onboarding-title"><p id="onboarding-step"></p><h2 id="onboarding-title">게임 안내</h2><p id="onboarding-copy"></p><div><button id="onboarding-skip" onclick="finishOnboarding()">건너뛰기</button><button id="onboarding-prev" onclick="moveOnboarding(-1)">이전</button><button id="onboarding-next" class="game-button primary" onclick="moveOnboarding(1)">다음</button></div></section></div>
 
     <div id="play-screen" class="screen">
         <div class="stats-bar">
             <div style="text-align: left;">
                 <span id="q-counter" style="color:#333;">문제: 1/20</span><br>
-                <span id="current-accuracy" style="color:#888; font-size:12px;">?�답�? 100%</span>
+                <span id="current-accuracy" style="color:#888; font-size:12px;">정답률: 100%</span>
             </div>
             <div id="live-points" style="font-size: 22px; color: #FFB347; font-weight: 900;">
-                ?�재 ?�득: 0P
+                현재 획득: 0P
             </div>
         </div>
-        <div id="mode-status" class="mode-status" aria-label="게임 ?�태"></div>
-        <div id="skill-hud" class="skill-hud" aria-live="polite" style="display:none;"><img id="skill-cat-image" alt="?�??고양??><span id="skill-status"></span><button id="manual-skill-button" type="button" onclick="useManualCatSkill()" style="display:none;">?�킬 ?�용</button></div>
-        <div id="boss-panel" class="boss-panel" style="display:none;"><div class="boss-meta"><strong id="boss-name">보스</strong><span id="boss-hp-text"></span></div><div id="boss-hp" class="boss-hp" role="progressbar" aria-label="보스 체력" aria-valuemin="0"><div id="boss-hp-bar"></div></div><div class="boss-arena"><img id="boss-image" class="boss-image" alt=""><div id="boss-damage" class="boss-damage" aria-hidden="true"></div><div class="player-cat"><img id="player-cat-image" alt="?�택??고양??><span id="player-cat-name"></span></div></div></div>
+        <div id="mode-status" class="mode-status" aria-label="게임 상태"></div>
+        <div id="skill-hud" class="skill-hud" aria-live="polite" style="display:none;"><img id="skill-cat-image" alt="대표 고양이"><span id="skill-status"></span><button id="manual-skill-button" type="button" onclick="useManualCatSkill()" style="display:none;">스킬 사용</button></div>
+        <div id="boss-panel" class="boss-panel" style="display:none;"><div class="boss-meta"><strong id="boss-name">보스</strong><span id="boss-hp-text"></span></div><div id="boss-hp" class="boss-hp" role="progressbar" aria-label="보스 체력" aria-valuemin="0"><div id="boss-hp-bar"></div></div><div class="boss-arena"><img id="boss-image" class="boss-image" alt=""><div id="boss-damage" class="boss-damage" aria-hidden="true"></div><div class="player-cat"><img id="player-cat-image" alt="선택한 고양이"><span id="player-cat-name"></span></div></div></div>
         <div class="progress-container"><div id="progress-bar" class="progress-bar"></div></div>
         <div class="timer-container"><div id="timer-bar" class="timer-bar"></div></div>
         <div class="question-text" id="question">2 x 3 = ?</div>
         <div id="options-container"></div>
         <div id="feedback" style="min-height: 50px; margin-top: 5px;"></div>
-        <button id="phase2-exit-button" class="btn btn-small btn-danger phase2-only" onclick="exitPhase2ToMain()" style="display:none;">?�전 ?�내�?/button>
+        <button id="phase2-exit-button" class="btn btn-small btn-danger phase2-only" onclick="exitPhase2ToMain()" style="display:none;">도전 끝내기</button>
     </div>
 
     <div id="result-screen" class="screen">
-        <h1>?�� 모험 ?�냥! ?��</h1>
+        <h1>🎉 모험 끝냥! 🎉</h1>
         
         <div id="reward-box" class="reward-container" aria-live="polite"></div>
 
         <div id="phase2-result-panel" class="result-box phase2-result" tabindex="-1" style="display:none;">
-            <h2 id="phase2-result-title">?�전 종료</h2>
+            <h2 id="phase2-result-title">도전 종료</h2>
             <div id="phase2-result-stats"></div>
-            <p id="phase2-best-badge" class="best-badge" style="display:none;">?�� 개인 최고 기록!</p>
+            <p id="phase2-best-badge" class="best-badge" style="display:none;">🏆 개인 최고 기록!</p>
             <p id="phase2-ranking-status" class="ranking-status"></p>
         </div>
 
         <div class="ranking-box" id="ranking-box">
-            <h3 style="text-align:center; margin:0 0 10px 0; color:#4B0082; font-size: 18px;">?�롭�??�작????��</h3>
+            <h3 style="text-align:center; margin:0 0 10px 0; color:#4B0082; font-size: 18px;">새롭게 시작된 랭킹</h3>
             <div id="ranking-controls" class="ranking-controls" style="display:none;">
-                <div class="ranking-tab-row ranking-tab-row--main"><button data-category="overall" onclick="setRankingMode('overall')">?�체 ?�적</button><button data-category="timeAttack" onclick="setRankingMode('timeAttack')">?�?�어??/button></div>
-                <div class="ranking-tab-row ranking-tab-row--period"><button data-period="monthly" onclick="setRankingPeriod('monthly')">?�간</button><button data-period="allTime" onclick="setRankingPeriod('allTime')">?�적</button></div>
+                <div class="ranking-tab-row ranking-tab-row--main"><button data-category="overall" onclick="setRankingMode('overall')">전체 성적</button><button data-category="timeAttack" onclick="setRankingMode('timeAttack')">타임어택</button></div>
+                <div class="ranking-tab-row ranking-tab-row--period"><button data-period="monthly" onclick="setRankingPeriod('monthly')">월간</button><button data-period="allTime" onclick="setRankingPeriod('allTime')">누적</button></div>
                 <small id="ranking-period-label"></small>
             </div>
             <div id="ranking-list"></div>
-            <button id="ranking-retry" class="btn btn-small" style="display:none;" onclick="loadModeRanking()">?�시 ?�도</button>
+            <button id="ranking-retry" class="btn btn-small" style="display:none;" onclick="loadModeRanking()">다시 시도</button>
         </div>
 
         <div id="phase2-result-actions" style="display:none;">
-            <button class="btn btn-success" onclick="restartPhase2Mode()">?�시 ?�전</button>
-            <button class="btn" onclick="showModeSelection()">?�른 모드 ?�택</button>
-            <button class="btn btn-small" onclick="openRankings()">?�위 보기</button>
-            <button class="btn btn-guest" onclick="showLobby()">메인?�로</button>
+            <button class="btn btn-success" onclick="restartPhase2Mode()">다시 도전</button>
+            <button class="btn" onclick="showModeSelection()">다른 모드 선택</button>
+            <button class="btn btn-small" onclick="openRankings()">순위 보기</button>
+            <button class="btn btn-guest" onclick="showLobby()">메인으로</button>
         </div>
         <div id="legacy-result-actions">
-            <button class="btn btn-success" style="font-size: 22px; width: 100%; max-width: 100%; margin-bottom: 10px;" onclick="showLobby()">?�기실�??�아가�?/button>
-            <button class="btn btn-guest" onclick="logout()">로그?�웃</button>
+            <button class="btn btn-success" style="font-size: 22px; width: 100%; max-width: 100%; margin-bottom: 10px;" onclick="showLobby()">대기실로 돌아가기</button>
+            <button class="btn btn-guest" onclick="logout()">로그아웃</button>
         </div>
     </div>
 </div>
@@ -250,9 +246,9 @@
     <script src="js/services/catPresentationRuntime.js?v=2.0.13"></script>
     <script src="js/ui/seasonController.js"></script>
     <script src="js/ui/dailyMissionController.js?v=2.0.9"></script>
-    <script src="js/app.js?v=2.1.1"></script>
-    <script src="js/ui/adminAccountManager.js?v=2.1.1"></script>
-    <script src="js/game/modeEngine.js?v=2.1.1"></script>
+    <script src="js/app.js?v=2.0.48"></script>
+    <script src="js/ui/adminAccountManager.js?v=2.0.48"></script>
+    <script src="js/game/modeEngine.js?v=2.0.48"></script>
     <script src="js/ui/leaderboardV3Controller.js?v=2.0.14"></script>
     <script src="js/game/adventureEngine.js?v=2.0.13"></script>
     <script src="js/services/phase56SoundService.js"></script>
@@ -264,4 +260,3 @@
     <script src="js/services/pwaManager.js"></script>
 </body>
 </html>
-
