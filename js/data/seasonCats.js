@@ -1,0 +1,7 @@
+(function(global){
+  'use strict';
+  var v2=global.GugudanV2=global.GugudanV2||{},fallback='assets/placeholders/cat-placeholder.svg';
+  function cat(id,name,rarity,skill){return{id:id,displayName:name,collection:'season',seasonId:'season_01',breed:'russian_blue',rarity:rarity,image:'assets/seasons/season_01/cats/'+id+'.webp',fallbackImage:fallback,available:true,obtainable:true,skill:skill||null,visual:{frame:rarity,glow:rarity==='legendary'}};}
+  v2.seasonCats=[cat('s01_normal_01','푸른빛 냥이','normal'),cat('s01_normal_02','은빛 꼬리 냥이','normal'),cat('s01_rare_01','달그림자 냥이','rare'),cat('s01_rare_02','푸른 보석 냥이','rare'),cat('s01_hero_01','월광 냥이','hero',{id:'season_moon_meow',name:'월광의 울음',type:'visual_effect',trigger:'combo_10',modes:['classic','timeAttack','adventure'],description:'10콤보마다 푸른 달빛 연출이 재생됩니다.'}),cat('s01_legendary_01','푸른 달 냥이','legendary',{id:'season_blue_moon_roar',name:'푸른 달의 포효',type:'boss_effect',trigger:'boss_start',modes:['adventure'],description:'보스전 입장 때 푸른 달빛 연출이 재생됩니다.'})];
+  v2.seasonCats.forEach(function(item,index){item.displayOrder=index+1;item.description=['푸른 달빛을 닮은 차분한 털의 냥이예요.','은빛 꼬리를 살랑이며 모험을 안내해요.','달그림자 속에서 조용히 집중을 응원해요.','푸른 보석처럼 맑은 빛을 반짝이는 냥이예요.','월광 파티클과 맑은 울음으로 정답을 축하해요.','푸른 달의 후광과 신비한 울음을 지닌 냥이예요.'][index];if(item.rarity==='hero'||item.rarity==='legendary'){item.presentationSkill={effectThemeId:'moonlight',soundThemeId:'moon_meow'};item.skillActive=false;}if(item.rarity==='legendary')item.legendarySkill={specialOption:'보스전 입장 시 푸른 달 후광 연출',affectsScore:false};});
+})(window);

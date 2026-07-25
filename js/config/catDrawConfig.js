@@ -1,0 +1,1 @@
+(function(global){'use strict';global.GugudanV2=global.GugudanV2||{};global.GugudanV2.catDrawConfig={enabled:true,currencyType:'coins',cost:500,rarityRates:{normal:.60,rare:.30,hero:.09,legendary:.01}};})(window);

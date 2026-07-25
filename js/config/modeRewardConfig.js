@@ -1,0 +1,1 @@
+(function(global){'use strict';global.GugudanV2=global.GugudanV2||{};global.GugudanV2.modeRewardConfig={timeAttack:{completionCoins:20,coinsPerCorrectAnswer:3,perfectAccuracyBonus:20,personalBestBonus:40},adventure:{clearCoins:25,coinsPerCorrectAnswer:5,perfectAccuracyBonus:25},rewardedSessionLimit:150};})(window);

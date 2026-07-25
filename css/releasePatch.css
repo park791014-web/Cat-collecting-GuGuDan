@@ -1,0 +1,11 @@
+.release-reset-notice{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(31,25,54,.62)}
+.release-reset-notice__card{width:min(460px,100%);padding:24px;border-radius:22px;background:#fffdf5;box-shadow:0 18px 55px rgba(0,0,0,.28);text-align:center}
+.release-reset-notice__card h2{margin:0 0 16px;color:#6b3fa0;font-family:'Gaegu',sans-serif;font-size:30px}
+.release-reset-notice__card p{line-height:1.7;color:#3e3650}
+.ranking-tab-row{display:flex;gap:8px;justify-content:center;margin:8px 0}
+.ranking-tab-row button{padding:8px 13px;border:1px solid #d9caea;border-radius:999px;background:#fff;color:#4b3565;font-weight:700}
+.ranking-tab-row button.active{border-color:#7650a7;background:#7650a7;color:#fff}
+.mode-ranking-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;margin:6px 0;border-radius:12px;background:#faf7ff}
+.mode-ranking-item.is-me,.ranking-own-outside{background:#fff0f7;border:1px solid #f1b8d4}
+.ranking-own-outside{margin-top:14px}
+.ranking-empty,.ranking-error{text-align:center}.ranking-error{color:#b00020}

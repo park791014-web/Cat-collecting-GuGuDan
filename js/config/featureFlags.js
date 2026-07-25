@@ -1,0 +1,1 @@
+(function(global){'use strict';var v2=global.GugudanV2=global.GugudanV2||{};var defaults={seasons:false,seasonMissions:false,seasonCardPack:false,seasonRanking:false};v2.FEATURE_FLAGS=Object.assign({},defaults);v2.isFeatureEnabled=function(name){return Boolean(v2.FEATURE_FLAGS[name]);};})(window);
