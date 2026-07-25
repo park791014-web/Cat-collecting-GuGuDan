@@ -1,1 +1,80 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="40 30 720 730"><path d="m230 210 45-150 125 90L525 60l45 150Z" fill="#f3c655" stroke="#594171" stroke-width="20"/><rect x="155" y="190" width="490" height="445" rx="95" fill="#7e58a4" stroke="#40304f" stroke-width="24"/><g fill="#fff"><circle cx="320" cy="350" r="40"/><circle cx="480" cy="350" r="40"/></g><path d="M300 500q100 75 200 0" fill="none" stroke="#fff" stroke-width="22"/><g fill="#51b58b" stroke="#40304f" stroke-width="12"><rect x="75" y="390" width="120" height="120" rx="12"/><rect x="605" y="390" width="120" height="120" rx="12"/></g><g transform="translate(400 655)" fill="none" stroke="#d7a9ff" stroke-width="24"><circle r="82"/><path d="M0-120v240M-120 0h240"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <defs>
+    <!-- 왕실 금속 그라디언트 -->
+    <radialGradient id="grad-royal-gold" cx="50%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#fff59d"/>
+      <stop offset="60%" stop-color="#fbc02d"/>
+      <stop offset="100%" stop-color="#f57f17"/>
+    </radialGradient>
+    <!-- 빨간 망토 그라디언트 -->
+    <linearGradient id="grad-royal-cape" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff1744"/>
+      <stop offset="100%" stop-color="#b71c1c"/>
+    </linearGradient>
+  </defs>
+  <!-- 바닥 그림자 -->
+  <ellipse cx="400" cy="730" rx="280" ry="45" fill="#000" opacity="0.4"/>
+
+  <!-- 등 뒤 초대형 태엽 (왕의 등) -->
+  <g transform="translate(400, 420) scale(1.3)">
+    <circle cx="0" cy="0" r="130" fill="url(#grad-royal-gold)" stroke="#e65100" stroke-width="8"/>
+    <!-- 태엽 날들 (8개) -->
+    <rect x="-20" y="-160" width="40" height="50" rx="8" fill="url(#grad-royal-gold)" stroke="#e65100" stroke-width="8"/>
+    <rect x="-20" y="110" width="40" height="50" rx="8" fill="url(#grad-royal-gold)" stroke="#e65100" stroke-width="8" transform="rotate(45)"/>
+    <rect x="-20" y="110" width="40" height="50" rx="8" fill="url(#grad-royal-gold)" stroke="#e65100" stroke-width="8" transform="rotate(90)"/>
+    <rect x="-20" y="110" width="40" height="50" rx="8" fill="url(#grad-royal-gold)" stroke="#e65100" stroke-width="8" transform="rotate(135)"/>
+    <rect x="-20" y="110" width="40" height="50" rx="8" fill="url(#grad-royal-gold)" stroke="#e65100" stroke-width="8" transform="rotate(180)"/>
+    <rect x="-20" y="110" width="40" height="50" rx="8" fill="url(#grad-royal-gold)" stroke="#e65100" stroke-width="8" transform="rotate(225)"/>
+    <rect x="-20" y="110" width="40" height="50" rx="8" fill="url(#grad-royal-gold)" stroke="#e65100" stroke-width="8" transform="rotate(270)"/>
+    <rect x="-20" y="110" width="40" height="50" rx="8" fill="url(#grad-royal-gold)" stroke="#e65100" stroke-width="8" transform="rotate(315)"/>
+    <circle cx="0" cy="0" r="60" fill="#f57f17" stroke="#e65100" stroke-width="6"/>
+    <circle cx="0" cy="0" r="25" fill="#3e2723"/>
+  </g>
+
+  <!-- 빨간 망토 카라 (좌/우) -->
+  <path d="M 180 500 Q 120 320 220 400 L 180 700 Z" fill="url(#grad-royal-cape)" stroke="#3e2723" stroke-width="8"/>
+  <path d="M 620 500 Q 680 320 580 400 L 620 700 Z" fill="url(#grad-royal-cape)" stroke="#3e2723" stroke-width="8"/>
+
+  <!-- 다리 (블록 형태) -->
+  <rect x="290" y="600" width="80" height="120" rx="15" fill="#424242" stroke="#212121" stroke-width="10"/>
+  <rect x="430" y="600" width="80" height="120" rx="15" fill="#424242" stroke="#212121" stroke-width="10"/>
+  <!-- 무릎 금속 조인트 -->
+  <circle cx="330" cy="660" r="20" fill="url(#grad-royal-gold)" stroke="#e65100" stroke-width="6"/>
+  <circle cx="470" cy="660" r="20" fill="url(#grad-royal-gold)" stroke="#e65100" stroke-width="6"/>
+
+  <!-- 몸체 (사각 기계 어깨) -->
+  <rect x="230" y="420" width="340" height="220" rx="50" fill="url(#grad-royal-gold)" stroke="#e65100" stroke-width="12"/>
+  <!-- 몸통 태엽 핵심 코어 (하트 마크 등 장난감 로고) -->
+  <circle cx="400" cy="520" r="35" fill="#ff1744" stroke="#e65100" stroke-width="6"/>
+  <polygon points="400,505 415,525 385,525" fill="#fff"/>
+
+  <!-- 목 -->
+  <rect x="350" y="360" width="100" height="70" fill="#f57f17" stroke="#e65100" stroke-width="8"/>
+
+  <!-- 머리 (왕관을 얹은 사각 로봇 머리) -->
+  <rect x="260" y="190" width="280" height="200" rx="40" fill="url(#grad-royal-gold)" stroke="#e65100" stroke-width="12"/>
+
+  <!-- 블록 왕관 -->
+  <path d="M 290 190 L 310 100 L 360 160 L 400 80 L 440 160 L 490 100 L 510 190 Z" fill="#ff1744" stroke="#3e2723" stroke-width="8" stroke-linejoin="round"/>
+  <!-- 왕관 보석 입자들 -->
+  <circle cx="310" cy="100" r="10" fill="#ffd600" stroke="#3e2723" stroke-width="3"/>
+  <circle cx="400" cy="80" r="12" fill="#ffd600" stroke="#3e2723" stroke-width="3"/>
+  <circle cx="490" cy="100" r="10" fill="#ffd600" stroke="#3e2723" stroke-width="3"/>
+
+  <!-- 눈 (고급 장난감 전구 눈) -->
+  <circle cx="330" cy="270" r="32" fill="#ffffff" stroke="#e65100" stroke-width="8"/>
+  <circle cx="330" cy="270" r="16" fill="#00e5ff"/>
+  <circle cx="333" cy="265" r="6" fill="#ffffff"/>
+
+  <circle cx="470" cy="270" r="32" fill="#ffffff" stroke="#e65100" stroke-width="8"/>
+  <circle cx="470" cy="270" r="16" fill="#00e5ff"/>
+  <circle cx="473" cy="265" r="6" fill="#ffffff"/>
+
+  <!-- 볼 볼트 나사 -->
+  <circle cx="280" cy="330" r="12" fill="#f57f17" stroke="#e65100" stroke-width="4"/>
+  <circle cx="520" cy="330" r="12" fill="#f57f17" stroke="#e65100" stroke-width="4"/>
+
+  <!-- 사악하지만 귀여운 왕의 수염 및 미소 -->
+  <path d="M 320 330 Q 400 380 480 330" fill="none" stroke="#3e2723" stroke-width="12" stroke-linecap="round"/>
+  <path d="M 360 360 Q 400 395 440 360" fill="none" stroke="#3e2723" stroke-width="6" stroke-linecap="round"/>
+</svg>

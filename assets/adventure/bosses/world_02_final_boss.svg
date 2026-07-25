@@ -1,1 +1,68 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="40 90 720 620"><path d="M100 560q-70-220 105-360 220-170 500 50-15 320-315 370-180 30-290-60Z" fill="#e0a928" stroke="#7a5714" stroke-width="22"/><path d="m560 225 55-115 55 75 80-20-35 120Z" fill="#ffd961" stroke="#7a5714" stroke-width="15"/><circle cx="510" cy="330" r="36" fill="#fff"/><circle cx="520" cy="338" r="15"/><path d="m205 250-145-95 40 220m125 175-145 95" fill="#e0a928" stroke="#7a5714" stroke-width="22"/><path d="M390 480q100-70 190 0" fill="none" stroke="#7a5714" stroke-width="18"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <defs>
+    <!-- 황금 몸통 그라디언트 -->
+    <radialGradient id="grad-gold-fish" cx="40%" cy="30%" r="65%">
+      <stop offset="0%" stop-color="#fffde7"/>
+      <stop offset="40%" stop-color="#ffd54f"/>
+      <stop offset="85%" stop-color="#ffb300"/>
+      <stop offset="100%" stop-color="#ff6f00"/>
+    </radialGradient>
+    <!-- 물결 후광 그라디언트 -->
+    <radialGradient id="grad-wave" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#e0f7fa" stop-opacity="0.6"/>
+      <stop offset="80%" stop-color="#4dd0e1" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#00acc1" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- 바닥 그림자 -->
+  <ellipse cx="400" cy="720" rx="280" ry="40" fill="#000" opacity="0.2"/>
+
+  <!-- 물결 후광 (배경 원형 물보라) -->
+  <circle cx="400" cy="400" r="320" fill="url(#grad-wave)"/>
+  <!-- 물결 테두리 선 -->
+  <circle cx="400" cy="400" r="280" fill="none" stroke="#b2ebf2" stroke-width="6" stroke-dasharray="15, 25" opacity="0.6"/>
+
+  <!-- 꼬리 지느러미 (황금색) -->
+  <path d="M 220 420 L 70 300 Q 120 400 70 500 Z" fill="#ffd54f" stroke="#ff6f00" stroke-width="10" stroke-linejoin="round"/>
+  <!-- 꼬리 지느러미 명암 -->
+  <path d="M 220 420 L 100 350 Q 120 400 100 450 Z" fill="#ffb300"/>
+
+  <!-- 등 지느러미 (황금 왕관 형태) -->
+  <path d="M 330 250 L 370 120 L 410 180 L 450 100 L 490 180 L 530 120 L 550 250 Z" fill="#ffd600" stroke="#ff6f00" stroke-width="10" stroke-linejoin="round"/>
+  <!-- 왕관 보석 장식 효과 -->
+  <circle cx="370" cy="120" r="8" fill="#d50000"/>
+  <circle cx="450" cy="100" r="10" fill="#d50000"/>
+  <circle cx="530" cy="120" r="8" fill="#d50000"/>
+
+  <!-- 배 지느러미 -->
+  <path d="M 360 550 L 320 650 L 420 580 Z" fill="#ffb300" stroke="#ff6f00" stroke-width="8"/>
+  <path d="M 480 540 L 460 630 L 520 570 Z" fill="#ffb300" stroke="#ff6f00" stroke-width="8"/>
+
+  <!-- 몸통 (날렵한 참치 실루엣) -->
+  <path d="M 180 430 C 230 280, 550 220, 680 380 C 720 430, 680 550, 520 560 C 350 570, 220 520, 180 430 Z" fill="url(#grad-gold-fish)" stroke="#ff6f00" stroke-width="12"/>
+
+  <!-- 밝은 황금색 배 부분 -->
+  <path d="M 300 520 C 420 540, 550 510, 630 430 C 550 480, 420 480, 300 470 Z" fill="#fffde7" opacity="0.8"/>
+
+  <!-- 황금 비늘 장식들 -->
+  <path d="M 420 330 Q 430 350 420 370" fill="none" stroke="#ff6f00" stroke-width="6" stroke-linecap="round"/>
+  <path d="M 460 360 Q 470 380 460 400" fill="none" stroke="#ff6f00" stroke-width="6" stroke-linecap="round"/>
+  <path d="M 500 330 Q 510 350 500 370" fill="none" stroke="#ff6f00" stroke-width="6" stroke-linecap="round"/>
+  <path d="M 380 360 Q 390 380 380 400" fill="none" stroke="#ff6f00" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- 아가미 선 -->
+  <path d="M 570 330 Q 550 400 570 470" fill="none" stroke="#ff6f00" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- 보석 같은 큰 눈 -->
+  <circle cx="610" cy="350" r="28" fill="#ffffff" stroke="#ff6f00" stroke-width="8"/>
+  <circle cx="610" cy="350" r="14" fill="#d50000"/>
+  <circle cx="613" cy="346" r="6" fill="#ffffff"/> <!-- 하이라이트 -->
+
+  <!-- 은은하고 우아한 입꼬리 미소 -->
+  <path d="M 660 410 Q 630 425 615 410" fill="none" stroke="#ff6f00" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- 반짝이 별빛 효과들 -->
+  <path d="M 280 200 L 285 215 L 300 220 L 285 225 L 280 240 L 275 225 L 260 220 L 275 215 Z" fill="#ffffff"/>
+  <path d="M 650 240 L 653 250 L 665 253 L 653 256 L 650 266 L 647 256 L 635 253 L 647 250 Z" fill="#ffffff"/>
+  <path d="M 220 540 L 223 548 L 232 550 L 223 552 L 220 560 L 217 552 L 208 550 L 217 548 Z" fill="#ffffff"/>
+</svg>

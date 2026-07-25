@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <defs>
+    <linearGradient id="grad-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#263238"/>
+      <stop offset="60%" stop-color="#455a64"/>
+      <stop offset="100%" stop-color="#e64a19"/>
+    </linearGradient>
+  </defs>
+  <!-- 하늘 -->
+  <rect width="800" height="800" fill="url(#grad-sky)"/>
+  
+  <!-- 배경 산맥 (화산 형상) -->
+  <polygon points="100,800 350,300 450,300 700,800" fill="#3e2723" opacity="0.8"/>
+  <!-- 흘러내리는 마그마 -->
+  <polygon points="350,300 370,300 390,450 370,800 320,800" fill="#ff3d00"/>
+  <polygon points="430,300 450,300 470,500 450,800 410,800" fill="#ff9100"/>
+  
+  <!-- 전경 바위지대 -->
+  <path d="M 0 650 Q 200 620 400 650 Q 600 680 800 650 L 800 800 L 0 800 Z" fill="#212121"/>
+  <path d="M 150 710 Q 300 680 450 720" fill="none" stroke="#ff3d00" stroke-width="12" stroke-linecap="round"/>
+
+  <!-- 구름 -->
+  <ellipse cx="200" cy="180" rx="90" ry="30" fill="#cfd8dc" opacity="0.2"/>
+  <ellipse cx="600" cy="220" rx="110" ry="35" fill="#cfd8dc" opacity="0.2"/>
+</svg>

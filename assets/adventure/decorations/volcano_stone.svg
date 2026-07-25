@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- 마그마가 흐르는 울퉁불퉁한 검은 화산석 -->
+  <path d="M 20 80 L 10 40 L 40 10 L 80 20 L 90 60 L 70 90 Z" fill="#3e2723" stroke="#212121" stroke-width="4"/>
+  <!-- 마그마 줄기 -->
+  <path d="M 40 10 Q 50 40 30 75" fill="none" stroke="#ff3d00" stroke-width="6" stroke-linecap="round"/>
+  <path d="M 80 20 Q 60 50 80 80" fill="none" stroke="#ff9100" stroke-width="4" stroke-linecap="round"/>
+</svg>

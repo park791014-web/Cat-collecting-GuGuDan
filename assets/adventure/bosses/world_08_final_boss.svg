@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <defs>
+    <radialGradient id="grad-devil" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#4a148c"/>
+      <stop offset="70%" stop-color="#311b92"/>
+      <stop offset="100%" stop-color="#0a005c"/>
+    </radialGradient>
+    <linearGradient id="grad-mantle" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#b71c1c"/>
+      <stop offset="100%" stop-color="#2c0000"/>
+    </linearGradient>
+  </defs>
+  <!-- 바닥 그림자 (가장 진하고 넓은 보스 그림자) -->
+  <ellipse cx="400" cy="740" rx="340" ry="50" fill="#000" opacity="0.6"/>
+
+  <!-- 어둠의 지팡이 (오른손 위치 뒷배경) -->
+  <rect x="580" y="200" width="30" height="500" rx="10" fill="#3e2723" stroke="#000" stroke-width="8" transform="rotate(15 580 200)"/>
+  <!-- 지팡이 보석 헤드 -->
+  <polygon points="560,190 620,130 680,190 620,250" fill="#ff1744" stroke="#000" stroke-width="8" transform="rotate(15 580 200)"/>
+  <circle cx="620" cy="190" r="15" fill="#ffd600" transform="rotate(15 580 200)"/>
+
+  <!-- 망토 날개 카라 (좌/우) -->
+  <path d="M 150 480 Q 220 300 300 420 L 260 700 Z" fill="url(#grad-mantle)" stroke="#000" stroke-width="10"/>
+  <path d="M 650 480 Q 580 300 500 420 L 540 700 Z" fill="url(#grad-mantle)" stroke="#000" stroke-width="10"/>
+
+  <!-- 메인 몸통 (마왕 드레스) -->
+  <path d="M 270 480 L 530 480 L 580 720 L 220 720 Z" fill="url(#grad-devil)" stroke="#000" stroke-width="12"/>
+
+  <!-- 목 -->
+  <rect x="340" y="400" width="120" height="90" fill="#1a237e" stroke="#000" stroke-width="8"/>
+
+  <!-- 머리 (보라색 악마/마왕 얼굴) -->
+  <ellipse cx="400" cy="300" rx="160" ry="140" fill="url(#grad-devil)" stroke="#000" stroke-width="12"/>
+
+  <!-- 마왕 뿔 왕관 -->
+  <path d="M 270 200 L 290 80 L 350 160 L 400 60 L 450 160 L 510 80 L 530 200 Z" fill="#ffd600" stroke="#000" stroke-width="8" stroke-linejoin="round"/>
+  <!-- 왕관 보석 (붉은색/초록색) -->
+  <circle cx="400" cy="120" r="14" fill="#d50000"/>
+  <circle cx="320" cy="140" r="10" fill="#00c853"/>
+  <circle cx="480" cy="140" r="10" fill="#00c853"/>
+
+  <!-- 화난 고양이형 눈 (노란 눈동자) -->
+  <path d="M 270 280 Q 330 250 350 290" fill="none" stroke="#000" stroke-width="12" stroke-linecap="round"/>
+  <path d="M 530 280 Q 470 250 450 290" fill="none" stroke="#000" stroke-width="12" stroke-linecap="round"/>
+  
+  <polygon points="280,300 340,290 330,330 280,330" fill="#ffd600" stroke="#000" stroke-width="6"/>
+  <circle cx="310" cy="310" r="10" fill="#000"/>
+  <circle cx="308" cy="305" r="4" fill="#fff"/>
+
+  <polygon points="520,300 460,290 470,330 520,330" fill="#ffd600" stroke="#000" stroke-width="6"/>
+  <circle cx="490" cy="310" r="10" fill="#000"/>
+  <circle cx="492" cy="305" r="4" fill="#fff"/>
+
+  <!-- 볼 어둠의 무늬 -->
+  <line x1="260" y1="360" x2="290" y2="380" stroke="#ff1744" stroke-width="6" stroke-linecap="round"/>
+  <line x1="540" y1="360" x2="510" y2="380" stroke="#ff1744" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- 코 (역삼각형) -->
+  <polygon points="390,345 410,345 400,355" fill="#000"/>
+
+  <!-- 입 (삐죽 송곳니가 튀어나온 사악한 입) -->
+  <path d="M 340 380 Q 400 430 460 380" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round"/>
+  <!-- 송곳니 (2개) -->
+  <polygon points="360,390 370,415 380,395" fill="#fff" stroke="#000" stroke-width="3"/>
+  <polygon points="440,390 430,415 420,395" fill="#fff" stroke="#000" stroke-width="3"/>
+</svg>

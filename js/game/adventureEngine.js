@@ -84,7 +84,70 @@
     if(!storyConfirmed&&stage&&stage.boss&&v2.adventureStoryService){try{return v2.adventureStoryService.showBossIntro(stage,function(){startAdventureStage(true);});}catch(storyError){console.warn('[Boss intro failed]',storyError);}}
     if (!stage) return; if(global.clearClassicRuntime)global.clearClassicRuntime();if (global.clearPhase2Runtime) global.clearPhase2Runtime(); stop(); var cat = selectedCat(); run = { sessionId: 'adventure_' + Date.now(), status:'stageIntro', total: 0, correct: 0, wrong: 0, score: 0, combo: 0, bestCombo: 0, lives: stage.rules.lives, bossHp: stage.boss ? stage.boss.maximumHp : 1, remainingSeconds: stage.rules.timeLimitSeconds || 0, locked: false };
     byId('skill-hud').style.display = 'flex'; byId('skill-cat-image').src = cat.image; fallback(byId('skill-cat-image'), cat.fallbackImage); byId('skill-status').textContent = cat.skill ? cat.skill.name : '장착 고양이와 함께 모험 중'; byId('manual-skill-button').style.display = 'none'; byId('phase2-exit-button').style.display = 'none'; byId('mode-status').textContent = '구구단 대모험';
-    byId('boss-panel').style.display = stage.boss ? '' : 'none'; if (stage.boss) {var playerImage=byId('player-cat-image'),playerName=byId('player-cat-name');byId('boss-panel').className='boss-panel boss-world-'+stage.chapter+(cat.legendarySkill?' legendary-companion':'');byId('boss-name').textContent = stage.boss.name; byId('boss-image').src = stage.boss.image;byId('boss-image').alt=stage.boss.name; fallback(byId('boss-image'));playerImage.src=cat.image||cat.fallbackImage;playerImage.alt=cat.displayName;fallback(playerImage,cat.fallbackImage);playerName.innerHTML='<strong>'+cat.displayName+'</strong><small>'+({normal:'일반',rare:'희귀',hero:'영웅',legendary:'전설'}[cat.rarity])+(cat.description?' · '+cat.description:'')+'</small>'+(cat.presentationSkill?'<em>효과 '+cat.presentationSkill.effectThemeId+' · 소리 '+cat.presentationSkill.soundThemeId+'</em>':'')+(cat.legendarySkill?'<b>'+cat.legendarySkill.specialOption+'</b>':''); }
+    
+    // 월드 배경 이미지 적용
+    var world = v2.adventureService.getWorld(stage.worldId);
+    var bgImage = world ? world.artwork.background : 'assets/adventure/worlds/world_locked.svg';
+    var playScreen = byId('play-screen');
+    if (playScreen) {
+      playScreen.style.backgroundImage = 'url(' + bgImage + ')';
+      playScreen.style.backgroundSize = 'cover';
+      playScreen.style.backgroundPosition = 'center';
+    }
+
+    // 보스 패널을 일반 스테이지에서도 몬스터 처치를 표현하기 위해 무조건 켬
+    byId('boss-panel').style.display = '';
+    
+    // 이미지 404 감시용 핸들러
+    var bossImgEl = byId('boss-image');
+    if (bossImgEl) {
+      bossImgEl.onerror = function () {
+        console.warn("[STORY ASSET MISSING]", {
+          worldId: stage.worldId,
+          stageId: stage.id,
+          assetKey: stage.boss ? stage.boss.id : 'normal_enemy',
+          attemptedPath: bossImgEl.src
+        });
+        fallback(bossImgEl);
+      };
+    }
+
+    var playerImage=byId('player-cat-image'),playerName=byId('player-cat-name');
+    playerImage.src=cat.image||cat.fallbackImage;
+    playerImage.alt=cat.displayName;
+    fallback(playerImage,cat.fallbackImage);
+    playerName.innerHTML='<strong>'+cat.displayName+'</strong><small>'+({normal:'일반',rare:'희귀',hero:'영웅',legendary:'전설'}[cat.rarity])+(cat.description?' · '+cat.description:'')+'</small>'+(cat.presentationSkill?'<em>효과 '+cat.presentationSkill.effectThemeId+' · 소리 '+cat.presentationSkill.soundThemeId+'</em>':'')+(cat.legendarySkill?'<b>'+cat.legendarySkill.specialOption+'</b>':'');
+
+    if (stage.boss) {
+      byId('boss-hp').style.display = ''; // 체력바 노출
+      byId('boss-panel').className='boss-panel boss-world-'+stage.chapter+(cat.legendarySkill?' legendary-companion':'');
+      byId('boss-name').textContent = stage.boss.name;
+      bossImgEl.src = stage.boss.image;
+      bossImgEl.alt = stage.boss.name;
+      fallback(bossImgEl);
+    } else {
+      // 일반 스테이지: 체력바 숨김 및 일반 몬스터(데코레이션 이미지 재사용) 맵핑
+      byId('boss-hp').style.display = 'none';
+      byId('boss-panel').className='boss-panel boss-world-'+stage.chapter;
+      byId('boss-name').textContent = '야생 몬스터';
+      
+      var normalEnemies = {
+        world_01: 'assets/adventure/decorations/yarn_ball.svg',
+        world_02: 'assets/adventure/decorations/fish_crate.svg',
+        world_03: 'assets/adventure/decorations/toy_gear.svg',
+        world_04: 'assets/adventure/decorations/volcano_stone.svg',
+        world_05: 'assets/adventure/decorations/ice_crystal.svg',
+        world_06: 'assets/adventure/decorations/machinery_cog.svg',
+        world_07: 'assets/adventure/decorations/stardust.svg',
+        world_08: 'assets/adventure/decorations/demon_horn.svg'
+      };
+      
+      var enemyImg = normalEnemies[stage.worldId] || 'assets/placeholders/cat-placeholder.svg';
+      bossImgEl.src = enemyImg;
+      bossImgEl.alt = '일반 몬스터';
+      fallback(bossImgEl);
+    }
+
     global.showScreen('play-screen'); nextQuestion();
     if (stage.rules.timeLimitSeconds) timer = setInterval(function () { run.remainingSeconds -= 1; byId('timer-bar').style.width = Math.max(0, run.remainingSeconds / stage.rules.timeLimitSeconds * 100) + '%'; if (run.remainingSeconds <= 0) finishStage(); }, 1000);
   }

@@ -1,27 +1,29 @@
-// 🔥 파이어베이스 접속 키 🔥
-    const firebaseConfig = {
-      apiKey: "AIzaSyAiU-wOOXF-ZGsdPtsS1hUpxEZQit8IZbI",
-      authDomain: "gugu-cat-adventrue.firebaseapp.com",
-      projectId: "gugu-cat-adventrue",
-      storageBucket: "gugu-cat-adventrue.firebasestorage.app",
-      messagingSenderId: "380583801039",
-      appId: "1:380583801039:web:cfeda57a40a01985ccc7ba"
-    };
+// 오래된 캐시 및 Service Worker 강제 해제
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+            for (let registration of registrations) {
+                registration.unregister().then(success => {
+                    if (success) console.log('[Service Worker] Unregistered successfully');
+                });
+            }
+        });
+    }
+    if ('caches' in window) {
+        caches.keys().then(keys => {
+            keys.forEach(key => {
+                caches.delete(key).then(success => {
+                    if (success) console.log('[Cache] Deleted old cache:', key);
+                });
+            });
+        });
+    }
 
     const v2 = window.GugudanV2 || {};
     const gameConfig = v2.gameConfig || {};
-    let db = null;
-    try {
-        if (window.firebase) {
-            firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
-        } else {
-            console.warn('[Firebase] SDK를 불러오지 못했습니다. 게스트 게임은 계속 이용할 수 있습니다.');
-        }
-    } catch (error) {
-        console.warn('[Firebase] 초기화에 실패했습니다. 게스트 게임은 계속 이용할 수 있습니다.', error);
-    }
-    if (v2.rankingService) v2.rankingService.setDatabase(db, window.firebase);
+
+    // firebaseClient.js에서 주입한 인스턴스 사용
+    const db = window.firebaseClient ? window.firebaseClient.db : null;
+    const auth = window.firebaseClient ? window.firebaseClient.auth : null;
 
     let audioCtx;
     function initAudio() {
@@ -46,7 +48,6 @@
             gain.gain.setValueAtTime(0.6, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
             osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.6);
         } else if (type === 'siren') {
-            // 🔥 보스 등장 사이렌 사운드 🔥
             osc.type = 'square';
             osc.frequency.setValueAtTime(400, audioCtx.currentTime);
             osc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 0.5);
@@ -70,152 +71,477 @@
     
     let lastQuestionStr = ""; 
 
-    function showScreen(screenId) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
-        document.getElementById(screenId).classList.add('active-screen');
-        document.body.classList.toggle('is-admin-mode', screenId === 'admin-screen');
+    // 아이디 정규화
+    function normalizeLoginId(value) {
+        return String(value || "")
+          .normalize("NFKC")
+          .trim()
+          .toLowerCase();
     }
+
+    // 아이디 검증 (한글, 영문 소문자, 숫자 2~16자)
+    function validateLoginId(loginId) {
+        const regex = /^[a-z0-9가-힣]{2,16}$/;
+        return regex.test(loginId);
+    }
+
+    // 비동기 SHA-256 해시 함수
+    async function getSha256(message) {
+        const msgBuffer = new TextEncoder().encode(message);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        return hashHex;
+    }
+
+    // 내부 인증 이메일 생성
+    async function makeInternalEmail(normalizedId) {
+        const hash = await getSha256(normalizedId);
+        return `u_${hash}@nyanko.invalid`;
+    }
+
+    // 고양이 데이터 안전 정규화 (유효한 ID 필터링 및 복구)
+    function normalizeOwnedCats(userData) {
+        let ownedCatIds = [];
+        let duplicateCounts = {};
+        const baseCats = (window.GugudanV2 && window.GugudanV2.baseCats) || [];
+        
+        if (userData) {
+            if (Array.isArray(userData.ownedCatIds)) {
+                ownedCatIds = userData.ownedCatIds.filter(id => {
+                    const exists = baseCats.some(c => c.id === id);
+                    if (!exists) console.warn("[CAT NORMALIZATION WARNING] 유효하지 않은 고양이 ID 무시:", id);
+                    return exists;
+                });
+            } else if (Array.isArray(userData.rewards)) {
+                userData.rewards.forEach(r => {
+                    if (r && r.id) {
+                        const exists = baseCats.some(c => c.id === r.id);
+                        if (exists) {
+                            if (!ownedCatIds.includes(r.id)) {
+                                ownedCatIds.push(r.id);
+                            }
+                        } else {
+                            console.warn("[CAT NORMALIZATION WARNING] 유효하지 않은 고양이 ID 무시:", r.id);
+                        }
+                    }
+                });
+            }
+        }
+        
+        if (!ownedCatIds.includes('base_normal_01')) {
+            ownedCatIds.push('base_normal_01');
+        }
+        
+        if (userData && userData.duplicateCounts) {
+            duplicateCounts = Object.assign({}, userData.duplicateCounts);
+        }
+        
+        return {
+            ownedCatIds: ownedCatIds,
+            duplicateCounts: duplicateCounts
+        };
+    }
+
+    // 유효한 대표 고양이 ID 검증 및 대체
+    function getValidRepresentativeCatId(userData, ownedCatIds) {
+        let repId = userData ? userData.representativeCatId : null;
+        const baseCats = (window.GugudanV2 && window.GugudanV2.baseCats) || [];
+        
+        const isValid = repId && baseCats.some(c => c.id === repId) && ownedCatIds.includes(repId);
+        if (isValid) return repId;
+        
+        if (ownedCatIds && ownedCatIds.length > 0) return ownedCatIds[0];
+        return 'base_normal_01';
+    }
+
+    // 화면 전환 통합 함수
+    function showScreen(screenId) {
+        const screenMap = {
+            'boot': 'login-screen',
+            'login': 'login-screen',
+            'signup': 'signup-screen',
+            'profile-setup': 'profile-setup-screen',
+            'lobby': 'lobby-screen',
+            'loading': 'loading-overlay',
+            'error': 'result-screen'
+        };
+
+        const targetId = screenMap[screenId] || screenId;
+        const authScreens = ['login-screen', 'signup-screen', 'profile-setup-screen'];
+
+        // 전체 화면 비활성화 및 숨김
+        document.querySelectorAll('.screen').forEach(s => {
+            s.classList.remove('active-screen', 'active');
+            s.setAttribute('hidden', 'true');
+        });
+
+        // 인증 화면들 명시적 active 제거 및 hidden 부여
+        authScreens.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.setAttribute('hidden', 'true');
+                el.classList.remove('active');
+            }
+        });
+
+        // 대상 화면 출력
+        const targetEl = document.getElementById(targetId);
+        if (targetEl) {
+            targetEl.removeAttribute('hidden');
+            targetEl.classList.add('active-screen');
+            if (authScreens.includes(targetId)) {
+                targetEl.classList.add('active');
+            }
+            document.body.classList.toggle('is-admin-mode', targetId === 'admin-screen');
+        } else {
+            console.error(`화면을 찾을 수 없다냥: ${screenId} (targetId: ${targetId})`);
+        }
+    }
+
     function toggleLoading(show) { document.getElementById('loading-overlay').style.display = show ? 'flex' : 'none'; }
     function clearClassicRuntime() { clearInterval(timerInterval); clearInterval(countdownInterval); timerInterval = null; countdownInterval = null; }
     window.clearClassicRuntime = clearClassicRuntime;
 
-    async function handleAuth(type) {
-        initAudio();
-        const username = document.getElementById('username-input').value.trim();
-        const password = document.getElementById('password-input').value.trim();
-        if(!username || !password) return alert("이름과 비밀번호를 입력해 주세요!");
+    // 폼 로그인 제출
+    async function handleLoginSubmit(event) {
+        if (event) event.preventDefault();
+        const rawId = document.getElementById('login-id-input').value;
+        const password = document.getElementById('login-password-input').value;
+        const errorMsg = document.getElementById('login-error-message');
+        errorMsg.style.display = 'none';
 
-        if (username === 'admin' && password === 'admin1234') { currentUser = 'admin'; window.__nyankoAdminSession = true; showAdminScreen(); return; }
+        const loginId = normalizeLoginId(rawId);
+        if (!validateLoginId(loginId)) {
+            errorMsg.innerText = "아이디는 2~16자 한글, 영문 소문자, 숫자만 가능합니다 (특수문자/공백 불가).";
+            errorMsg.style.display = 'block';
+            return;
+        }
+        if (!password) {
+            errorMsg.innerText = "비밀번호를 입력해주세요.";
+            errorMsg.style.display = 'block';
+            return;
+        }
+
+        toggleLoading(true);
+        isGuestMode = false;
+        try {
+            const email = await makeInternalEmail(loginId);
+            await auth.signInWithEmailAndPassword(email, password);
+        } catch(error) {
+            console.error('[Login Error]', error);
+            errorMsg.innerText = "정보가 맞지 않다냥. 아이디와 비밀번호를 확인해라냥!";
+            errorMsg.style.display = 'block';
+        } finally {
+            toggleLoading(false);
+        }
+    }
+
+    // 폼 회원가입 제출
+    async function handleSignupSubmit(event) {
+        if (event) event.preventDefault();
+        const rawId = document.getElementById('signup-id-input').value;
+        const password = document.getElementById('signup-password-input').value;
+        const confirmPw = document.getElementById('signup-password-confirm-input').value;
+        const errorMsg = document.getElementById('signup-error-message');
+        errorMsg.style.display = 'none';
+
+        const loginId = normalizeLoginId(rawId);
+        if (!validateLoginId(loginId)) {
+            errorMsg.innerText = "아이디는 2~16자 한글, 영문 소문자, 숫자만 가능합니다 (특수문자/공백 불가).";
+            errorMsg.style.display = 'block';
+            return;
+        }
+        if (!password || password.length < 6) {
+            errorMsg.innerText = "비밀번호는 최소 6자 이상이어야 합니다.";
+            errorMsg.style.display = 'block';
+            return;
+        }
+        if (password !== confirmPw) {
+            errorMsg.innerText = "비밀번호 확인이 일치하지 않습니다.";
+            errorMsg.style.display = 'block';
+            return;
+        }
+
+        toggleLoading(true);
+        isGuestMode = false;
+        try {
+            const email = await makeInternalEmail(loginId);
+            const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+            await userCredential.user.updateProfile({ displayName: loginId });
+            alert("가입 완료냥! 프로필 설정을 해달라냥.");
+        } catch(error) {
+            console.error('[Signup Error]', error);
+            errorMsg.innerText = "이미 존재하는 아이디거나 가입에 실패했다냥!";
+            errorMsg.style.display = 'block';
+        } finally {
+            toggleLoading(false);
+        }
+    }
+
+    // 프로필 만들기 및 users/{uid} 생성
+    async function handleProfileSetup() {
+        const user = auth.currentUser;
+        if (!user) {
+            alert("인증 정보가 없습니다. 로그인 화면으로 이동합니다.");
+            showScreen('login');
+            return;
+        }
+        const nicknameInput = document.getElementById('profile-nickname-input').value.trim();
+        const errorMsg = document.getElementById('profile-setup-error');
+        errorMsg.style.display = 'none';
+
+        // 닉네임 조건: 2~12자 한글, 영문, 숫자
+        const nicknameRegex = /^[a-zA-Z0-9가-힣]{2,12}$/;
+        if (!nicknameRegex.test(nicknameInput)) {
+            errorMsg.innerText = "닉네임은 2~12자 한글, 영문, 숫자만 가능합니다 (공백 제외).";
+            errorMsg.style.display = 'block';
+            return;
+        }
 
         toggleLoading(true);
         try {
-            const userRef = db.collection('users').doc(username);
+            const userRef = db.collection('users').doc(user.uid);
             const doc = await userRef.get();
-
-            if (type === 'signup') {
-                if (username === 'admin') { alert("사용할 수 없는 이름입니다."); toggleLoading(false); return; }
-                if (doc.exists) { alert("이미 등록된 이름입니다."); toggleLoading(false); return; }
-                
-                const migrationId = v2.releaseResetMigrationService.RESET_MIGRATION_ID;
-                const newData = { password: password, totalPoints: 0, level: 1, playCount: 0, rewards: [], migrations: {} };
-                newData.migrations[migrationId] = { completed: true, previousRank: 0, premiumTicketsGranted: 0, completedAt: firebase.firestore.FieldValue.serverTimestamp(), migrationNoticeSeen: true };
-                await userRef.set(newData);
-                alert("가입 완료냥! 로그인을 진행해달라냥.");
-            } else {
-                if (!doc.exists || doc.data().password !== password) { alert("정보가 맞지 않다냥."); toggleLoading(false); return; }
-                currentUser = username;
-                currentUserData = doc.data(); 
-                isGuestMode = false;
-                v2.storageService.handleAuthenticatedUserChanged({ type:'authenticated', userId:username, nickname:username });
-                let resetMigration = null;
-                try {
-                    resetMigration = await v2.releaseResetMigrationService.run({ db: db, firebase: firebase, userRef: userRef, userId: username, userData: currentUserData });
-                    if (resetMigration && resetMigration.userData) currentUserData = resetMigration.userData;
-                } catch (migrationError) {
-                    console.error('[Release reset migration error]', migrationError);
-                }
-                await receivePendingTickets(userRef, currentUserData);
-                await syncCurrentCurrencyToFirebase(userRef);
-                showLobby();
-                if (resetMigration && resetMigration.ok) {
-                    v2.releaseResetMigrationService.showNoticeIfNeeded({ userRef: userRef, userData: currentUserData, migration: resetMigration.migration });
-                }
+            
+            if (!doc.exists) {
+                // 완전히 초기 상태로 생성
+                const initialData = {
+                    nickname: nicknameInput,
+                    level: 1,
+                    totalPoints: 0,
+                    playCount: 0,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    ownedCatIds: ['base_normal_01'],
+                    representativeCatId: 'base_normal_01',
+                    duplicateCounts: {},
+                    currencySnapshot: {
+                        coins: 1000,
+                        normalTickets: 5,
+                        premiumTickets: 1,
+                        seasonTickets: { season_01: 0 },
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }
+                };
+                await userRef.set(initialData);
             }
-        } catch (error) {
-            alert("서버 연결에 실패했다냥! 설정 코드를 확인해라냥!");
-            console.error(error);
-        }
-        toggleLoading(false);
-    }
 
-    async function showAdminScreen() {
-        toggleLoading(true);
-        const listDiv = document.getElementById('admin-list');
-        listDiv.innerHTML = '';
-        try {
-            const snapshot = await db.collection('users').get();
-            if(snapshot.empty) { listDiv.innerHTML = '<p style="text-align:center;">등록된 학생이 없습니다.</p>'; } 
-            else {
-                snapshot.forEach(doc => {
-                    let u = doc.id; let data = doc.data();
-                    const div = document.createElement('div'); div.className = 'ranking-item';
-                    const pending = data.pendingResources || data.pendingTickets || {};
-                    const resources = [{key:'coins',label:'코인',internal:'currency.coins'},{key:'normal',label:'기본 뽑기권',internal:'currency.normalTickets'},{key:'premium',label:'고급 뽑기권',internal:'currency.premiumTickets'},{key:'season',label:'시즌 뽑기권',internal:'currency.seasonTickets.season_01'}];
-                    div.innerHTML = `<div class="admin-user-heading"><b>${u}</b><span>Lv.${data.level || 1} · ${data.totalPoints || 0}P</span></div><div class="admin-resource-header"><b>재화</b><b>내부 ID</b><b>수량</b><b>지급</b></div><div class="admin-resource-grid">${resources.map(resource=>`<div class="admin-resource-row"><span class="admin-resource-label">${resource.label}</span><code class="admin-resource-id">${resource.internal}</code><input class="admin-resource-amount" id="resource-${resource.key}-${u}" type="number" min="1" max="10000" value="1" aria-label="${u} ${resource.label} 수량"><button class="btn btn-small" onclick="grantResource('${u}','${resource.key}')">지급</button></div>`).join('')}</div><small>대기: 코인 ${pending.coins || 0} · 기본 ${pending.normal || 0} · 고급 ${pending.premium || 0} · 시즌 ${pending.season || 0}</small><div class="admin-user-actions"><button class="btn btn-small" onclick="resetUser('${u}')">초기화</button><button class="btn btn-danger btn-small" onclick="deleteUser('${u}')">삭제</button></div>`;
-                    listDiv.appendChild(div);
+            const refreshed = await userRef.get();
+            currentUserData = refreshed.data();
+            currentUser = currentUserData.nickname;
+
+            if (v2.storageService) {
+                v2.storageService.handleAuthenticatedUserChanged({
+                    type: 'authenticated',
+                    userId: user.uid,
+                    nickname: currentUser
                 });
+
+                const save = v2.storageService.loadSaveData();
+                save.level = 1;
+                save.totalPoints = 0;
+                save.currency.coins = 1000;
+                save.currency.normalTickets = 5;
+                save.currency.premiumTickets = 1;
+                save.currency.seasonTickets = { season_01: 0 };
+                save.collection.ownedCatIds = ['base_normal_01'];
+                save.profile.selectedCatId = 'base_normal_01';
+                save.profile.nickname = currentUser;
+                save.profile.playerId = user.uid;
+                save.profile.rankingId = user.uid;
+                save.adventureProgress = {
+                    unlockedWorldIds: ['world_01'],
+                    unlockedStageIds: ['stage_01_01'],
+                    clearedStageIds: [],
+                    stageRecords: {},
+                    totalStars: 0,
+                    currentWorldId: 'world_01',
+                    currentStageId: 'stage_01_01'
+                };
+                save.dailyMissions = { dateKey: '', missions: {} };
+                save.rewardHistory = { rewardedSessionIds: [], firstClearStageIds: [], rewardedStarMilestones: {} };
+                save.seasonProgress = {};
+                
+                v2.storageService.saveSaveData(save);
             }
-        } catch(e) { alert("데이터를 불러오지 못했다냥!"); }
-        toggleLoading(false);
-        showScreen('admin-screen');
-    }
-    
-    async function resetUser(u) {
-        if(confirm(`${u}의 점수를 초기화 하시겠습니까?`)) {
-            toggleLoading(true); await db.collection('users').doc(u).update({ totalPoints: 0, level: 1, playCount: 0, rewards: [] }); showAdminScreen(); 
-        }
-    }
-    async function deleteUser(u) {
-        if(confirm(`${u}의 계정을 완전히 삭제하시겠습니까?`)) {
-            toggleLoading(true); await db.collection('users').doc(u).delete(); showAdminScreen(); 
+
+            showLobby();
+        } catch(error) {
+            console.error('[Profile Setup Error]', error);
+            errorMsg.innerText = "서버 저장 실패! 다시 시도해 주세요.";
+            errorMsg.style.display = 'block';
+        } finally {
+            toggleLoading(false);
         }
     }
 
-    function playAsGuest() { initAudio(); currentUser = "GUEST"; isGuestMode = true; v2.storageService.setUserContext({ type:'guest' }); showLobby(); }
-    function logout() { window.__nyankoAdminSession = false; if (v2.storageService) { var currentSave=v2.storageService.loadSaveData(); v2.storageService.saveSaveData(currentSave); v2.storageService.clearInMemoryUserState(); } currentUser = null; currentUserData = null; isGuestMode = false; document.getElementById('lobby-selected-cat').innerHTML=''; document.getElementById('collection-grid').innerHTML=''; document.getElementById('username-input').value = ""; document.getElementById('password-input').value = ""; showScreen('login-screen'); }
+    // 게스트 모드로 시작
+    async function playAsGuest() {
+        initAudio();
+        isGuestMode = true;
+
+        toggleLoading(true);
+        try {
+            if (auth && auth.currentUser) {
+                await auth.signOut();
+            }
+        } catch(e) {
+            console.warn('[Guest Mode] signOut error:', e);
+        } finally {
+            toggleLoading(false);
+        }
+
+        currentUser = "GUEST";
+        currentUserData = null;
+
+        if (v2.storageService) {
+            v2.storageService.setUserContext({ type: 'guest', regenerate: true });
+        }
+        showLobby();
+    }
+
+    // 로그아웃
+    async function logout() {
+        window.__nyankoAdminSession = false;
+        if (v2.storageService) {
+            var currentSave = v2.storageService.loadSaveData();
+            v2.storageService.saveSaveData(currentSave);
+            v2.storageService.clearInMemoryUserState();
+        }
+        currentUser = null;
+        currentUserData = null;
+        isGuestMode = false;
+
+        const catSummary = document.getElementById('lobby-selected-cat');
+        if (catSummary) catSummary.innerHTML = '';
+        const colGrid = document.getElementById('collection-grid');
+        if (colGrid) colGrid.innerHTML = '';
+        
+        const loginIdIn = document.getElementById('login-id-input');
+        if (loginIdIn) loginIdIn.value = '';
+        const loginPwIn = document.getElementById('login-password-input');
+        if (loginPwIn) loginPwIn.value = '';
+
+        toggleLoading(true);
+        try {
+            if (auth) {
+                await auth.signOut();
+            }
+        } catch(error) {
+            console.error('[Logout Error]', error);
+        } finally {
+            toggleLoading(false);
+        }
+        showScreen('login');
+    }
+
+    // 인증 감시자 1개 등록
+    function initAuthListener() {
+        if (!auth) return;
+        auth.onAuthStateChanged(async (user) => {
+            if (isGuestMode) return; // 게스트 모드일 때는 감시하지 않음
+
+            if (!user) {
+                showScreen('login');
+                return;
+            }
+
+            toggleLoading(true);
+            try {
+                const userRef = db.collection('users').doc(user.uid);
+                const doc = await userRef.get();
+                if (doc.exists) {
+                    currentUserData = doc.data();
+                    currentUser = currentUserData.nickname || user.displayName || "냥코";
+
+                    if (v2.storageService) {
+                        v2.storageService.handleAuthenticatedUserChanged({
+                            type: 'authenticated',
+                            userId: user.uid,
+                            nickname: currentUser
+                        });
+
+                        const normalized = normalizeOwnedCats(currentUserData);
+                        const validRepId = getValidRepresentativeCatId(currentUserData, normalized.ownedCatIds);
+
+                        const save = v2.storageService.loadSaveData();
+                        save.collection.ownedCatIds = normalized.ownedCatIds;
+                        save.collection.duplicateCounts = normalized.duplicateCounts;
+                        save.profile.selectedCatId = validRepId;
+                        if (currentUserData.level) save.level = currentUserData.level;
+                        if (currentUserData.totalPoints) save.totalPoints = currentUserData.totalPoints;
+                        v2.storageService.saveSaveData(save);
+                    }
+
+                    // 펜딩 리소스 수령 및 캐시 스냅샷 싱크
+                    try {
+                        await receivePendingTickets(userRef, currentUserData);
+                        await syncCurrentCurrencyToFirebase(userRef);
+                    } catch(syncError) {
+                        console.warn('[Sync Error]', syncError);
+                    }
+
+                    showLobby();
+                } else {
+                    // 문서가 없으면 프로필 설정
+                    showScreen('profile-setup');
+                }
+            } catch (error) {
+                console.error('[Auth state change error]', error);
+                showScreen('login');
+            } finally {
+                toggleLoading(false);
+            }
+        });
+    }
+
+    // Event Listener 바인딩 및 초기화
+    document.addEventListener('DOMContentLoaded', () => {
+        // UI 이벤트 바인딩 (인라인 onclick 대체)
+        const loginForm = document.getElementById('login-form');
+        if (loginForm) loginForm.addEventListener('submit', handleLoginSubmit);
+
+        const openSignupBtn = document.getElementById('open-signup-button');
+        if (openSignupBtn) openSignupBtn.addEventListener('click', () => showScreen('signup'));
+
+        const signupForm = document.getElementById('signup-form');
+        if (signupForm) signupForm.addEventListener('submit', handleSignupSubmit);
+
+        const backToLoginBtn = document.getElementById('back-to-login-button');
+        if (backToLoginBtn) backToLoginBtn.addEventListener('click', () => showScreen('login'));
+
+        const guestStartBtn = document.getElementById('guest-start-button');
+        if (guestStartBtn) guestStartBtn.addEventListener('click', playAsGuest);
+
+        const profileStartBtn = document.getElementById('profile-start-button');
+        if (profileStartBtn) profileStartBtn.addEventListener('click', handleProfileSetup);
+
+        const lobbyLogoutBtn = document.getElementById('lobby-logout-button');
+        if (lobbyLogoutBtn) lobbyLogoutBtn.addEventListener('click', logout);
+
+        const resultLogoutBtn = document.getElementById('result-logout-button');
+        if (resultLogoutBtn) resultLogoutBtn.addEventListener('click', logout);
+
+        // 감시자 기동
+        initAuthListener();
+    });
 
     function showLobby() {
         clearClassicRuntime();
         if (window.clearPhase2Runtime) window.clearPhase2Runtime();
         document.getElementById('lobby-name').innerText = currentUser;
-        // 기존 Firebase 보상 목록은 새 도감 DOM에 섞지 않는다.
         const grid = document.createElement('div');
         const soundToggle = document.getElementById('sound-enabled-toggle');
         if (soundToggle && v2.storageService) soundToggle.checked = v2.storageService.loadSaveData().settings.soundEnabled;
 
-        if (!isGuestMode) {
-            document.getElementById('lobby-level').innerText = currentUserData.level;
-            document.getElementById('lobby-points').innerText = currentUserData.totalPoints;
+        if (!isGuestMode && currentUserData) {
+            document.getElementById('lobby-level').innerText = currentUserData.level || 1;
+            document.getElementById('lobby-points').innerText = currentUserData.totalPoints || 0;
             document.getElementById('lobby-stats-box').style.display = 'block';
             document.getElementById('collection-box').style.display = 'block';
-
-            if (currentUserData.rewards && currentUserData.rewards.length > 0) {
-                const rankInfo = [
-                    { id: 'UR', title: '🌟 전설 (Legend)' },
-                    { id: 'SR', title: '⭐⭐⭐ 영웅 (Super Rare)' },
-                    { id: 'R',  title: '⭐⭐ 희귀 (Rare)' },
-                    { id: 'N',  title: '⭐ 일반 (Normal)' }
-                ];
-
-                rankInfo.forEach(r => {
-                    const catsInThisRank = currentUserData.rewards.filter(cat => cat.rank === r.id);
-                    if (catsInThisRank.length > 0) {
-                        const titleDiv = document.createElement('div');
-                        titleDiv.style.width = '100%'; titleDiv.style.textAlign = 'left'; titleDiv.style.fontSize = '14px'; titleDiv.style.fontWeight = 'bold'; titleDiv.style.color = '#333'; titleDiv.style.margin = '15px 0 5px 0'; titleDiv.style.borderBottom = '2px dashed #DDD';
-                        titleDiv.innerText = `${r.title} (${catsInThisRank.length}마리)`;
-                        grid.appendChild(titleDiv);
-
-                        const groupDiv = document.createElement('div');
-                        groupDiv.className = 'collection-grid'; groupDiv.style.marginTop = '0'; groupDiv.style.justifyContent = 'flex-start';
-
-                        catsInThisRank.forEach(cat => {
-                            const item = document.createElement('div'); item.className = 'collection-item';
-                            item.style.backgroundColor = cat.bg; item.style.borderColor = cat.border;
-                            
-                            const badge = document.createElement('div'); badge.className = 'rarity-badge'; badge.innerText = cat.rank; badge.style.backgroundColor = cat.border;
-                            item.appendChild(badge);
-                            
-                            const img = document.createElement('img'); img.src = `https://robohash.org/${cat.id}.png?set=set4&size=100x100`; img.alt = `${r.title} 고양이`;
-                            if (v2.assetLoader) v2.assetLoader.applyImageFallback(img, '');
-                            item.appendChild(img);
-                            groupDiv.appendChild(item);
-                        });
-                        grid.appendChild(groupDiv);
-                    }
-                });
-            } else { grid.innerHTML = '<p style="color:#999; margin:10px; font-size:14px;">아직 모은 고양이가 없다냥. 레벨업을 해보라냥!</p>'; }
         } else {
-            document.getElementById('lobby-stats-box').style.display = 'none'; document.getElementById('collection-box').style.display = 'none';
+            document.getElementById('lobby-stats-box').style.display = 'none';
+            document.getElementById('collection-box').style.display = 'none';
         }
         showScreen('lobby-screen');
         document.getElementById('collection-box').style.display = 'block';
@@ -409,28 +735,27 @@
         if (v2.seasonService && v2.isFeatureEnabled('seasonMissions')) v2.seasonService.recordGameResult(classicMissionResult);
         if (v2.dailyMissionService) v2.dailyMissionService.recordGameResult(classicMissionResult);
 
-        if (!isGuestMode) {
-            todayTotal += (currentUserData.playCount * 2); 
-            currentUserData.playCount += 1;
-            currentUserData.totalPoints += todayTotal;
+        if (!isGuestMode && auth && auth.currentUser) {
+            todayTotal += ((currentUserData.playCount || 0) * 2); 
+            currentUserData.playCount = (currentUserData.playCount || 0) + 1;
+            currentUserData.totalPoints = (currentUserData.totalPoints || 0) + todayTotal;
             currentUserData.level = Math.floor(currentUserData.totalPoints / 150) + 1; 
             
+            if (v2.storageService) {
+                const save = v2.storageService.loadSaveData();
+                currentUserData.ownedCatIds = save.collection.ownedCatIds || ['base_normal_01'];
+                currentUserData.representativeCatId = save.profile.selectedCatId || 'base_normal_01';
+                currentUserData.duplicateCounts = save.collection.duplicateCounts || {};
+                currentUserData.rewards = [];
+            }
+
             try {
-                await db.collection('users').doc(currentUser).set(currentUserData);
+                await db.collection('users').doc(auth.currentUser.uid).set(currentUserData);
                 document.getElementById('res-level').innerText = currentUserData.level;
                 document.getElementById('res-total-points').innerText = currentUserData.totalPoints;
                 document.getElementById('total-stats').style.display = 'block';
-                const save = v2.storageService.loadSaveData();
-                await v2.rankingService.submitOverall({
-                    playerId: save.profile.playerId,
-                    nickname: currentUser,
-                    score: todayTotal,
-                    correctCount: sessionCorrect,
-                    totalQuestions: totalQuestions,
-                    accuracy: accPercent,
-                    playedAt: new Date().toISOString()
-                });
             } catch(e) {
+                console.error("점수 저장 실패:", e);
                 alert("점수 저장에 실패했다냥!");
             }
         } else {
@@ -456,51 +781,12 @@
 
     async function updateGlobalRanking() {
         const listDiv = document.getElementById('ranking-list');
-        listDiv.innerHTML = '<p style="text-align:center;">랭킹 불러오는 중...</p>';
-        
-        try {
-            const snapshot = await db.collection('users')
-                                     .orderBy('totalPoints', 'desc')
-                                     .limit(10)
-                                     .get();
-            
-            listDiv.innerHTML = '';
-            if(snapshot.empty) {
-                listDiv.innerHTML = '<p style="text-align:center;">아직 랭킹이 없습니다.</p>';
-                return;
-            }
-
-            let index = 0;
-            snapshot.forEach(doc => {
-                let u = doc.id; let data = doc.data();
-                const div = document.createElement('div'); div.className = 'ranking-item';
-                const rankIcon = index === 0 ? '👑' : `${index + 1}위`;
-                
-                const highlightMe = (u === currentUser) ? 'color: #FF69B4; font-weight: bold;' : '';
-                
-                div.innerHTML = `<span style="${highlightMe}"><b>${rankIcon} ${u}</b> (Lv.${data.level})</span> <span style="${highlightMe}">${data.totalPoints}P</span>`;
-                listDiv.appendChild(div);
-                index++;
-            });
-            document.getElementById('ranking-box').style.display = 'block';
-        } catch(e) {
-            console.error(e);
-            const code = e && e.code ? e.code : '';
-            const guide = code.includes('permission') ? 'Firebase에서 users 읽기 권한을 확인해 주세요.' : '인터넷 연결과 Firebase 설정을 확인해 주세요.';
-            listDiv.innerHTML = `<p style="text-align:center; color:#B00020;">순위를 불러오지 못했어요.<br><small>${guide}</small></p>`;
-        }
+        listDiv.innerHTML = '<p style="text-align:center; color:#888;">랭킹은 임시 비활성화 상태다냥!</p>';
+        document.getElementById('ranking-box').style.display = 'block';
     }
 
     async function grantResource(userId, type) {
-        const input = document.getElementById(`resource-${type}-${userId}`);
-        const count = Math.max(1, Math.min(10000, Math.floor(Number(input && input.value) || 1)));
-        const field = 'pendingResources.' + type;
-        try {
-            toggleLoading(true);
-            await db.collection('users').doc(userId).update({ [field]: firebase.firestore.FieldValue.increment(count) });
-            alert(`${userId}님에게 재화 ${count}개를 지급했습니다. 다음 로그인 때 자동 수령됩니다.`);
-            await showAdminScreen();
-        } catch (error) { console.error('[Admin ticket grant error]', error); alert('티켓 지급에 실패했습니다.'); toggleLoading(false); }
+        alert('관리자 기능은 비활성화 상태다냥!');
     }
 
     async function receivePendingTickets(userRef, userData) {

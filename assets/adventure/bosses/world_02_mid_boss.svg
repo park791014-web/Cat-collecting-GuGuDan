@@ -1,1 +1,68 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="50 80 700 640"><path d="M200 340 75 240q-35-30 15-85l145 125m365 60 125-100q35-30-15-85L565 280" fill="#e86950" stroke="#79352f" stroke-width="18"/><ellipse cx="400" cy="430" rx="205" ry="180" fill="#ef7658" stroke="#79352f" stroke-width="20"/><g fill="#fff"><circle cx="330" cy="385" r="26"/><circle cx="470" cy="385" r="26"/></g><path d="M335 500q65 50 130 0" fill="none" stroke="#79352f" stroke-width="17"/><path d="M500 280q120 20 140 150-90 70-170 0Z" fill="#58a5b6" stroke="#fff" stroke-width="12"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <defs>
+    <!-- 빨간 갑각 그라디언트 -->
+    <radialGradient id="grad-crab" cx="50%" cy="35%" r="50%">
+      <stop offset="0%" stop-color="#ff5252"/>
+      <stop offset="75%" stop-color="#e53935"/>
+      <stop offset="100%" stop-color="#b71c1c"/>
+    </radialGradient>
+    <!-- 경비 모자 그라디언트 -->
+    <linearGradient id="grad-cap" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1565c0"/>
+      <stop offset="100%" stop-color="#0d47a1"/>
+    </linearGradient>
+  </defs>
+  <!-- 바닥 그림자 -->
+  <ellipse cx="400" cy="710" rx="260" ry="45" fill="#000" opacity="0.3"/>
+
+  <!-- 뒤쪽 다리들 (게 다리 4개) -->
+  <path d="M 200 520 Q 100 550 140 680 L 190 670 Q 150 580 230 550 Z" fill="#b71c1c" stroke="#3e2723" stroke-width="8"/>
+  <path d="M 600 520 Q 700 550 660 680 L 610 670 Q 650 580 570 550 Z" fill="#b71c1c" stroke="#3e2723" stroke-width="8"/>
+  <path d="M 230 560 Q 130 630 200 700 L 240 670 Q 180 630 260 580 Z" fill="#b71c1c" stroke="#3e2723" stroke-width="8"/>
+  <path d="M 570 560 Q 670 630 600 700 L 560 670 Q 620 630 540 580 Z" fill="#b71c1c" stroke="#3e2723" stroke-width="8"/>
+
+  <!-- 몸통 (둥근 게 껍질) -->
+  <ellipse cx="400" cy="510" rx="220" ry="170" fill="url(#grad-crab)" stroke="#3e2723" stroke-width="12"/>
+
+  <!-- 배 부분 (연노랑) -->
+  <ellipse cx="400" cy="560" rx="140" ry="100" fill="#fff59d" stroke="#3e2723" stroke-width="6"/>
+
+  <!-- 항구 경비 모자 -->
+  <path d="M 260 280 Q 400 150 540 280 Z" fill="url(#grad-cap)" stroke="#3e2723" stroke-width="10"/>
+  <!-- 모자 챙 -->
+  <path d="M 230 280 Q 400 310 570 280 L 560 300 Q 400 330 240 300 Z" fill="#212121" stroke="#3e2723" stroke-width="6"/>
+  <!-- 경찰 배지 / 황금 별 장식 -->
+  <polygon points="400,210 410,230 435,230 415,245 425,270 400,255 375,270 385,245 365,230 390,230" fill="#ffd600" stroke="#3e2723" stroke-width="3"/>
+
+  <!-- 대형 집게발 (좌) -->
+  <g transform="rotate(-15 220 460)">
+    <!-- 집게 대 -->
+    <rect x="150" y="380" width="80" height="100" rx="20" fill="#e53935" stroke="#3e2723" stroke-width="10"/>
+    <!-- 큰 집게 -->
+    <path d="M 120 380 Q 60 280 160 240 Q 220 310 180 380 Z" fill="url(#grad-crab)" stroke="#3e2723" stroke-width="10"/>
+    <!-- 작은 집게 -->
+    <path d="M 170 380 Q 240 300 210 260 Q 150 310 160 380 Z" fill="url(#grad-crab)" stroke="#3e2723" stroke-width="10"/>
+  </g>
+
+  <!-- 대형 집게발 (우) -->
+  <g transform="rotate(15 580 460)">
+    <!-- 집게 대 -->
+    <rect x="570" y="380" width="80" height="100" rx="20" fill="#e53935" stroke="#3e2723" stroke-width="10"/>
+    <!-- 큰 집게 -->
+    <path d="M 680 380 Q 740 280 640 240 Q 580 310 620 380 Z" fill="url(#grad-crab)" stroke="#3e2723" stroke-width="10"/>
+    <!-- 작은 집게 -->
+    <path d="M 630 380 Q 560 300 590 260 Q 650 310 640 380 Z" fill="url(#grad-crab)" stroke="#3e2723" stroke-width="10"/>
+  </g>
+
+  <!-- 튀어나온 눈 (게 눈) -->
+  <rect x="310" y="300" width="20" height="80" fill="#e53935" stroke="#3e2723" stroke-width="8" rx="10"/>
+  <circle cx="320" cy="300" r="25" fill="#fff" stroke="#3e2723" stroke-width="8"/>
+  <circle cx="320" cy="300" r="10" fill="#212121"/>
+
+  <rect x="470" y="300" width="20" height="80" fill="#e53935" stroke="#3e2723" stroke-width="8" rx="10"/>
+  <circle cx="480" cy="300" r="25" fill="#fff" stroke="#3e2723" stroke-width="8"/>
+  <circle cx="480" cy="300" r="10" fill="#212121"/>
+
+  <!-- 위엄 있는 일자 입 -->
+  <path d="M 370 450 L 430 450" stroke="#3e2723" stroke-width="10" stroke-linecap="round"/>
+</svg>

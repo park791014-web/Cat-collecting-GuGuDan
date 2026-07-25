@@ -6,16 +6,19 @@
     <title>🌟 두근두근 구구단 대모험 🌟</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/firebaseClient.js"></script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=2.0.13">
-    <link rel="stylesheet" href="css/phase56.css">
-    <link rel="stylesheet" href="css/phase561.css">
-    <link rel="stylesheet" href="css/phase562.css">
-    <link rel="stylesheet" href="css/releasePatch.css?v=2.0.14">
+    <link rel="stylesheet" href="css/style.css?v=3.0.0">
+    <link rel="stylesheet" href="css/phase56.css?v=3.0.0">
+    <link rel="stylesheet" href="css/phase561.css?v=3.0.0">
+    <link rel="stylesheet" href="css/phase562.css?v=3.0.0">
+    <link rel="stylesheet" href="css/releasePatch.css?v=3.0.0">
+    <link rel="stylesheet" href="css/auth.css?v=3.0.0">
 </head>
 <body>
 
@@ -29,24 +32,65 @@
 
 <div id="game-effect-layer" class="game-effect-layer" aria-hidden="true"></div>
 <div id="game-container">
+    
+    <!-- 로그인 화면 -->
     <div id="login-screen" class="screen active-screen">
         <h1>🌟 구구단 냥코 대모험 🌟</h1>
-        <p class="version-label" id="version-label">V2.0.0</p>
+        <p class="version-label" id="version-label">V3.0.0</p>
         <p style="font-size: 16px;">백점 맞고 전설의 고양이를 뽑자냥!</p>
         <img src="assets/cats/base/base_legendary_01-transparent.png" width="140" height="140" alt="황금 전설 냥이" style="margin:5px; object-fit:contain; background:linear-gradient(145deg,#FFF9D8,#FFE8A3); border-radius:50%; border:3px solid #FFD166; box-shadow:0 5px 18px rgba(224,170,30,.28);">
-        <div class="input-group">
-            <input type="text" id="username-input" class="input-field" placeholder="내 이름 (아이디)">
-        </div>
-        <div class="input-group">
-            <input type="password" id="password-input" class="input-field" placeholder="비밀번호">
-        </div>
-        <button class="btn btn-success" onclick="handleAuth('login')">로그인</button>
-        <button class="btn" onclick="handleAuth('signup')">새로 가입</button>
+        
+        <form id="login-form" onsubmit="return false;">
+            <div class="input-group">
+                <input type="text" id="login-id-input" class="input-field" placeholder="아이디 (한글/영문/숫자 2~16자)">
+            </div>
+            <div class="input-group">
+                <input type="password" id="login-password-input" class="input-field" placeholder="비밀번호">
+            </div>
+            <button type="submit" id="login-submit-button" class="btn btn-success">로그인</button>
+            <button type="button" id="open-signup-button" class="btn">새로 가입</button>
+        </form>
+        <p id="login-error-message" class="error-message" style="display:none;"></p>
+        
         <hr style="border: 1px dashed #DDD; margin: 15px 0;">
-        <button class="btn btn-guest" onclick="playAsGuest()">GUEST로 하기</button>
+        <button id="guest-start-button" class="btn btn-guest">GUEST로 하기</button>
     </div>
 
-    <div id="admin-screen" class="screen">
+    <!-- 회원가입 화면 -->
+    <div id="signup-screen" class="screen" hidden>
+        <h1>📝 냥코 대모험 회원가입 📝</h1>
+        <p style="font-size: 16px;">새로운 모험을 떠날 준비를 하자냥!</p>
+        
+        <form id="signup-form" onsubmit="return false;">
+            <div class="input-group">
+                <input type="text" id="signup-id-input" class="input-field" placeholder="아이디 (한글/영문/숫자 2~16자)">
+            </div>
+            <div class="input-group">
+                <input type="password" id="signup-password-input" class="input-field" placeholder="비밀번호 (최소 6자)">
+            </div>
+            <div class="input-group">
+                <input type="password" id="signup-password-confirm-input" class="input-field" placeholder="비밀번호 확인">
+            </div>
+            <button type="submit" id="signup-submit-button" class="btn btn-success">가입 완료</button>
+            <button type="button" id="back-to-login-button" class="btn btn-guest">로그인으로 돌아가기</button>
+        </form>
+        <p id="signup-error-message" class="error-message" style="display:none;"></p>
+    </div>
+
+    <!-- 프로필 설정 화면 -->
+    <div id="profile-setup-screen" class="screen" hidden>
+        <h1>😺 냥코 프로필 만들기 😺</h1>
+        <p style="font-size: 16px;">모험에서 사용할 멋진 닉네임을 지어달라냥!</p>
+        
+        <div class="input-group">
+            <input type="text" id="profile-nickname-input" class="input-field" placeholder="닉네임 (2~12자 한글/영문/숫자)">
+        </div>
+        <button id="profile-start-button" class="btn btn-success">시작하기</button>
+        <p id="profile-setup-error" class="error-message" style="display:none;"></p>
+    </div>
+
+    <!-- 관리소 화면 (기능 격리 상태, 버튼 숨김) -->
+    <div id="admin-screen" class="screen" hidden>
         <h1>🛠️ 글로벌 냥코 관리소 🛠️</h1>
         <div class="collection-box" style="border-color: #FFB347; padding: 10px;">
             <div id="admin-list" style="text-align: left;"></div>
@@ -54,6 +98,7 @@
         <button class="btn btn-guest" style="margin-top: 15px;" onclick="logout()">처음으로</button>
     </div>
 
+    <!-- 대기실 화면 -->
     <div id="lobby-screen" class="screen">
         <h1>안녕, <span id="lobby-name" style="color:#FF69B4;"></span>!</h1>
         <div class="result-box" id="lobby-stats-box" style="background-color: #BAE1FF; padding: 10px;">
@@ -75,32 +120,37 @@
             <button class="mode-card time-attack" onclick="startPhase2Mode('timeAttack')"><strong>타임어택</strong><span>제한 시간 동안 최고 점수에 도전하세요.</span></button>
         </div>
         <nav class="utility-nav" aria-label="보조 메뉴"><button onclick="openCardPackScreen()">고양이 뽑기</button><button onclick="openCollectionScreen()">도감</button><button onclick="openRankings()">순위</button><button onclick="openSettingsScreen()">설정</button><label><input id="sound-enabled-toggle" type="checkbox" checked onchange="toggleGameSound(this.checked)"> 소리</label></nav>
-        <button class="btn btn-guest" onclick="logout()">로그아웃</button>
+        <button class="btn btn-guest" id="lobby-logout-button">로그아웃</button>
     </div>
 
+    <!-- 모험 지도 화면 -->
     <section id="adventure-map-screen" class="screen adventure-screen" aria-labelledby="adventure-map-title">
         <header class="screen-header"><button class="icon-button" onclick="showLobby()" aria-label="메인으로 돌아가기">←</button><div><h2 id="adventure-map-title" tabindex="-1">구구단 대모험</h2><p>지역을 선택해 모험을 이어가세요.</p></div><div class="star-total"><span>획득 별</span><strong id="adventure-total-stars">0</strong></div></header>
         <div id="world-list" class="world-list"></div>
     </section>
 
+    <!-- 스테이지 선택 화면 -->
     <section id="stage-select-screen" class="screen adventure-screen" aria-labelledby="stage-select-title">
         <header class="screen-header"><button class="icon-button" onclick="openAdventureMap()" aria-label="월드맵으로 돌아가기">←</button><div><h2 id="stage-select-title" tabindex="-1">스테이지 선택</h2><p id="stage-select-subtitle"></p></div></header>
         <div id="stage-grid" class="stage-grid"></div>
     </section>
 
+    <!-- 모험 준비 화면 -->
     <section id="stage-ready-screen" class="screen adventure-screen" aria-labelledby="stage-ready-title">
         <header class="screen-header"><button class="icon-button" onclick="backToStageSelect()" aria-label="스테이지 선택으로 돌아가기">←</button><div><span id="ready-stage-number" class="eyebrow"></span><h2 id="stage-ready-title" tabindex="-1">도전 준비</h2></div></header>
         <div id="stage-ready-card" class="ready-card"></div>
         <div class="action-row"><button class="game-button secondary" onclick="backToStageSelect()">뒤로</button><button class="game-button primary" onclick="startAdventureStage()">도전 시작</button></div>
     </section>
 
+    <!-- 모험 결과 화면 -->
     <section id="adventure-result-screen" class="screen adventure-screen" aria-labelledby="adventure-result-title">
         <div id="adventure-result-card" class="adventure-result-card" tabindex="-1"><p class="eyebrow" id="adventure-result-number"></p><h2 id="adventure-result-title">스테이지 결과</h2><div id="adventure-result-cat" class="result-cat"></div><div id="adventure-result-stars" class="result-stars"></div><div id="adventure-result-stats" class="result-stat-grid"></div><div id="adventure-rewards" class="adventure-rewards"></div><p id="adventure-unlock-copy" class="unlock-copy"></p><div id="adventure-result-actions" class="result-actions"></div></div>
     </section>
 
+    <!-- 고양이 뽑기 화면 -->
     <section id="card-pack-screen" class="screen" aria-labelledby="card-pack-title"><header class="screen-header"><button class="icon-button" onclick="showLobby()" aria-label="메인으로 돌아가기">←</button><div><h2 id="card-pack-title" tabindex="-1">고양이 뽑기</h2><p>게임에서 모은 코인으로 기본 고양이를 만나보세요.</p></div></header><div id="pack-currency" class="pack-currency"></div><div id="pack-list" class="pack-list"></div><p id="pack-message" role="status"></p><div id="pack-result" class="pack-result" tabindex="-1" hidden></div></section>
 
-    
+    <!-- 고양이 도감 화면 -->
     <section id="collection-screen" class="screen collection-screen" aria-labelledby="collection-title">
         <header class="screen-header"><button class="icon-button" onclick="showLobby()" aria-label="메인으로 돌아가기">←</button><div><h2 id="collection-title" tabindex="-1">고양이 도감</h2><p id="collection-screen-summary">보유한 고양이를 관리하세요.</p></div></header>
         <div id="collection-filters" class="collection-filters" aria-label="도감 검색과 필터"></div>
@@ -108,10 +158,14 @@
         <p id="collection-empty-message" class="collection-empty-message" hidden>조건에 맞는 보유 고양이가 없습니다.</p>
     </section>
 
+    <!-- 설정 화면 -->
     <section id="settings-screen" class="screen" aria-labelledby="settings-title"><header class="screen-header"><button class="icon-button" onclick="showLobby()" aria-label="메인으로 돌아가기">←</button><div><h2 id="settings-title" tabindex="-1">설정과 이용 안내</h2><p id="settings-version"></p></div></header><div id="settings-content" class="settings-sections"></div></section>
+    
+    <!-- 모달 백드롭 -->
     <div id="cat-detail-modal" class="modal-backdrop" hidden><section class="cat-detail-modal" role="dialog" aria-modal="true" aria-labelledby="cat-detail-name"><button id="cat-detail-close" class="modal-close" aria-label="카드 상세 닫기" onclick="closeCatDetail()">×</button><div id="cat-detail-content"></div></section></div>
     <div id="onboarding-modal" class="modal-backdrop" hidden><section class="onboarding-modal" role="dialog" aria-modal="true" aria-labelledby="onboarding-title"><p id="onboarding-step"></p><h2 id="onboarding-title">게임 안내</h2><p id="onboarding-copy"></p><div><button id="onboarding-skip" onclick="finishOnboarding()">건너뛰기</button><button id="onboarding-prev" onclick="moveOnboarding(-1)">이전</button><button id="onboarding-next" class="game-button primary" onclick="moveOnboarding(1)">다음</button></div></section></div>
 
+    <!-- 게임 플레이 화면 -->
     <div id="play-screen" class="screen">
         <div class="stats-bar">
             <div style="text-align: left;">
@@ -133,6 +187,7 @@
         <button id="phase2-exit-button" class="btn btn-small btn-danger phase2-only" onclick="exitPhase2ToMain()" style="display:none;">도전 끝내기</button>
     </div>
 
+    <!-- 결과 화면 -->
     <div id="result-screen" class="screen">
         <h1>🎉 모험 끝냥! 🎉</h1>
         
@@ -174,84 +229,82 @@
         </div>
         <div id="legacy-result-actions">
             <button class="btn btn-success" style="font-size: 22px; width: 100%; max-width: 100%; margin-bottom: 10px;" onclick="showLobby()">대기실로 돌아가기</button>
-            <button class="btn btn-guest" onclick="logout()">로그아웃</button>
+            <button class="btn btn-guest" id="result-logout-button">로그아웃</button>
         </div>
     </div>
 </div>
 
-
-
-    <script src="js/config/gameConfig.js"></script>
-    <script src="js/config/featureFlags.js"></script>
-    <script src="js/config/classicRewardConfig.js"></script>
-    <script src="js/config/catDrawConfig.js?v=2.0.11"></script>
-    <script src="js/config/modeRewardConfig.js"></script>
-    <script src="js/config/catConfig.js"></script>
-    <script src="js/config/seasonConfig.js"></script>
-    <script src="js/config/soundConfig.js"></script>
-    <script src="js/config/adminConfig.js"></script>
-    <script src="js/config/rewardConfig.js"></script>
-    <script src="js/config/cardPackConfig.js?v=2.0.11"></script>
-    <script src="js/config/skillConfig.js"></script>
-    <script src="js/config/dailyMissionConfig.js?v=2.0.9"></script>
-    <script src="js/data/cats.js?v=2.0.11"></script>
-    <script src="js/data/seasonCats.js?v=2.0.11"></script>
-    <script src="js/data/seasonMissions.js"></script>
-    <script src="js/data/worlds.js"></script>
-    <script src="js/data/stages.js"></script>
-    <script src="js/data/adventureStoryData.js?v=2.0.13"></script>
-    <script src="js/data/seasons.js"></script>
-    <script src="js/game/gameState.js"></script>
-    <script src="js/game/questionGenerator.js"></script>
-    <script src="js/game/scoreManager.js"></script>
-    <script src="js/services/storageService.js"></script>
-    <script src="js/services/userStorageService.js"></script>
-    <script src="js/services/releasePolicyService.js"></script>
-    <script src="js/services/classicRewardService.js"></script>
-    <script src="js/services/coinDrawService.js"></script>
-    <script src="js/services/modeRewardService.js"></script>
-    <script src="js/services/effectService.js?v=2.0.9"></script>
-    <script src="js/services/soundService.js"></script>
-    <script src="js/services/rankingService.js"></script>
-    <script src="js/services/releaseResetMigrationService.js?v=2.0.14"></script>
-    <script src="js/services/adventureService.js"></script>
-    <script src="js/services/adventureStoryService.js?v=2.0.13"></script>
-    <script src="js/services/rewardService.js"></script>
-    <script src="js/services/cardPackService.js"></script>
-    <script src="js/services/skillEngine.js"></script>
-    <script src="js/services/seasonService.js"></script>
-    <script src="js/services/collectionSortService.js"></script>
-    <script src="js/services/dailyMissionService.js?v=2.0.9"></script>
-    <script src="js/utils/assetLoader.js"></script>
-    <script src="js/utils/validators.js"></script>
-    <script src="js/utils/phase4Validators.js"></script>
-    <script src="js/utils/phase5Validators.js"></script>
-    <script src="js/utils/phase51Validators.js"></script>
-    <script src="js/services/adminConfigService.js"></script>
-    <script src="js/tests/dataValidation.test.js"></script>
-    <script src="js/tests/phase2Validation.test.js"></script>
-    <script src="js/tests/phase3Validation.test.js"></script>
-    <script src="js/tests/phase3VisualValidation.test.js"></script>
-    <script src="js/tests/phase4Validation.test.js"></script>
-    <script src="js/tests/phase5Validation.test.js"></script>
-    <script src="js/tests/phase51CollectionSort.test.js"></script>
-    <script src="js/tests/phase52Validation.test.js"></script>
-    <script src="js/ui/collectionController.js"></script>
-    <script src="js/ui/catSkillDetailController.js?v=2.0.11"></script>
-    <script src="js/ui/ticketDrawController.js?v=2.0.10"></script>
-    <script src="js/ui/phase54Controller.js?v=2.0.13"></script>
-    <script src="js/services/catPresentationRuntime.js?v=2.0.13"></script>
-    <script src="js/ui/seasonController.js"></script>
-    <script src="js/ui/dailyMissionController.js?v=2.0.9"></script>
-    <script src="js/app.js?v=2.0.13"></script>
-    <script src="js/ui/adminAccountManager.js?v=2.0.12"></script>
-    <script src="js/game/modeEngine.js?v=2.0.13"></script>
-    <script src="js/ui/leaderboardV3Controller.js?v=2.0.14"></script>
-    <script src="js/game/adventureEngine.js?v=2.0.13"></script>
-    <script src="js/services/phase56SoundService.js"></script>
-    <script src="js/services/phase56SoundBinding.js"></script>
-    <script src="js/ui/phase56Runtime.js"></script>
-    <script src="js/ui/phase561Runtime.js"></script>
-    <script src="js/ui/phase562Runtime.js"></script>
+    <script src="js/config/gameConfig.js?v=3.0.0"></script>
+    <script src="js/config/featureFlags.js?v=3.0.0"></script>
+    <script src="js/config/classicRewardConfig.js?v=3.0.0"></script>
+    <script src="js/config/catDrawConfig.js?v=3.0.0"></script>
+    <script src="js/config/modeRewardConfig.js?v=3.0.0"></script>
+    <script src="js/config/catConfig.js?v=3.0.0"></script>
+    <script src="js/config/seasonConfig.js?v=3.0.0"></script>
+    <script src="js/config/soundConfig.js?v=3.0.0"></script>
+    <script src="js/config/adminConfig.js?v=3.0.0"></script>
+    <script src="js/config/rewardConfig.js?v=3.0.0"></script>
+    <script src="js/config/cardPackConfig.js?v=3.0.0"></script>
+    <script src="js/config/skillConfig.js?v=3.0.0"></script>
+    <script src="js/config/dailyMissionConfig.js?v=3.0.0"></script>
+    <script src="js/data/cats.js?v=3.0.0"></script>
+    <script src="js/data/seasonCats.js?v=3.0.0"></script>
+    <script src="js/data/seasonMissions.js?v=3.0.0"></script>
+    <script src="js/data/worlds.js?v=3.0.0"></script>
+    <script src="js/data/stages.js?v=3.0.0"></script>
+    <script src="js/data/adventureStoryData.js?v=3.0.0"></script>
+    <script src="js/data/seasons.js?v=3.0.0"></script>
+    <script src="js/game/gameState.js?v=3.0.0"></script>
+    <script src="js/game/questionGenerator.js?v=3.0.0"></script>
+    <script src="js/game/scoreManager.js?v=3.0.0"></script>
+    <script src="js/services/storageService.js?v=3.0.0"></script>
+    <script src="js/services/userStorageService.js?v=3.0.0"></script>
+    <script src="js/services/releasePolicyService.js?v=3.0.0"></script>
+    <script src="js/services/classicRewardService.js?v=3.0.0"></script>
+    <script src="js/services/coinDrawService.js?v=3.0.0"></script>
+    <script src="js/services/modeRewardService.js?v=3.0.0"></script>
+    <script src="js/services/effectService.js?v=3.0.0"></script>
+    <script src="js/services/soundService.js?v=3.0.0"></script>
+    <script src="js/services/rankingService.js?v=3.0.0"></script>
+    <script src="js/services/releaseResetMigrationService.js?v=3.0.0"></script>
+    <script src="js/services/adventureService.js?v=3.0.0"></script>
+    <script src="js/services/adventureStoryService.js?v=3.0.0"></script>
+    <script src="js/services/rewardService.js?v=3.0.0"></script>
+    <script src="js/services/cardPackService.js?v=3.0.0"></script>
+    <script src="js/services/skillEngine.js?v=3.0.0"></script>
+    <script src="js/services/seasonService.js?v=3.0.0"></script>
+    <script src="js/services/collectionSortService.js?v=3.0.0"></script>
+    <script src="js/services/dailyMissionService.js?v=3.0.0"></script>
+    <script src="js/utils/assetLoader.js?v=3.0.0"></script>
+    <script src="js/utils/validators.js?v=3.0.0"></script>
+    <script src="js/utils/phase4Validators.js?v=3.0.0"></script>
+    <script src="js/utils/phase5Validators.js?v=3.0.0"></script>
+    <script src="js/utils/phase51Validators.js?v=3.0.0"></script>
+    <script src="js/services/adminConfigService.js?v=3.0.0"></script>
+    <script src="js/tests/dataValidation.test.js?v=3.0.0"></script>
+    <script src="js/tests/phase2Validation.test.js?v=3.0.0"></script>
+    <script src="js/tests/phase3Validation.test.js?v=3.0.0"></script>
+    <script src="js/tests/phase3VisualValidation.test.js?v=3.0.0"></script>
+    <script src="js/tests/phase4Validation.test.js?v=3.0.0"></script>
+    <script src="js/tests/phase5Validation.test.js?v=3.0.0"></script>
+    <script src="js/tests/phase51CollectionSort.test.js?v=3.0.0"></script>
+    <script src="js/tests/phase52Validation.test.js?v=3.0.0"></script>
+    <script src="js/ui/collectionController.js?v=3.0.0"></script>
+    <script src="js/ui/catSkillDetailController.js?v=3.0.0"></script>
+    <script src="js/ui/ticketDrawController.js?v=3.0.0"></script>
+    <script src="js/ui/phase54Controller.js?v=3.0.0"></script>
+    <script src="js/services/catPresentationRuntime.js?v=3.0.0"></script>
+    <script src="js/ui/seasonController.js?v=3.0.0"></script>
+    <script src="js/ui/dailyMissionController.js?v=3.0.0"></script>
+    <script src="js/app.js?v=3.0.0"></script>
+    <script src="js/ui/adminAccountManager.js?v=3.0.0"></script>
+    <script src="js/game/modeEngine.js?v=3.0.0"></script>
+    <script src="js/ui/leaderboardV3Controller.js?v=3.0.0"></script>
+    <script src="js/game/adventureEngine.js?v=3.0.0"></script>
+    <script src="js/services/phase56SoundService.js?v=3.0.0"></script>
+    <script src="js/services/phase56SoundBinding.js?v=3.0.0"></script>
+    <script src="js/ui/phase56Runtime.js?v=3.0.0"></script>
+    <script src="js/ui/phase561Runtime.js?v=3.0.0"></script>
+    <script src="js/ui/phase562Runtime.js?v=3.0.0"></script>
 </body>
 </html>

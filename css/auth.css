@@ -1,0 +1,311 @@
+/* css/auth.css - 냥코 구구단 대모험 V3 프리미엄 인증 화면 스타일 */
+
+.screen {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* 회원가입 & 프로필 설정 화면 전용 스타일 */
+#signup-screen, #profile-setup-screen {
+    display: none;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 480px;
+    margin: 20px auto;
+    padding: 30px 20px;
+    border-radius: 20px;
+    background: #FFFFFF;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+}
+
+/* 화면이 active 클래스를 가졌을 때의 표시 조건 */
+#signup-screen.active, #profile-setup-screen.active {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    height: auto !important;
+    overflow: visible !important;
+}
+
+/* 입력 필드 프리미엄 스타일 */
+.input-group {
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+.input-field {
+    width: 100%;
+    padding: 14px 18px;
+    font-size: 16px;
+    font-family: 'Gaegu', cursive, sans-serif;
+    border: 2px solid #FFE0B2;
+    border-radius: 12px;
+    outline: none;
+    background-color: #FFFDE7;
+    transition: all 0.25s ease;
+    box-sizing: border-box;
+}
+
+.input-field:focus {
+    border-color: #FFB300;
+    background-color: #FFFFFF;
+    box-shadow: 0 0 8px rgba(255, 179, 0, 0.25);
+    transform: translateY(-1px);
+}
+
+/* 에러 메시지 스타일 */
+.error-message {
+    width: 100%;
+    font-size: 15px;
+    color: #E53935;
+    background: #FFEBEE;
+    border: 1px solid #FFCDD2;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    text-align: center;
+    box-sizing: border-box;
+    display: none;
+    animation: shake 0.4s ease;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+}
+
+/* 회원가입/프로필 폼 컨테이너 */
+#signup-form, #login-form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* 버튼 세부 트랜지션 및 섀도우 */
+.btn {
+    font-family: 'Gaegu', cursive, sans-serif;
+    font-weight: bold;
+    border-radius: 12px;
+    padding: 12px 24px;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.btn:active {
+    transform: scale(0.97);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #FFB347, #FFCC33);
+    border: none;
+    color: #5D4037 !important;
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, #FFA000, #FFC107);
+    box-shadow: 0 6px 12px rgba(255, 160, 0, 0.2);
+}
+
+.btn-guest {
+    background-color: #ECEFF1;
+    border: 2px solid #CFD8DC;
+    color: #455A64 !important;
+}
+
+.btn-guest:hover {
+    background-color: #CFD8DC;
+}
+
+/* 로그인 화면 내 폼 마진 조율 */
+#login-form .btn {
+    width: 100%;
+    margin-top: 10px;
+}
+#signup-form .btn {
+    width: 100%;
+    margin-top: 10px;
+}
+#profile-start-button {
+    width: 100%;
+    margin-top: 10px;
+}
+
+/* 대기실 대표 고양이 요약 영역 스타일 */
+.selected-cat-summary {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: #FFFDE7;
+    border: 2px solid #FFE0B2;
+    border-radius: 16px;
+    padding: 12px 16px;
+    margin: 15px 0;
+    box-sizing: border-box;
+}
+
+.selected-cat-summary img {
+    width: 72px;
+    height: 72px;
+    object-fit: contain;
+    background: #FFFFFF;
+    border-radius: 12px;
+    border: 1px solid #FFE0B2;
+    flex-shrink: 0;
+}
+
+.selected-cat-summary span {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    text-align: left;
+}
+
+.selected-cat-summary small {
+    font-size: 12px;
+    color: #FF8F00;
+    font-weight: bold;
+}
+
+.selected-cat-summary strong {
+    font-size: 18px;
+    color: #5D4037;
+    font-family: 'Gaegu', cursive, sans-serif;
+}
+
+.selected-cat-summary em {
+    font-size: 12px;
+    color: #78909C;
+    font-style: normal;
+}
+
+.selected-cat-summary button {
+    font-family: 'Gaegu', cursive, sans-serif;
+    background: #FFB347;
+    border: none;
+    color: #5D4037;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+
+.selected-cat-summary button:hover {
+    background: #FFA000;
+}
+
+/* 도감 목록 한 열 배치 스타일 */
+.collection-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+
+.collection-item.cat-thumbnail-item {
+    display: flex;
+    align-items: center;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    padding: 12px 16px;
+    border-radius: 16px;
+    box-sizing: border-box;
+    border: 2px solid;
+    text-align: left;
+    gap: 16px;
+    background-color: #FAFAFA;
+}
+
+/* 등급별 테두리 및 그림자 색상 설정 */
+.collection-item.cat-thumbnail-item.rarity-normal { border-color: #B0BEC5; box-shadow: 0 4px 8px rgba(176, 190, 197, 0.25); }
+.collection-item.cat-thumbnail-item.rarity-rare { border-color: #81D4FA; box-shadow: 0 4px 8px rgba(129, 212, 250, 0.25); }
+.collection-item.cat-thumbnail-item.rarity-hero { border-color: #E1BEE7; box-shadow: 0 4px 8px rgba(225, 190, 231, 0.25); }
+.collection-item.cat-thumbnail-item.rarity-legendary { border-color: #FFE082; box-shadow: 0 4px 8px rgba(255, 224, 130, 0.25); }
+
+.cat-thumbnail-item__image {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    background: #FFFFFF;
+    border-radius: 12px;
+    border: 1px solid rgba(0,0,0,0.06);
+    flex-shrink: 0;
+}
+
+.cat-thumbnail-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0; /* text-overflow 방지 */
+}
+
+.cat-thumbnail-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.cat-thumbnail-header strong {
+    font-size: 18px;
+    color: #333;
+    font-family: 'Gaegu', cursive, sans-serif;
+}
+
+.cat-thumbnail-header .rarity-badge {
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 6px;
+    color: #fff;
+    font-weight: bold;
+}
+
+.cat-thumbnail-header .representative-badge {
+    font-size: 11px;
+    background-color: #4CAF50;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-weight: bold;
+}
+
+.cat-thumbnail-desc {
+    font-size: 13px;
+    color: #666;
+    margin-top: 4px;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 0;
+}
+
+/* 모바일 320px 미디어가 깨지지 않도록 여백 조율 */
+@media screen and (max-width: 360px) {
+    .selected-cat-summary {
+        gap: 8px;
+        padding: 8px 12px;
+    }
+    .selected-cat-summary img {
+        width: 56px;
+        height: 56px;
+    }
+    .selected-cat-summary strong {
+        font-size: 15px;
+    }
+    .collection-item.cat-thumbnail-item {
+        gap: 10px;
+        padding: 10px 12px;
+    }
+    .cat-thumbnail-item__image {
+        width: 48px;
+        height: 48px;
+    }
+    .cat-thumbnail-header strong {
+        font-size: 15px;
+    }
+}

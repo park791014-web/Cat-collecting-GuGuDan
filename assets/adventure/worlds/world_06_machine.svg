@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <defs>
+    <linearGradient id="grad-sky-mach" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1c313a"/>
+      <stop offset="60%" stop-color="#37474f"/>
+      <stop offset="100%" stop-color="#90a4ae"/>
+    </linearGradient>
+  </defs>
+  <!-- 하늘 -->
+  <rect width="800" height="800" fill="url(#grad-sky-mach)"/>
+  
+  <!-- 배경 기계 빌딩 실루엣 -->
+  <rect x="80" y="250" width="160" height="550" fill="#263238" opacity="0.8"/>
+  <rect x="110" y="320" width="30" height="50" fill="#ffd54f" opacity="0.3"/>
+  <rect x="170" y="320" width="30" height="50" fill="#ffd54f" opacity="0.3"/>
+  <rect x="110" y="420" width="30" height="50" fill="#ffd54f" opacity="0.3"/>
+  <rect x="170" y="420" width="30" height="50" fill="#ffd54f" opacity="0.3"/>
+
+  <rect x="520" y="200" width="200" height="600" fill="#263238" opacity="0.8"/>
+  <rect x="570" y="280" width="40" height="60" fill="#ffd54f" opacity="0.4"/>
+  <rect x="640" y="280" width="40" height="60" fill="#ffd54f" opacity="0.4"/>
+
+  <!-- 연결 파이프 및 톱니바퀴 장식 -->
+  <path d="M 0 350 L 300 350 L 300 800" fill="none" stroke="#546e7a" stroke-width="24"/>
+  <circle cx="300" cy="350" r="50" fill="#37474f" stroke="#263238" stroke-width="8"/>
+  <circle cx="300" cy="350" r="20" fill="#90a4ae"/>
+
+  <!-- 바닥 금속지판 -->
+  <path d="M 0 660 Q 250 630 500 660 Q 680 690 800 660 L 800 800 L 0 800 Z" fill="#455a64" stroke="#263238" stroke-width="8"/>
+</svg>
