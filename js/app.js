@@ -11,10 +11,13 @@
     const v2 = window.GugudanV2 || {};
     const gameConfig = v2.gameConfig || {};
     let db = null;
+    let auth = null;
     try {
         if (window.firebase) {
             firebase.initializeApp(firebaseConfig);
             db = firebase.firestore();
+            auth = firebase.auth();
+            v2.auth = auth;
         } else {
             console.warn('[Firebase] SDK를 불러오지 못했습니다. 게스트 게임은 계속 이용할 수 있습니다.');
         }
