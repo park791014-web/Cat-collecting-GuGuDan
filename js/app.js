@@ -11,13 +11,10 @@
     const v2 = window.GugudanV2 || {};
     const gameConfig = v2.gameConfig || {};
     let db = null;
-    let auth = null;
     try {
         if (window.firebase) {
             firebase.initializeApp(firebaseConfig);
             db = firebase.firestore();
-            auth = firebase.auth();
-            v2.auth = auth;
         } else {
             console.warn('[Firebase] SDK를 불러오지 못했습니다. 게스트 게임은 계속 이용할 수 있습니다.');
         }
@@ -79,119 +76,82 @@
     let answerLocked = false;
     
     let lastQuestionStr = ""; 
-    let unsubscribeUserDoc = null;
 
     // 4-5. 기존 기기별 데이터 안전 병합 함수 (멱등 방식)
     function mergeLegacyData(remote, local) {
         if (!remote) return local;
         if (!local) return remote;
         
-        const merged = JSON.parse(JSON.stringify(remote));
-        
-        // 1. 보유 고양이 (합집합)
-        const remoteOwned = remote.collection?.ownedCatIds || ['base_normal_01'];
-        const localOwned = local.collection?.ownedCatIds || ['base_normal_01'];
-        const mergedOwnedSet = new Set([...remoteOwned, ...localOwned]);
-        if (!merged.collection) merged.collection = {};
-        merged.collection.ownedCatIds = Array.from(mergedOwnedSet);
-        
-        // 2. 중복 횟수와 조각 (Math.max)
-        const remoteDup = remote.collection?.duplicateCounts || {};
-        const localDup = local.collection?.duplicateCounts || {};
-        const mergedDup = {};
-        const allCatIds = new Set([...Object.keys(remoteDup), ...Object.keys(localDup)]);
-        allCatIds.forEach(catId => {
-            mergedDup[catId] = Math.max(Number(remoteDup[catId]) || 0, Number(localDup[catId]) || 0);
-        });
-        merged.collection.duplicateCounts = mergedDup;
-        
-        const remoteFrags = remote.collection?.catFragments || {};
-        const localFrags = local.collection?.catFragments || {};
-        const mergedFrags = {};
-        ['normal', 'rare', 'hero', 'legendary'].forEach(rarity => {
-            mergedFrags[rarity] = Math.max(Number(remoteFrags[rarity]) || 0, Number(localFrags[rarity]) || 0);
-        });
-        merged.collection.catFragments = mergedFrags;
-        
-        // 3. 코인, 뽑기권, 포인트 (Math.max)
-        if (!merged.currency) merged.currency = {};
-        const remoteCoins = remote.currency?.coins || 0;
-        const localCoins = local.currency?.coins || 0;
-        merged.currency.coins = Math.max(Number(remoteCoins) || 0, Number(localCoins) || 0);
-        
-        const remoteNormal = remote.currency?.normalTickets || 0;
-        const localNormal = local.currency?.normalTickets || 0;
-        merged.currency.normalTickets = Math.max(Number(remoteNormal) || 0, Number(localNormal) || 0);
-        
-        const remotePremium = remote.currency?.premiumTickets || 0;
-        const localPremium = local.currency?.premiumTickets || 0;
-        merged.currency.premiumTickets = Math.max(Number(remotePremium) || 0, Number(localPremium) || 0);
-        
-        const remotePoints = remote.totalPoints || 0;
-        const localPoints = local.totalPoints || 0;
-        merged.totalPoints = Math.max(Number(remotePoints) || 0, Number(localPoints) || 0);
-        
-        // 4. 대모험 진행도
-        if (!merged.adventureProgress) merged.adventureProgress = { unlockedWorldIds: ['world_01'], unlockedStageIds: ['stage_01_01'], clearedStageIds: [], stageRecords: {} };
-        const remoteAdv = remote.adventureProgress || {};
-        const localAdv = local.adventureProgress || {};
-        
-        const remoteCleared = remoteAdv.clearedStageIds || [];
-        const localCleared = localAdv.clearedStageIds || [];
-        merged.adventureProgress.clearedStageIds = Array.from(new Set([...remoteCleared, ...localCleared]));
-        
-        const remoteUnlockedW = remoteAdv.unlockedWorldIds || ['world_01'];
-        const localUnlockedW = localAdv.unlockedWorldIds || ['world_01'];
-        merged.adventureProgress.unlockedWorldIds = Array.from(new Set([...remoteUnlockedW, ...localUnlockedW]));
-        
-        const remoteUnlockedS = remoteAdv.unlockedStageIds || ['stage_01_01'];
-        const localUnlockedS = localAdv.unlockedStageIds || ['stage_01_01'];
-        merged.adventureProgress.unlockedStageIds = Array.from(new Set([...remoteUnlockedS, ...localUnlockedS]));
-        
-        const remoteRecords = remoteAdv.stageRecords || {};
-        const localRecords = localAdv.stageRecords || {};
-        const mergedRecords = {};
-        const allStageIds = new Set([...Object.keys(remoteRecords), ...Object.keys(localRecords)]);
-        allStageIds.forEach(stageId => {
-            const rRec = remoteRecords[stageId] || {};
-            const lRec = localRecords[stageId] || {};
-            mergedRecords[stageId] = {
-                cleared: Boolean(rRec.cleared || lRec.cleared),
-                bestStars: Math.max(Number(rRec.bestStars) || 0, Number(lRec.bestStars) || 0),
-                bestScore: Math.max(Number(rRec.bestScore) || 0, Number(lRec.bestScore) || 0),
-                bestAccuracy: Math.max(Number(rRec.bestAccuracy) || 0, Number(lRec.bestAccuracy) || 0),
-                bestCombo: Math.max(Number(rRec.bestCombo) || 0, Number(lRec.bestCombo) || 0),
-                bestRemainingLives: Math.max(Number(rRec.bestRemainingLives) || 0, Number(lRec.bestRemainingLives) || 0),
-                clearCount: (Number(rRec.clearCount) || 0) + (Number(lRec.clearCount) || 0),
-                firstClearedAt: rRec.firstClearedAt || lRec.firstClearedAt || null,
-                lastPlayedAt: rRec.lastPlayedAt || lRec.lastPlayedAt || null
-            };
-        });
-        merged.adventureProgress.stageRecords = mergedRecords;
-        
-        // 5. 대표 고양이
-        let selectedCat = remote.profile?.selectedCatId || '';
-        if (!selectedCat || merged.collection.ownedCatIds.indexOf(selectedCat) < 0) {
-            selectedCat = local.profile?.selectedCatId || '';
-        }
-        if (!selectedCat || merged.collection.ownedCatIds.indexOf(selectedCat) < 0) {
-            selectedCat = 'base_normal_01';
-        }
-        if (!merged.profile) merged.profile = {};
-        merged.profile.selectedCatId = selectedCat;
-        
+        const merged = {
+            ...local,
+            ...remote,
+            adventureProgress: {
+                unlockedWorlds: Array.from(new Set([
+                    ...(local.adventureProgress?.unlockedWorlds || []),
+                    ...(remote.adventureProgress?.unlockedWorlds || [])
+                ])),
+                clearedStages: Array.from(new Set([
+                    ...(local.adventureProgress?.clearedStages || []),
+                    ...(remote.adventureProgress?.clearedStages || [])
+                ])),
+                worldStages: {
+                    ...(local.adventureProgress?.worldStages || {}),
+                    ...(remote.adventureProgress?.worldStages || {})
+                }
+            },
+            collection: {
+                ownedCatIds: Array.from(new Set([
+                    ...(local.collection?.ownedCatIds || []),
+                    ...(remote.collection?.ownedCatIds || [])
+                ])),
+                duplicateCounts: {
+                    ...(local.collection?.duplicateCounts || {}),
+                    ...(remote.collection?.duplicateCounts || {})
+                },
+                pieces: {
+                    ...(local.collection?.pieces || {}),
+                    ...(remote.collection?.pieces || {})
+                }
+            },
+            currency: {
+                coins: Math.max(local.currency?.coins || 0, remote.currency?.coins || 0),
+                normalTickets: Math.max(local.currency?.normalTickets || 0, remote.currency?.normalTickets || 0),
+                premiumTickets: Math.max(local.currency?.premiumTickets || 0, remote.currency?.premiumTickets || 0),
+                seasonTickets: {
+                    ...(local.currency?.seasonTickets || {}),
+                    ...(remote.currency?.seasonTickets || {})
+                }
+            },
+            dailyMissions: {
+                ...(local.dailyMissions || {}),
+                ...(remote.dailyMissions || {})
+            },
+            rewardHistory: {
+                ...(local.rewardHistory || {}),
+                ...(remote.rewardHistory || {})
+            },
+            profile: {
+                nickname: remote.profile?.nickname || local.profile?.nickname || '',
+                selectedCatId: remote.profile?.selectedCatId || local.profile?.selectedCatId || 'base_normal_01'
+            },
+            totalPoints: Math.max(local.totalPoints || 0, remote.totalPoints || 0),
+            level: Math.max(local.level || 1, remote.level || 1)
+        };
         return merged;
     }
 
-    if (auth) {
-        auth.getRedirectResult().catch(function(err) {
-            console.error("[Firebase Redirect Auth Error]", err);
-            if (err.code === 'auth/unauthorized-domain') {
-                alert("Firebase 승인된 도메인 설정을 확인해 주세요.");
-            } else if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
-                alert("Google 로그인이 취소되었습니다.");
-            }
-        });
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
+        document.getElementById(screenId).classList.add('active-screen');
+        document.body.classList.toggle('is-admin-mode', screenId === 'admin-screen');
+    }
+
+    let unsubscribeUserDoc = null;
+    v2.initAuthFlow = function() {
+        if (!auth) {
+            console.warn('[Firebase] Auth 서비스 계정이 유효하지 않습니다.');
+            return;
+        }
 
         auth.onAuthStateChanged(async function(user) {
             if (unsubscribeUserDoc) {
@@ -226,10 +186,12 @@
 
             const uid = user.uid;
             console.debug("[Google Authenticated User]", { uid: uid, email: user.email });
-            console.debug("[Admin UID Verification Check]", {
-                currentUid: uid,
-                targetAdminUid: OWNER_ADMIN_UID,
-                isMatch: uid === OWNER_ADMIN_UID
+            console.debug("[Auth Load Debug Info]", {
+                uid: user.uid,
+                email: user.email,
+                emailVerified: user.emailVerified,
+                providers: user.providerData?.map(p => p.providerId),
+                attemptedPath: "users/" + user.uid
             });
 
             currentSession = {
@@ -271,7 +233,13 @@
                     showScreen('profile-setup-screen');
                 }
             } catch (err) {
-                console.error("[Auth Load Failed]", err);
+                console.error("[Auth Load Failed]", {
+                    code: err?.code,
+                    message: err?.message,
+                    uid: auth.currentUser?.uid,
+                    path: "users/" + auth.currentUser?.uid,
+                    operation: "get"
+                });
                 alert("사용자 정보를 가져오는 도중 오류가 발생했습니다.");
             } finally {
                 toggleLoading(false);
@@ -332,20 +300,7 @@
                 code: err?.code,
                 message: err?.message
             });
-            if (err.code === 'auth/popup-blocked') {
-                try {
-                    await auth.signInWithRedirect(provider);
-                } catch (redirErr) {
-                    console.error("[Google Redirect Retry Error]", redirErr);
-                    alert("로그인 처리 중 오류가 발생했습니다.");
-                }
-            } else if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
-                alert("Google 로그인이 취소되었습니다.");
-            } else if (err.code === 'auth/unauthorized-domain') {
-                alert("Firebase 승인된 도메인 설정을 확인해 주세요.");
-            } else {
-                alert("로그인 처리 중 오류가 발생했습니다.");
-            }
+            alert("Google 로그인 중 오류가 발생했습니다냥: " + (err && err.message));
         } finally {
             loginWithGoogle.inProgress = false;
             toggleLoading(false);
@@ -353,84 +308,66 @@
     }
 
     async function setupNewProfile() {
-        const nicknameInput = document.getElementById('new-nickname-input');
-        if (!nicknameInput) return;
-        const nickname = nicknameInput.value.trim();
-
-        if (nickname.length < 2 || nickname.length > 12) {
-            return alert("닉네임은 2자 이상 12자 이하로 작성해 주세요냥!");
-        }
-        if (!/^[a-zA-Z0-9가-힣ㄱ-ㅎㅏ-ㅣ\s]+$/.test(nickname)) {
-            return alert("닉네임에는 한글, 영문, 숫자만 사용할 수 있습니다냥!");
+        const nickname = document.getElementById('new-nickname-input').value.trim();
+        const nicknameRegex = /^[a-zA-Z0-9가-힣]{2,12}$/;
+        if (!nicknameRegex.test(nickname)) {
+            return alert("닉네임은 2~12자의 한글, 영문, 숫자만 사용할 수 있습니다냥!");
         }
 
-        if (!currentUser) {
-            return alert("인증 정보가 없습니다. 로그인을 다시 시도해 주세요냥.");
-        }
+        const user = auth ? auth.currentUser : null;
+        if (!user) return alert("로그인 세션이 만료되었습니다냥.");
+        const uid = user.uid;
 
-        toggleLoading(true);
         try {
-            const uid = currentUser;
+            toggleLoading(true);
             const userRef = db.collection('users').doc(uid);
-            
-            let finalData = null;
 
-            await db.runTransaction(async function(transaction) {
-                const snapshot = await transaction.get(userRef);
-                if (snapshot.exists) {
-                    const currentData = snapshot.data() || {};
-                    const updatedProfile = currentData.profile || {};
-                    updatedProfile.nickname = nickname;
-                    updatedProfile.selectedCatId = updatedProfile.selectedCatId || 'base_normal_01';
-                    
-                    transaction.set(userRef, {
-                        profile: updatedProfile,
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    }, { merge: true });
+            const result = await db.runTransaction(async function(transaction) {
+                const doc = await transaction.get(userRef);
+                if (doc.exists) {
+                    const data = doc.data();
+                    if (data.profile && data.profile.nickname) {
+                        return { success: true, isNew: false, data: data };
+                    }
+                    const updatedProfile = {
+                        ...(data.profile || {}),
+                        nickname: nickname
+                    };
+                    transaction.update(userRef, { profile: updatedProfile });
+                    return { success: true, isNew: false, data: { ...data, profile: updatedProfile } };
                 } else {
-                    const defaults = JSON.parse(JSON.stringify(v2.storageService.defaults || {
-                        profile: { selectedCatId: 'base_normal_01', nickname: nickname },
-                        collection: { ownedCatIds: ['base_normal_01'], duplicateCounts: {} },
-                        currency: { coins: 1000, normalTickets: 3, premiumTickets: 0, seasonTickets: {} },
-                        classicRecord: { totalPoints: 0, bestCombo: 0, bestAccuracy: 0, playedCount: 0 },
-                        timeAttackRecord: { bestCorrectCount: 0, bestAccuracy: 0, playedCount: 0 },
-                        adventureProgress: { clearedStageIds: [], unlockedWorldIds: ['world_01'], unlockedStageIds: ['stage_01_01'], stageRecords: {} },
-                        settings: { soundEnabled: true },
-                        unclaimedAchievements: [],
-                        completedAchievements: []
-                    }));
-
-                    defaults.profile.nickname = nickname;
-                    defaults.profile.selectedCatId = defaults.profile.selectedCatId || 'base_normal_01';
-                    defaults.scoringVersion = 4;
-                    defaults.totalPoints = 0;
-                    defaults.level = 1;
-                    defaults.lastRewardedLevel = 1;
-                    defaults.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-                    defaults.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
-
+                    const defaults = {
+                        adventureProgress: { clearedStages: [], unlockedWorlds: ['world_01'], worldStages: {} },
+                        collection: { duplicateCounts: {}, ownedCatIds: ['base_normal_01'], pieces: {} },
+                        currency: { coins: 0, normalTickets: 1, premiumTickets: 0, seasonTickets: {} },
+                        dailyMissions: {},
+                        rewardHistory: {},
+                        profile: { nickname: nickname, selectedCatId: 'base_normal_01' },
+                        totalPoints: 0,
+                        level: 1,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
                     transaction.set(userRef, defaults);
+                    return { success: true, isNew: true, data: defaults };
                 }
             });
 
-            const refreshedDoc = await userRef.get();
-            finalData = refreshedDoc.data();
-
-            currentUserData = finalData;
-            currentProfile = {
-                ...finalData,
-                uid: uid
-            };
-            window.currentProfile = currentProfile;
-            v2.storageService.saveSaveData(finalData);
-
-            console.log("[New User Profile Created/Merged]", uid, nickname);
-            nicknameInput.value = '';
-
-            refreshAdminAccessUI(auth ? auth.currentUser : null);
-            showLobby();
-            connectRealtimeListener(userRef, uid);
-
+            if (result.success) {
+                currentUser = uid;
+                currentUserData = result.data;
+                currentProfile = {
+                    ...result.data,
+                    uid: uid
+                };
+                window.currentProfile = currentProfile;
+                v2.storageService.saveSaveData(result.data);
+                refreshAdminAccessUI(user);
+                
+                console.log(result.isNew ? "[New User Profile Created]" : "[Existing User Profile Linked]");
+                showLobby();
+                connectRealtimeListener(userRef, uid);
+            }
         } catch (err) {
             console.error("[Profile Setup Failed]", err);
             alert("프로필 생성 중 오류가 발생했습니다. 다시 시도해 주세요냥.");
@@ -485,12 +422,13 @@
 
     const OWNER_ADMIN_UID = "9K1X8FA8MvYLOycqZrc6Iw0s5cC3";
 
-    function isOwnerAdmin(user) {
-        return Boolean(
-            user &&
-            user.isAnonymous !== true &&
-            user.uid === OWNER_ADMIN_UID
+        function isOwnerAdmin(user) {
+        if (!user || user.isAnonymous) return false;
+        const email = String(user.email || "").trim().toLowerCase();
+        const isGoogleUser = user.providerData?.some(
+            provider => provider.providerId === "google.com"
         );
+        return email === "park791014@gmail.com" && isGoogleUser && user.emailVerified === true;
     }
     window.isOwnerAdmin = isOwnerAdmin;
 
@@ -526,6 +464,8 @@
             showLobby();
             return;
         }
+        toggleLoading(true);
+        const listDiv = document.getElementById('admin-list');
         listDiv.innerHTML = '';
         try {
             const snapshot = await db.collection('users').get();
@@ -571,111 +511,37 @@
     function applyGuestState(session) {
         currentUser = session.id;
         currentUserData = {
-            profile: { nickname: session.nickname, selectedCatId: session.representativeCatId },
-            collection: { ownedCatIds: session.ownedCats, duplicateCounts: {} },
-            currency: { coins: session.coins, normalTickets: 0, premiumTickets: 0, seasonTickets: {} },
-            totalPoints: session.totalPoints,
-            level: session.level,
-            classicRecord: { totalPoints: session.totalPoints, bestCombo: 0, bestAccuracy: 0, playedCount: 0 },
-            timeAttackRecord: { bestCorrectCount: 0, bestAccuracy: 0, playedCount: 0 },
-            adventureProgress: { clearedStageIds: [], unlockedWorldIds: ['world_01'], unlockedStageIds: ['stage_01_01'], stageRecords: {} },
-            settings: { soundEnabled: true }
-        };
-        isGuestMode = true;
-        currentSession = {
-            uid: session.id,
-            email: "",
-            isGuest: true,
-            isAdmin: false
+            profile: { nickname: "GUEST_" + session.id.slice(0, 5), selectedCatId: "base_normal_01" },
+            currency: { coins: 0, normalTickets: 0, premiumTickets: 0, seasonTickets: {} },
+            collection: { ownedCatIds: ["base_normal_01"], duplicateCounts: {}, pieces: {} },
+            level: 1,
+            totalPoints: 0
         };
         currentProfile = {
             ...currentUserData,
             uid: session.id
         };
-        window.currentSession = currentSession;
         window.currentProfile = currentProfile;
-        v2.storageService.setStorageKey("nyanko:v4:guest:cache");
+        isGuestMode = true;
         v2.storageService.saveSaveData(currentUserData);
     }
 
-    function createFreshGuestSession() {
-        sessionStorage.removeItem(GUEST_SESSION_KEY);
-        const guestSession = {
-            id: (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') ? crypto.randomUUID() : 'guest_' + Math.random().toString(36).substring(2, 15),
-            nickname: "게스트",
-            totalPoints: 0,
-            level: 1,
-            coins: 1000,
-            ownedCats: ['base_normal_01'],
-            representativeCatId: 'base_normal_01',
-            createdAt: Date.now()
-        };
-        sessionStorage.setItem(GUEST_SESSION_KEY, JSON.stringify(guestSession));
-        applyGuestState(guestSession);
-    }
-
-    function clearGuestState() {
-        currentUser = null;
-        currentUserData = null;
-        isGuestMode = false;
-        currentSession = null;
-        currentProfile = null;
-        window.currentSession = null;
-        window.currentProfile = null;
-        if (v2.storageService && typeof v2.storageService.clearInMemoryUserState === 'function') {
-            v2.storageService.clearInMemoryUserState();
-        }
-    }
-
-    async function playAsGuest() {
+    function playAsGuest() {
         initAudio();
-        toggleLoading(true);
-        try {
-            if (auth && auth.currentUser) {
-                await auth.signOut();
-            }
-            if (unsubscribeUserDoc) {
-                unsubscribeUserDoc();
-                unsubscribeUserDoc = null;
-            }
-            clearGuestState();
-            refreshAdminAccessUI(null);
-            createFreshGuestSession();
-            showLobby();
-        } catch (error) {
-            console.error("[Guest Mode Start Error]", error);
-            alert("게스트 로그인 처리 중 오류가 발생했습니다.");
-        } finally {
-            toggleLoading(false);
-        }
+        const sessionId = "guest_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9);
+        const session = { id: sessionId, createdAt: Date.now() };
+        sessionStorage.setItem(GUEST_SESSION_KEY, JSON.stringify(session));
+        
+        applyGuestState(session);
+        showLobby();
     }
+
     async function logout() {
-        window.__nyankoAdminSession = false;
-        sessionStorage.removeItem("nyanko:guest:temporary-session");
-        refreshAdminAccessUI(null);
-        const adminBtnContainer = document.getElementById('admin-button-container');
-        if (adminBtnContainer) adminBtnContainer.innerHTML = '';
-
-        if (v2.storageService) {
-            var currentSave = v2.storageService.loadSaveData();
-            v2.storageService.saveSaveData(currentSave);
-            if (typeof v2.storageService.clearInMemoryUserState === 'function') {
-                v2.storageService.clearInMemoryUserState();
-            }
-        }
-        currentUser = null;
-        currentUserData = null;
-        isGuestMode = false;
-        document.getElementById('lobby-selected-cat').innerHTML = '';
-        document.getElementById('collection-grid').innerHTML = '';
-        const uIn = document.getElementById('username-input');
-        if (uIn) uIn.value = "";
-        const pIn = document.getElementById('password-input');
-        if (pIn) pIn.value = "";
-
-        if (auth && auth.currentUser) {
+        if (isGuestMode) {
+            sessionStorage.removeItem(GUEST_SESSION_KEY);
+        } else {
             try {
-                await auth.signOut();
+                if (auth) await auth.signOut();
             } catch (err) {
                 console.error("[Logout signout error]", err);
             }
@@ -1101,12 +967,10 @@
                     currentUserData = uData;
                 });
 
-                // V4 랭킹 제출 (사용자 고유 UID 기준 동기화)
-                const uid = (auth && auth.currentUser) ? auth.currentUser.uid : currentUser;
-                const targetNickname = (currentUserData.profile && currentUserData.profile.nickname) || currentUser;
+                // V4 랭킹 제출
                 await v2.rankingService.submitOverall({
-                    playerId: uid,
-                    nickname: targetNickname,
+                    playerId: save.profile.playerId,
+                    nickname: currentUser,
                     points: currentUserData.totalPoints,
                     monthlyPoints: currentUserData.monthlyScore,
                     score: earnedPoints,
@@ -1116,8 +980,8 @@
                 if (mode === 'timeAttack' && currentUserData.timeAttackBestObjV4) {
                     var bestObj = currentUserData.timeAttackBestObjV4;
                     await v2.rankingService.submitScore({
-                        playerId: uid,
-                        nickname: targetNickname,
+                        playerId: save.profile.playerId,
+                        nickname: currentUser,
                         correctCount: bestObj.bestCorrectCount,
                         wrongCount: bestObj.wrongCount,
                         accuracy: bestObj.accuracy,
@@ -1140,19 +1004,6 @@
             refreshHomeStatsFromCurrentUser();
             if (typeof refreshLeaderboardSummaryIfVisible === 'function') {
                 refreshLeaderboardSummaryIfVisible();
-            }
-
-            if (mode === 'timeAttack') {
-                const finalUid = (auth && auth.currentUser) ? auth.currentUser.uid : currentUser;
-                console.debug("[Time Attack Finalized]", {
-                    sessionId: result.sessionId,
-                    uid: finalUid,
-                    correctCount: correctCount,
-                    sessionPoints: earnedPoints,
-                    totalPointsAfter: currentUserData.totalPoints,
-                    monthlyBestAfter: (currentUserData.timeAttackBestObjV4 ? currentUserData.timeAttackBestObjV4.bestCorrectCount : 0),
-                    allTimeBestAfter: (currentUserData.timeAttackBestObjV4 ? currentUserData.timeAttackBestObjV4.bestCorrectCount : 0)
-                });
             }
 
         } catch (error) {
@@ -1181,8 +1032,7 @@
     async function reloadCurrentUserStats() {
         if (isGuestMode || !currentUser) return;
         try {
-            const uid = (auth && auth.currentUser) ? auth.currentUser.uid : currentUser;
-            var doc = await db.collection('users').doc(uid).get();
+            var doc = await db.collection('users').doc(currentUser).get();
             if (doc.exists) {
                 currentUserData = doc.data();
             }

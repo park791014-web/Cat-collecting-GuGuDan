@@ -5,7 +5,8 @@ service cloud.firestore {
     // 관리자 확인 함수
     function isOwnerAdmin() {
       return request.auth != null
-        && request.auth.uid == "9K1X8FA8MvYLOycqZrc6Iw0s5cC3";
+        && request.auth.token.email_verified == true
+        && request.auth.token.email == "park791014@gmail.com";
     }
 
     match /users/{userId} {
