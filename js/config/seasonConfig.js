@@ -1,1 +1,0 @@
-(function(global){'use strict';global.GugudanV2=global.GugudanV2||{};global.GugudanV2.seasonConfig=Object.freeze({policies:['permanent','unavailable','limited_return','special_shop'],showUpcoming:false,claimGracePeriodDays:3,onboardingVersion:1,previewPersistence:false});})(window);
