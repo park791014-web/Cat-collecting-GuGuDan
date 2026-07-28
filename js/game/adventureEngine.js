@@ -625,6 +625,7 @@
   }
 
   function showAdventureResultUI(session) {
+    var savedResult = arguments[1];
     resultRenderCount += 1;
     var isStageCleared = session.success;
     var correctCount = session.correctCount;
@@ -637,8 +638,10 @@
     else if (accuracy >= 80) stars = 2;
     if (!isStageCleared) stars = 0;
 
-    var claim = v2.rewardService.claimStageRewards({ sessionId: session.sessionId, stage: stage, cleared: isStageCleared, stars: stars });
-    var playReward = v2.modeRewardService.claim('adventure', { score: correctCount * 10, correctCount: correctCount, totalQuestions: totalQuestions }, { cleared: isStageCleared });
+    var authenticatedResult = savedResult && savedResult.guest === false;
+    var claim = authenticatedResult
+      ? { ok: isStageCleared && !savedResult.duplicate, reward: savedResult.adventureReward || { coins: 0, normalTickets: 0, premiumTickets: 0 }, firstClear: savedResult.adventureFirstClear }
+      : v2.rewardService.claimStageRewards({ sessionId: session.sessionId, stage: stage, cleared: isStageCleared, stars: stars });
     
     var cat = selectedCat(); 
     byId('adventure-result-number').textContent = 'STAGE ' + stage.displayNumber; 
@@ -649,7 +652,12 @@
     byId('adventure-result-stars').textContent = '★'.repeat(stars) + '☆'.repeat(3 - stars); 
     byId('adventure-result-stats').innerHTML = '<span>점수 <b>' + (correctCount * 10) + '</b></span><span>정답 <b>' + correctCount + '</b></span><span>정확도 <b>' + accuracy + '%</b></span>'; 
     
-    byId('adventure-rewards').textContent = (claim.ok ? '스테이지 보상 코인 ' + claim.reward.coins + ' · 일반 티켓 ' + claim.reward.normalTickets : '') + (playReward.ok ? ' · 플레이 보상 +' + playReward.parts.total + '코인' : ''); 
+    var rewardParts = [];
+    if (claim.ok && claim.reward.coins) rewardParts.push('코인 +' + claim.reward.coins);
+    if (claim.ok && claim.reward.normalTickets) rewardParts.push('일반 뽑기권 +' + claim.reward.normalTickets);
+    if (claim.ok && claim.reward.premiumTickets) rewardParts.push('고급 뽑기권 +' + claim.reward.premiumTickets);
+    if (authenticatedResult && savedResult.levelRewardPremiumTickets) rewardParts.push('레벨업 보상: 고급 뽑기권 +' + savedResult.levelRewardPremiumTickets);
+    byId('adventure-rewards').textContent = claim.ok ? ((claim.firstClear || claim.reward.firstClear) ? '최초 클리어 보상: ' : '반복 클리어 보상: ') + rewardParts.join(' · ') : '';
     
     var parts = stage.id.split('_');
     var stageOrder = parseInt(parts[1]);

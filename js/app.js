@@ -461,62 +461,23 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
         v2.storageService.saveSaveData(save);
     }
 
-    // 일일 미션 진행도 업데이트 헬퍼
-    function updateMissionsProgress(userData, mode, correctCount, totalCount, success) {
-        const today = new Date();
-        const dateKey = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
-        
-        userData.dailyMissions = userData.dailyMissions || {};
-        if (userData.dailyMissions.dateKey !== dateKey) {
-            userData.dailyMissions.dateKey = dateKey;
-            userData.dailyMissions.missions = {
-                correct_30: { progress: 0, target: 30, completed: false, claimed: false },
-                timeattack_3: { progress: 0, target: 3, completed: false, claimed: false },
-                adventure_5: { progress: 0, target: 5, completed: false, claimed: false },
-                perfect_10: { progress: 0, target: 10, completed: false, claimed: false }
-            };
-        }
+    function ensureDailyMissionState(userData, referenceDate, playerId) {
+        const holder = {
+            profile: Object.assign({}, userData.profile || {}, { playerId: playerId || userData.profile?.playerId || userData.profile?.userId || null }),
+            dailyMissions: userData.dailyMissions || null
+        };
+        userData.dailyMissions = v2.dailyMissionService.ensureDailyMissions(holder, referenceDate);
+        return userData.dailyMissions;
+    }
 
-        const m = userData.dailyMissions.missions;
-        const missionChanges = {};
-        
-        if (m.correct_30 && !m.correct_30.completed) {
-            const before = m.correct_30.progress;
-            m.correct_30.progress = Math.min(m.correct_30.target, m.correct_30.progress + correctCount);
-            if (m.correct_30.progress >= m.correct_30.target) m.correct_30.completed = true;
-            missionChanges.correct_30 = { before, after: m.correct_30.progress };
-        }
-        
-        if (mode === 'timeAttack' && m.timeattack_3 && !m.timeattack_3.completed) {
-            const before = m.timeattack_3.progress;
-            m.timeattack_3.progress = Math.min(m.timeattack_3.target, m.timeattack_3.progress + 1);
-            if (m.timeattack_3.progress >= m.timeattack_3.target) m.timeattack_3.completed = true;
-            missionChanges.timeattack_3 = { before, after: m.timeattack_3.progress };
-        }
-
-        if (mode === 'adventure' && m.adventure_5 && !m.adventure_5.completed) {
-            const before = m.adventure_5.progress;
-            m.adventure_5.progress = Math.min(m.adventure_5.target, m.adventure_5.progress + 1);
-            if (m.adventure_5.progress >= m.adventure_5.target) m.adventure_5.completed = true;
-            missionChanges.adventure_5 = { before, after: m.adventure_5.progress };
-        }
-
-        // 100% 정답 미션 누적
-        const isPerfect = (totalCount > 0 && correctCount === totalCount);
-        if (isPerfect && m.perfect_10 && !m.perfect_10.completed) {
-            const before = m.perfect_10.progress;
-            m.perfect_10.progress = Math.min(m.perfect_10.target, m.perfect_10.progress + 1);
-            if (m.perfect_10.progress >= m.perfect_10.target) m.perfect_10.completed = true;
-            missionChanges.perfect_10 = { before, after: m.perfect_10.progress };
-        }
-
-        console.log("[MISSION UPDATE PLAN]", {
-            sessionId: window.gameSession ? window.gameSession.sessionId : 'unknown',
-            mode: mode,
-            correctCount: correctCount,
-            totalCount: totalCount,
-            missionChanges: missionChanges
+    function calculateBestCombo(questionResults) {
+        let currentCombo = 0;
+        let bestCombo = 0;
+        (questionResults || []).forEach(result => {
+            currentCombo = result && result.isCorrect ? currentCombo + 1 : 0;
+            bestCombo = Math.max(bestCombo, currentCombo);
         });
+        return bestCombo;
     }
 
     // 공통 게임 세션 전역 변수
@@ -750,16 +711,91 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
         document.body.appendChild(modal);
     }
 
+    async function persistDailyMissionDateIfNeeded(userRef, userData, referenceDate) {
+        const before = JSON.stringify(userData.dailyMissions || null);
+        ensureDailyMissionState(userData, referenceDate, userRef.id);
+        if (JSON.stringify(userData.dailyMissions) !== before) {
+            const patch = {
+                dailyMissions: userData.dailyMissions,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            logUserDocumentWrite('persistDailyMissionDateIfNeeded', userRef.id, patch);
+            await userRef.update(patch);
+            return true;
+        }
+        return false;
+    }
+
     async function refreshCurrentUserData() {
         if (isGuestMode) return;
         const user = auth.currentUser;
         if (!user) return;
-        const userDoc = await db.collection('users').doc(user.uid).get();
+        const userRef = db.collection('users').doc(user.uid);
+        const userDoc = await userRef.get();
         if (userDoc.exists) {
             currentUserData = migrateUserDataToV3(userDoc.data());
+            await persistDailyMissionDateIfNeeded(userRef, currentUserData);
             syncFirestoreDataToLocal(currentUserData, user.uid);
         }
     }
+    window.refreshCurrentUserData = refreshCurrentUserData;
+
+    async function claimDailyMissionTransaction(missionId) {
+        const user = auth.currentUser;
+        if (isGuestMode || !user) return { ok: false, reason: 'unauthenticated' };
+        const referenceDate = new Date();
+        const dateKey = v2.dailyMissionService.getKoreaDateKey(referenceDate);
+        const userRef = db.collection('users').doc(user.uid);
+        let outcome = { ok: false, reason: 'unknown' };
+
+        console.info('[DAILY MISSION CLAIM START]', { missionId, dateKey });
+        await db.runTransaction(async transaction => {
+            const userDoc = await transaction.get(userRef);
+            if (!userDoc.exists) throw new Error('user_document_missing');
+
+            const userData = userDoc.data();
+            userData.profile = userData.profile || {};
+            userData.currency = userData.currency || {};
+            const beforeDaily = JSON.stringify(userData.dailyMissions || null);
+            const daily = ensureDailyMissionState(userData, referenceDate, user.uid);
+            const config = v2.dailyMissionConfig[missionId];
+            const state = daily.missions && daily.missions[missionId];
+            let reason = null;
+
+            if (!config || daily.dateKey !== dateKey || daily.activeMissionIds.indexOf(missionId) < 0 || !state) reason = 'missing';
+            else if (!state.completed) reason = 'incomplete';
+            else if (state.claimed) reason = 'claimed';
+
+            if (reason) {
+                if (JSON.stringify(daily) !== beforeDaily) {
+                    transaction.update(userRef, {
+                        dailyMissions: daily,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+                outcome = { ok: false, reason };
+                return;
+            }
+
+            const reward = config.reward || {};
+            state.claimed = true;
+            state.claimedAt = referenceDate.toISOString();
+            transaction.update(userRef, {
+                dailyMissions: daily,
+                'currency.coins': (Number(userData.currency.coins) || 0) + (Number(reward.coins) || 0),
+                'currency.normalTickets': (Number(userData.currency.normalTickets) || 0) + (Number(reward.normalTickets) || 0),
+                'currency.premiumTickets': (Number(userData.currency.premiumTickets) || 0) + (Number(reward.premiumTickets) || 0),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            outcome = { ok: true, reward };
+        });
+
+        if (outcome.ok) console.info('[DAILY MISSION CLAIM SUCCESS]', { missionId, reward: outcome.reward });
+        else console.info('[DAILY MISSION CLAIM SKIPPED]', { missionId, reason: outcome.reason });
+        await refreshCurrentUserData();
+        return outcome;
+    }
+    window.claimDailyMissionTransaction = claimDailyMissionTransaction;
 
     function padValue(value) { return String(value).padStart(2, '0'); }
     function getKstParts(referenceDate) {
@@ -789,6 +825,22 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
         if (isGuestMode) {
             console.log('[Guest Mode] saveFinalGameResult local only');
             const localRecord = v2.storageService.recordGame(result);
+            const guestQuestions = result.questionResults || [];
+            const guestCorrectCount = guestQuestions.filter(item => item.isCorrect).length;
+            v2.dailyMissionService.recordGameResult({
+                sessionId: result.sessionId,
+                mode: result.mode,
+                correctCount: guestCorrectCount,
+                totalQuestions: guestQuestions.length,
+                success: result.success,
+                cleared: result.mode === 'adventure' && result.success,
+                stageType: result.stageType || null,
+                stageNumber: result.stageNumber || null,
+                worldId: result.worldId || null,
+                stageId: result.stageId || null,
+                finishReason: result.reason || (result.success ? 'stage_cleared' : 'stage_failed'),
+                maxCombo: calculateBestCombo(guestQuestions)
+            });
             return { ok: true, guest: true, localRecord };
         }
 
@@ -835,11 +887,15 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
         let writtenAlltimeScore = 0;
         let writtenMonthlyScore = 0;
         let writtenTimeAttackScore = null;
+        let adventureReward = null;
+        let adventureFirstClear = false;
+        let levelRewardPremiumTickets = 0;
 
         await db.runTransaction(async (transaction) => {
             const sessionDoc = await transaction.get(sessionRef);
             if (sessionDoc.exists) {
                 console.warn("세션이 이미 서버에서 처리되었습니다:", sessionId);
+                console.info('[DAILY MISSION DUPLICATE SESSION]', { sessionId: sessionId });
                 isDuplicate = true;
                 return;
             }
@@ -883,6 +939,7 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
 
             let coinsReward = 0;
             let ticketsReward = 0;
+            let premiumTicketsReward = 0;
 
             if (mode === 'classic') {
                 coinsReward += 50 + (correctCount * 10);
@@ -891,20 +948,31 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
                 coinsReward += correctCount * 15;
             } else if (mode === 'adventure') {
                 if (success) {
-                    coinsReward += 100 + (correctCount * 15);
                     userData.adventure.firstClearRewards = userData.adventure.firstClearRewards || {};
-                    if (!userData.adventure.firstClearRewards[stageId]) {
-                        userData.adventure.firstClearRewards[stageId] = true;
-                        ticketsReward += 1;
-                    }
-                } else {
-                    coinsReward += correctCount * 5;
+                    const previouslyCompleted = Array.isArray(userData.adventure.completedStageIds) && userData.adventure.completedStageIds.includes(stageId);
+                    adventureFirstClear = !userData.adventure.firstClearRewards[stageId] && !previouslyCompleted;
+                    const resolvedStageNumber = Number(result.stageNumber || String(stageId || '').split('_').pop());
+                    const stageReward = v2.rewardService.calculateStageRewards({
+                        stage: { stageNumber: resolvedStageNumber },
+                        cleared: true,
+                        isFirstClear: adventureFirstClear
+                    });
+                    userData.adventure.firstClearRewards[stageId] = true;
+                    coinsReward = stageReward.coins;
+                    ticketsReward = stageReward.normalTickets;
+                    premiumTicketsReward = stageReward.premiumTickets;
+                    adventureReward = {
+                        coins: coinsReward,
+                        normalTickets: ticketsReward,
+                        premiumTickets: premiumTicketsReward
+                    };
                 }
             }
 
             const previousCoins = userData.currency.coins || 0;
             userData.currency.coins = previousCoins + coinsReward;
             userData.currency.normalTickets = (userData.currency.normalTickets || 0) + ticketsReward;
+            userData.currency.premiumTickets = (userData.currency.premiumTickets || 0) + premiumTicketsReward;
 
             const newLevel = Math.floor(userData.stats.totalPoints / 150) + 1;
             if (newLevel > (userData.stats.level || 1)) {
@@ -913,6 +981,7 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
                 if (newLevel > lastRewarded) {
                     const diff = newLevel - lastRewarded;
                     userData.currency.premiumTickets = (userData.currency.premiumTickets || 0) + diff;
+                    levelRewardPremiumTickets = diff;
                     userData.rewardState.lastRewardedLevel = newLevel;
                 }
                 userData.stats.level = newLevel;
@@ -963,18 +1032,28 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
                 }
             }
 
-            const beforeMissions = JSON.parse(JSON.stringify(userData.dailyMissions || {}));
-            updateMissionsProgress(userData, mode, correctCount, totalCount, success);
-            const afterMissions = userData.dailyMissions;
-
-            console.log("[MISSION UPDATE PLAN]", {
+            const dailyMissions = ensureDailyMissionState(userData, playedAt, user.uid);
+            const missionChange = v2.dailyMissionService.applyDailyMissionProgress(dailyMissions, {
                 sessionId: sessionId,
                 mode: mode,
                 correctCount: correctCount,
-                totalCount: totalCount,
+                totalQuestions: totalCount,
+                points: sessionPoints,
                 success: success,
-                before: beforeMissions,
-                after: afterMissions
+                cleared: mode === 'adventure' && success,
+                stageType: result.stageType || null,
+                stageNumber: result.stageNumber || null,
+                worldId: result.worldId || null,
+                stageId: stageId || null,
+                finishReason: result.reason || (success ? 'stage_cleared' : 'stage_failed'),
+                maxCombo: calculateBestCombo(questionResults)
+            });
+            console.info('[DAILY MISSION PROGRESS]', {
+                sessionId: sessionId,
+                mode: mode,
+                before: missionChange.before,
+                increments: missionChange.increments,
+                after: missionChange.after
             });
 
             userData.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
@@ -1111,7 +1190,14 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
         }
 
         syncFirestoreDataToLocal(currentUserData, user.uid);
-        return { ok: true, guest: false, duplicate: isDuplicate };
+        return {
+            ok: true,
+            guest: false,
+            duplicate: isDuplicate,
+            adventureReward: adventureReward,
+            adventureFirstClear: adventureFirstClear,
+            levelRewardPremiumTickets: levelRewardPremiumTickets
+        };
     }
 
     function displayResultScreen(mode, savedResult) {
@@ -1216,7 +1302,7 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
             resultScreen = requireElement("adventure-result-screen");
             
             if (typeof window.showAdventureResultUI === 'function') {
-                window.showAdventureResultUI(session);
+                window.showAdventureResultUI(session, savedResult);
             }
 
             resultPointsElement = document.getElementById("adventure-result-stats");
@@ -1781,6 +1867,7 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
             const refreshed = await userRef.get();
             currentUserData = migrateUserDataToV3(refreshed.data());
             currentUser = currentUserData.profile.nickname;
+            await persistDailyMissionDateIfNeeded(userRef, currentUserData);
 
             if (v2.storageService) {
                 v2.storageService.handleAuthenticatedUserChanged({
@@ -1889,6 +1976,8 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
                         logUserDocumentWrite('buildUserMigrationPatch', user.uid, migrationPatch);
                         await userRef.update(migrationPatch);
                     }
+
+                    await persistDailyMissionDateIfNeeded(userRef, currentUserData);
 
                     if (v2.storageService) {
                         v2.storageService.handleAuthenticatedUserChanged({
