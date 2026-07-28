@@ -1,7 +1,74 @@
-(function(global){'use strict';var v2=global.GugudanV2,names={normal:'일반',rare:'희귀',hero:'영웅',legendary:'전설'},lastFocus=null;
-function cat(id){return[].concat(v2.baseCats||[],v2.seasonCats||[]).find(function(x){return x.id===id;});}function safe(x){var n=document.createElement('span');n.textContent=x==null?'':String(x);return n.innerHTML;}
-function close(){document.getElementById('cat-detail-modal').hidden=true;if(lastFocus&&lastFocus.focus)lastFocus.focus();}
-function equip(id){var d=v2.storageService.loadSaveData();if(d.collection.ownedCatIds.indexOf(id)<0)return;d.profile.selectedCatId=id;if(v2.storageService.saveSaveData(d)){close();if(global.renderPhase4Currency)global.renderPhase4Currency();if(global.renderBaseCollection)global.renderBaseCollection();}}
-function open(id){var item=cat(id),d=v2.storageService.loadSaveData();if(!item||d.collection.ownedCatIds.indexOf(id)<0)return;lastFocus=document.activeElement;var p=d.collection.catProgress[id]||{},dup=d.collection.duplicateCounts[id]||0,selected=d.profile.selectedCatId===id,presentation=item.presentationSkill,legend=item.legendarySkill,stars=v2.duplicateStarService?v2.duplicateStarService.renderStars(dup):'',feature=presentation?'<section class="cat-skill-description rarity-'+item.rarity+'"><strong>✨ 연출 테마</strong><p>효과: '+safe(presentation.effectThemeId)+' · 사운드: '+safe(presentation.soundThemeId)+'</p>'+(legend?'<p><b>특별 옵션:</b> '+safe(legend.specialOption)+'</p>':'')+'<small>점수·시간에는 영향을 주지 않는 연출 전용 기능입니다.</small></section>':'';
-var content=document.getElementById('cat-detail-content');content.innerHTML='<img class="cat-detail-image" src="'+item.image+'" alt="'+safe(item.displayName)+'"><span class="rarity-badge">'+names[item.rarity]+'</span><h2 id="cat-detail-name">'+safe(item.displayName)+'</h2>'+stars+'<p class="cat-description">'+safe(item.description||'함께 모험하는 사랑스러운 고양이예요.')+'</p><p>'+names[item.rarity]+' · '+(item.collection==='season'?'시즌':'기본')+' 고양이</p>'+feature+'<p>획득일 '+(p.obtainedAt?new Date(p.obtainedAt).toLocaleDateString('ko-KR'):'처음부터 함께함')+' · 중복 '+dup+'회</p><button id="equip-cat-button" class="game-button primary" '+(selected?'disabled':'')+'>'+(selected?'대표 고양이로 장착 중':'대표 고양이로 장착')+'</button>';if(v2.assetLoader)v2.assetLoader.applyImageFallback(content.querySelector('img'),item.fallbackImage,item.id);content.querySelector('button').onclick=function(){equip(id);};document.getElementById('cat-detail-modal').hidden=false;document.getElementById('cat-detail-close').focus();}
-global.openCatDetail=open;global.closeCatDetail=close;})(window);
+(function (global) {
+  'use strict';
+
+  var v2 = global.GugudanV2;
+
+  function safe(value) {
+    var node = document.createElement('span');
+    node.textContent = value == null ? '' : String(value);
+    return node.innerHTML;
+  }
+
+  function getCat(catId) {
+    return [].concat(v2.baseCats || [], v2.seasonCats || []).find(function (cat) {
+      return cat.id === catId;
+    });
+  }
+
+  function renderCatSkillDetail(catId, container) {
+    var cat = getCat(catId);
+    if (!cat || !container) return false;
+
+    var existing = container.querySelector('.cat-skill-description');
+    if (existing) existing.remove();
+
+    var presentation = cat.presentationSkill;
+    var legendary = cat.legendarySkill;
+    if (!presentation && !legendary) return true;
+
+    var section = document.createElement('section');
+    section.className = 'cat-skill-description rarity-' + cat.rarity;
+    section.innerHTML = '<strong>고양이 연출 테마</strong>' +
+      (presentation
+        ? '<p>효과: ' + safe(presentation.effectThemeId) + ' · 사운드: ' + safe(presentation.soundThemeId) + '</p>'
+        : '') +
+      (legendary ? '<p><b>특별 옵션:</b> ' + safe(legendary.specialOption) + '</p>' : '') +
+      '<small>점수와 시간에는 영향을 주지 않는 연출 전용 기능입니다.</small>';
+
+    var equipButton = container.querySelector('#equip-cat-button');
+    container.insertBefore(section, equipButton || null);
+    if (equipButton) {
+      equipButton.dataset.catId = catId;
+      equipButton.onclick = async function () {
+        if (equipButton.disabled) return;
+        equipButton.disabled = true;
+        try {
+          var ok = global.updateRepresentativeCat
+            ? await global.updateRepresentativeCat(equipButton.dataset.catId)
+            : false;
+          if (!ok) return;
+          if (global.refreshCurrentUserData) await global.refreshCurrentUserData();
+          if (global.closeCatDetail) global.closeCatDetail();
+          if (global.renderPhase4Currency) global.renderPhase4Currency();
+          if (global.renderBaseCollection) global.renderBaseCollection();
+        } finally {
+          equipButton.disabled = false;
+        }
+      };
+    }
+    return true;
+  }
+
+  global.renderCatSkillDetail = renderCatSkillDetail;
+
+  // collectionController가 상세 모달을 소유한다. 이 보조기는 렌더 완료 후 스킬 영역만 보강한다.
+  document.addEventListener('click', function (event) {
+    var card = event.target.closest && event.target.closest('.collection-item');
+    if (!card) return;
+    global.setTimeout(function () {
+      var button = document.querySelector('#cat-detail-content #equip-cat-button');
+      var catId = button && button.dataset.catId;
+      if (catId) renderCatSkillDetail(catId, document.getElementById('cat-detail-content'));
+    }, 0);
+  });
+})(window);

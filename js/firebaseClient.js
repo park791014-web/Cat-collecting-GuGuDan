@@ -27,6 +27,15 @@
       auth = global.firebase.auth();
       db = global.firebase.firestore();
       console.log('[FirebaseClient] 새 파이어베이스 프로젝트 연결 완료냥!', firebaseConfig.projectId);
+      if (auth) {
+        auth.onAuthStateChanged(function (user) {
+          console.log("[Firebase Environment]", {
+            projectId: app.options.projectId,
+            uid: user ? user.uid : null,
+            hostname: location.hostname
+          });
+        });
+      }
     } else {
       console.error('[FirebaseClient] Firebase SDK가 정의되지 않았다냥!');
     }

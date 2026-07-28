@@ -8,17 +8,17 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="js/firebaseClient.js"></script>
+    <script src="js/firebaseClient.js?v=3.3.2-gacha-event-fix"></script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=3.0.0">
-    <link rel="stylesheet" href="css/phase56.css?v=3.0.0">
-    <link rel="stylesheet" href="css/phase561.css?v=3.0.0">
-    <link rel="stylesheet" href="css/phase562.css?v=3.0.0">
-    <link rel="stylesheet" href="css/releasePatch.css?v=3.0.0">
-    <link rel="stylesheet" href="css/auth.css?v=3.0.0">
+    <link rel="stylesheet" href="css/style.css?v=3.3.2-gacha-event-fix">
+    <link rel="stylesheet" href="css/phase56.css?v=3.3.2-gacha-event-fix">
+    <link rel="stylesheet" href="css/phase561.css?v=3.3.2-gacha-event-fix">
+    <link rel="stylesheet" href="css/phase562.css?v=3.3.2-gacha-event-fix">
+    <link rel="stylesheet" href="css/releasePatch.css?v=3.3.2-gacha-event-fix">
+    <link rel="stylesheet" href="css/auth.css?v=3.3.2-gacha-event-fix">
 </head>
 <body>
 
@@ -36,7 +36,7 @@
     <!-- 로그인 화면 -->
     <div id="login-screen" class="screen active-screen">
         <h1>🌟 구구단 냥코 대모험 🌟</h1>
-        <p class="version-label" id="version-label">V3.0.0</p>
+        <p class="version-label" id="version-label">V3.3.0</p>
         <p style="font-size: 16px;">백점 맞고 전설의 고양이를 뽑자냥!</p>
         <img src="assets/cats/base/base_legendary_01-transparent.png" width="140" height="140" alt="황금 전설 냥이" style="margin:5px; object-fit:contain; background:linear-gradient(145deg,#FFF9D8,#FFE8A3); border-radius:50%; border:3px solid #FFD166; box-shadow:0 5px 18px rgba(224,170,30,.28);">
         
@@ -119,7 +119,7 @@
             <button class="mode-card classic" onclick="startMarathonGame()"><strong>기본 게임</strong><span>구구단 문제를 차근차근 풀어보세요.</span></button>
             <button class="mode-card time-attack" onclick="startPhase2Mode('timeAttack')"><strong>타임어택</strong><span>제한 시간 동안 최고 점수에 도전하세요.</span></button>
         </div>
-        <nav class="utility-nav" aria-label="보조 메뉴"><button onclick="openCardPackScreen()">고양이 뽑기</button><button onclick="openCollectionScreen()">도감</button><button onclick="openRankings()">순위</button><button onclick="openSettingsScreen()">설정</button><label><input id="sound-enabled-toggle" type="checkbox" checked onchange="toggleGameSound(this.checked)"> 소리</label></nav>
+        <nav class="utility-nav" aria-label="보조 메뉴"><button onclick="openCardPackScreen()">고양이 뽑기</button><button onclick="openCollectionScreen()">도감</button><button onclick="openRankings()">순위</button><button onclick="openSettingsScreen()">설정</button></nav>
         <button class="btn btn-guest" id="lobby-logout-button">로그아웃</button>
     </div>
 
@@ -193,9 +193,11 @@
         
         <div id="reward-box" class="reward-container" aria-live="polite"></div>
 
-        <div class="result-box legacy-result">
-            <p style="margin: 5px;">맞춘 개수: <span class="highlight" id="res-correct">0</span>/20 (정답률 <span id="res-acc-rate">0</span>%)</p>
-            <p style="margin: 5px;">획득 포인트: <span class="highlight" id="res-today">0</span>P</p>
+        <div class="legacy-result" id="classic-result-panel" style="display:none;">
+            <p style="margin: 5px;">🎯 맞힌 개수: <span class="highlight" id="res-correct">0 / 20</span></p>
+            <p style="margin: 5px;">📈 정답률: <span class="highlight" id="res-acc-rate">0%</span></p>
+            <p style="margin: 5px;">✨ 획득 점수: <span class="highlight" id="res-score">0</span></p>
+            <p style="margin: 5px;">💰 획득 코인: <span class="highlight" id="res-coins-earned">0</span></p>
         </div>
 
         <div id="phase2-result-panel" class="result-box phase2-result" tabindex="-1" style="display:none;">
@@ -208,17 +210,6 @@
         <div class="result-box" id="total-stats" style="background-color: #BAE1FF; display:none;">
             <p style="margin: 5px;">🏆 최종 레벨: Lv.<span class="highlight" id="res-level">1</span></p>
             <p style="margin: 5px;">💰 총 누적 포인트: <span class="highlight" id="res-total-points">0</span>P</p>
-        </div>
-
-        <div class="ranking-box" id="ranking-box">
-            <h3 style="text-align:center; margin:0 0 10px 0; color:#4B0082; font-size: 18px;">새롭게 시작된 랭킹</h3>
-            <div id="ranking-controls" class="ranking-controls" style="display:none;">
-                <div class="ranking-tab-row ranking-tab-row--main"><button data-category="overall" onclick="setRankingMode('overall')">전체 성적</button><button data-category="timeAttack" onclick="setRankingMode('timeAttack')">타임어택</button></div>
-                <div class="ranking-tab-row ranking-tab-row--period"><button data-period="monthly" onclick="setRankingPeriod('monthly')">월간</button><button data-period="allTime" onclick="setRankingPeriod('allTime')">누적</button></div>
-                <small id="ranking-period-label"></small>
-            </div>
-            <div id="ranking-list"></div>
-            <button id="ranking-retry" class="btn btn-small" style="display:none;" onclick="loadModeRanking()">다시 시도</button>
         </div>
 
         <div id="phase2-result-actions" style="display:none;">
@@ -234,77 +225,109 @@
     </div>
 </div>
 
-    <script src="js/config/gameConfig.js?v=3.0.0"></script>
-    <script src="js/config/featureFlags.js?v=3.0.0"></script>
-    <script src="js/config/classicRewardConfig.js?v=3.0.0"></script>
-    <script src="js/config/catDrawConfig.js?v=3.0.0"></script>
-    <script src="js/config/modeRewardConfig.js?v=3.0.0"></script>
-    <script src="js/config/catConfig.js?v=3.0.0"></script>
-    <script src="js/config/seasonConfig.js?v=3.0.0"></script>
-    <script src="js/config/soundConfig.js?v=3.0.0"></script>
-    <script src="js/config/adminConfig.js?v=3.0.0"></script>
-    <script src="js/config/rewardConfig.js?v=3.0.0"></script>
-    <script src="js/config/cardPackConfig.js?v=3.0.0"></script>
-    <script src="js/config/skillConfig.js?v=3.0.0"></script>
-    <script src="js/config/dailyMissionConfig.js?v=3.0.0"></script>
-    <script src="js/data/cats.js?v=3.0.0"></script>
-    <script src="js/data/seasonCats.js?v=3.0.0"></script>
-    <script src="js/data/seasonMissions.js?v=3.0.0"></script>
-    <script src="js/data/worlds.js?v=3.0.0"></script>
-    <script src="js/data/stages.js?v=3.0.0"></script>
-    <script src="js/data/adventureStoryData.js?v=3.0.0"></script>
-    <script src="js/data/seasons.js?v=3.0.0"></script>
-    <script src="js/game/gameState.js?v=3.0.0"></script>
-    <script src="js/game/questionGenerator.js?v=3.0.0"></script>
-    <script src="js/game/scoreManager.js?v=3.0.0"></script>
-    <script src="js/services/storageService.js?v=3.0.0"></script>
-    <script src="js/services/userStorageService.js?v=3.0.0"></script>
-    <script src="js/services/releasePolicyService.js?v=3.0.0"></script>
-    <script src="js/services/classicRewardService.js?v=3.0.0"></script>
-    <script src="js/services/coinDrawService.js?v=3.0.0"></script>
-    <script src="js/services/modeRewardService.js?v=3.0.0"></script>
-    <script src="js/services/effectService.js?v=3.0.0"></script>
-    <script src="js/services/soundService.js?v=3.0.0"></script>
-    <script src="js/services/rankingService.js?v=3.0.0"></script>
-    <script src="js/services/releaseResetMigrationService.js?v=3.0.0"></script>
-    <script src="js/services/adventureService.js?v=3.0.0"></script>
-    <script src="js/services/adventureStoryService.js?v=3.0.0"></script>
-    <script src="js/services/rewardService.js?v=3.0.0"></script>
-    <script src="js/services/cardPackService.js?v=3.0.0"></script>
-    <script src="js/services/skillEngine.js?v=3.0.0"></script>
-    <script src="js/services/seasonService.js?v=3.0.0"></script>
-    <script src="js/services/collectionSortService.js?v=3.0.0"></script>
-    <script src="js/services/dailyMissionService.js?v=3.0.0"></script>
-    <script src="js/utils/assetLoader.js?v=3.0.0"></script>
-    <script src="js/utils/validators.js?v=3.0.0"></script>
-    <script src="js/utils/phase4Validators.js?v=3.0.0"></script>
-    <script src="js/utils/phase5Validators.js?v=3.0.0"></script>
-    <script src="js/utils/phase51Validators.js?v=3.0.0"></script>
-    <script src="js/services/adminConfigService.js?v=3.0.0"></script>
-    <script src="js/tests/dataValidation.test.js?v=3.0.0"></script>
-    <script src="js/tests/phase2Validation.test.js?v=3.0.0"></script>
-    <script src="js/tests/phase3Validation.test.js?v=3.0.0"></script>
-    <script src="js/tests/phase3VisualValidation.test.js?v=3.0.0"></script>
-    <script src="js/tests/phase4Validation.test.js?v=3.0.0"></script>
-    <script src="js/tests/phase5Validation.test.js?v=3.0.0"></script>
-    <script src="js/tests/phase51CollectionSort.test.js?v=3.0.0"></script>
-    <script src="js/tests/phase52Validation.test.js?v=3.0.0"></script>
-    <script src="js/ui/collectionController.js?v=3.0.0"></script>
-    <script src="js/ui/catSkillDetailController.js?v=3.0.0"></script>
-    <script src="js/ui/ticketDrawController.js?v=3.0.0"></script>
-    <script src="js/ui/phase54Controller.js?v=3.0.0"></script>
-    <script src="js/services/catPresentationRuntime.js?v=3.0.0"></script>
-    <script src="js/ui/seasonController.js?v=3.0.0"></script>
-    <script src="js/ui/dailyMissionController.js?v=3.0.0"></script>
-    <script src="js/app.js?v=3.0.0"></script>
-    <script src="js/ui/adminAccountManager.js?v=3.0.0"></script>
-    <script src="js/game/modeEngine.js?v=3.0.0"></script>
-    <script src="js/ui/leaderboardV3Controller.js?v=3.0.0"></script>
-    <script src="js/game/adventureEngine.js?v=3.0.0"></script>
-    <script src="js/services/phase56SoundService.js?v=3.0.0"></script>
-    <script src="js/services/phase56SoundBinding.js?v=3.0.0"></script>
-    <script src="js/ui/phase56Runtime.js?v=3.0.0"></script>
-    <script src="js/ui/phase561Runtime.js?v=3.0.0"></script>
-    <script src="js/ui/phase562Runtime.js?v=3.0.0"></script>
+<!-- 냥코 순위 단독 화면 -->
+<div id="ranking-screen" class="screen">
+    <h1 style="text-align:center; color:#4B0082; font-size: 28px; margin: 20px 0 10px 0;">🏆 냥코 순위</h1>
+    
+    <div class="ranking-box" id="ranking-box-container" style="margin: 0 auto; max-width: 500px;">
+        <div id="ranking-controls" class="ranking-controls">
+            <div class="ranking-tab-row ranking-tab-row--main">
+                <button data-category="overall" onclick="setRankingMode('overall')">전체 성적</button>
+                <button data-category="timeAttack" onclick="setRankingMode('timeAttack')">타임어택</button>
+            </div>
+            <div class="ranking-tab-row ranking-tab-row--period">
+                <button data-period="monthly" onclick="setRankingPeriod('monthly')">월간</button>
+                <button data-period="allTime" onclick="setRankingPeriod('allTime')">누적</button>
+            </div>
+            <small id="ranking-period-label"></small>
+        </div>
+        
+        <div id="ranking-list"></div>
+        
+        <!-- 순위 반영 안내 문구 -->
+        <div class="ranking-guideline" style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 8px; font-size: 13px; color: #666; line-height: 1.5; text-align: center;">
+            <p id="ranking-guideline-text" style="margin: 0;"></p>
+        </div>
+    </div>
+
+    <div class="action-row" style="margin-top: 20px; text-align: center;">
+        <button class="btn btn-success" style="font-size: 22px; width: 100%; max-width: 500px; margin: 0 auto;" onclick="showLobby()">로비로 돌아가기</button>
+    </div>
+</div>
+
+    <script src="js/config/gameConfig.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/config/featureFlags.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/config/classicRewardConfig.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/config/catDrawConfig.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/config/modeRewardConfig.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/config/catConfig.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/config/seasonConfig.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/config/soundConfig.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/config/adminConfig.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/config/rewardConfig.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/config/cardPackConfig.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/config/skillConfig.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/config/dailyMissionConfig.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/data/cats.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/data/seasonCats.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/data/seasonMissions.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/data/worlds.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/data/stages.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/data/adventureStoryData.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/data/seasons.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/game/gameState.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/game/questionGenerator.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/game/scoreManager.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/services/storageService.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/services/userStorageService.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/services/releasePolicyService.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/services/classicRewardService.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/services/coinDrawService.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/services/modeRewardService.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/services/effectService.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/services/soundService.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/services/rankingService.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/services/releaseResetMigrationService.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/services/adventureService.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/services/adventureStoryService.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/services/rewardService.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/services/cardPackService.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/services/gachaPersistenceService.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/services/skillEngine.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/services/seasonService.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/services/collectionSortService.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/services/dailyMissionService.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/utils/assetLoader.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/utils/validators.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/utils/phase4Validators.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/utils/phase5Validators.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/utils/phase51Validators.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/services/adminConfigService.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/tests/dataValidation.test.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/tests/phase2Validation.test.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/tests/phase3Validation.test.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/tests/phase3VisualValidation.test.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/tests/phase4Validation.test.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/tests/phase5Validation.test.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/tests/phase51CollectionSort.test.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/tests/phase52Validation.test.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/ui/collectionController.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/ui/catSkillDetailController.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/ui/ticketDrawController.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/ui/phase54Controller.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/services/catPresentationRuntime.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/ui/seasonController.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/ui/dailyMissionController.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/app.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/ui/gachaSeasonBridgeController.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/ui/adminAccountManager.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/game/modeEngine.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/ui/leaderboardV3Controller.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/game/adventureEngine.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/services/phase56SoundService.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/services/phase56SoundBinding.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/ui/phase56Runtime.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/ui/phase561Runtime.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/ui/phase562Runtime.js?v=3.3.2-gacha-event-fix"></script>
 </body>
 </html>

@@ -5,8 +5,79 @@
   function rates(config) { return Object.keys(config.rarityRates).map(function (key) { return names[key] + ' ' + Math.round(config.rarityRates[key] * 100) + '%'; }).join(' · '); }
   function currencyText(save) { return '🪙 ' + save.currency.coins + '코인 · 🎫 일반 ' + save.currency.normalTickets + '장 · 🌟 고급 ' + save.currency.premiumTickets + '장'; }
   function resultBox(result) { var box = id('pack-result'), cat = result.cat; box.hidden = false; box.className = 'pack-result rarity-' + result.rarity + ' revealing'; box.innerHTML = '<span class="rarity-badge">' + names[result.rarity] + '</span><img src="' + cat.image + '" alt="' + cat.displayName + '"><h3>' + (result.duplicate ? '중복 획득' : '새 고양이 획득!') + '</h3><strong>' + cat.displayName + '</strong><p>' + (result.duplicate ? names[result.rarity] + ' 조각 +' + result.fragments : '도감에 추가되었습니다.') + '</p>'; if (v2.assetLoader) v2.assetLoader.applyImageFallback(box.querySelector('img'), cat.fallbackImage, cat.id); setTimeout(function () { box.classList.remove('revealing'); busy = false; render(); }, 900); box.focus(); }
-  function drawCoin() { if (busy) return; busy = true; var result = v2.coinDrawService.draw(); if (!result.ok) { busy = false; id('pack-message').textContent = '코인이 부족하거나 뽑기를 완료하지 못했습니다.'; return; } resultBox(result); }
-  function drawTicket(packId) { if (busy) return; busy = true; var result = v2.cardPackService.openPack(packId); if (!result.ok) { busy = false; id('pack-message').textContent = result.reason === 'insufficient_ticket' ? '해당 뽑기권이 부족합니다.' : '티켓 뽑기를 완료하지 못했습니다.'; return; } resultBox(result); }
+  function executeDraw(type, guestDraw) {
+    var authenticated = Boolean(global.firebaseClient && global.firebaseClient.auth && global.firebaseClient.auth.currentUser);
+    if (global.performDrawCatTransaction) return global.performDrawCatTransaction(type);
+    if (authenticated) return Promise.reject(new Error('authenticated_gacha_handler_missing'));
+    return Promise.resolve(guestDraw());
+  }
+  function drawCoin() {
+    if (busy) return;
+    busy = true;
+    var drawPromise = executeDraw('coin', function () { return v2.coinDrawService.draw(); });
+    drawPromise.then(function(r) {
+      if (!r.ok) {
+        busy = false;
+        id('pack-message').textContent = '코인이 부족하거나 뽑기를 완료하지 못했습니다.';
+        return;
+      }
+      if (window.refreshCurrentUserData && window.showLobby) {
+        window.refreshCurrentUserData().then(function() {
+          window.showLobby();
+          resultBox(r);
+        }).catch(function(e) {
+          console.error("서버 데이터 동기화 실패:", e);
+          resultBox(r);
+        });
+      } else {
+        resultBox(r);
+      }
+    }).catch(function(err) {
+      busy = false;
+      console.error("[GACHA SAVE ERROR]", {
+        uid: (window.firebaseClient && window.firebaseClient.auth.currentUser) ? window.firebaseClient.auth.currentUser.uid : 'guest',
+        gachaType: 'coin',
+        catId: null,
+        code: err?.code || err?.name,
+        message: err?.message
+      });
+      id('pack-message').textContent = err.message === 'insufficient_coins' ? '코인이 부족하다냥!' : '뽑기 실행 중 오류가 발생했습니다.';
+    });
+  }
+  function drawTicket(packId) {
+    if (busy) return;
+    busy = true;
+    var drawType = packId === 'normalPack' ? 'normalTicket' : packId === 'premiumPack' ? 'premiumTicket' : packId;
+    var drawPromise = executeDraw(drawType, function () { return v2.cardPackService.openPack(packId); });
+    drawPromise.then(function(r) {
+      if (!r.ok) {
+        busy = false;
+        id('pack-message').textContent = '뽑기권이 부족하거나 뽑기를 완료하지 못했습니다.';
+        return;
+      }
+      if (window.refreshCurrentUserData && window.showLobby) {
+        window.refreshCurrentUserData().then(function() {
+          window.showLobby();
+          resultBox(r);
+        }).catch(function(e) {
+          console.error("서버 데이터 동기화 실패:", e);
+          resultBox(r);
+        });
+      } else {
+        resultBox(r);
+      }
+    }).catch(function(err) {
+      busy = false;
+      console.error("[GACHA SAVE ERROR]", {
+        uid: (window.firebaseClient && window.firebaseClient.auth.currentUser) ? window.firebaseClient.auth.currentUser.uid : 'guest',
+        gachaType: packId,
+        catId: null,
+        code: err?.code || err?.name,
+        message: err?.message
+      });
+      id('pack-message').textContent = err.message === 'insufficient_ticket' ? '뽑기권이 부족하다냥!' : '뽑기 실행 중 오류가 발생했습니다.';
+    });
+  }
   function render() { var save = v2.storageService.loadSaveData(), coin = v2.catDrawConfig, normal = v2.cardPackConfig.normalPack, premium = v2.cardPackConfig.premiumPack, list = id('pack-list'); id('pack-currency').textContent = currencyText(save); list.innerHTML = '<article class="pack-card coin-draw"><h3>코인 뽑기</h3><p>' + rates({ rarityRates: coin.rarityRates }) + '</p><p>필요: ' + coin.cost + '코인</p><button class="game-button primary" ' + (save.currency.coins < coin.cost ? 'disabled' : '') + '>코인으로 뽑기</button></article><article class="pack-card ticket-pack"><h3>🎫 일반 티켓 뽑기</h3><p>표준 뽑기 확률을 사용합니다.</p><p>' + rates(normal) + '</p><button class="game-button primary" ' + (save.currency.normalTickets < 1 ? 'disabled' : '') + '>일반 뽑기권 1장 사용</button></article><article class="pack-card premiumPack ticket-pack"><h3>🌟 고급 티켓 뽑기</h3><p>표준 뽑기 확률을 사용합니다.</p><p>' + rates(premium) + '</p><button class="game-button primary" ' + (save.currency.premiumTickets < 1 ? 'disabled' : '') + '>고급 뽑기권 1장 사용</button></article><article class="pack-card effect-preview-card"><h3>✨ 정답 이펙트 미리보기</h3><p>게임에서 나타나는 반짝이 효과를 여기서 확인해 보세요.</p><button class="game-button secondary">이펙트 보기</button></article>'; var buttons = list.querySelectorAll('button'); buttons[0].onclick = drawCoin; buttons[1].onclick = function () { drawTicket('normalPack'); }; buttons[2].onclick = function () { drawTicket('premiumPack'); }; buttons[3].onclick = function () { if (v2.effectService) v2.effectService.playCorrect(10); }; }
   function open() { busy = false; id('pack-result').hidden = true; id('pack-message').textContent = ''; render(); showScreen('card-pack-screen'); setTimeout(function () { id('card-pack-title').focus(); }, 0); }
   global.openCardPackScreen = open;

@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 관리자(Owner) 여부 판정 헬퍼
+    function isOwnerAdmin() {
+      return request.auth != null && request.auth.uid == 'xg6wYMihYRTsF60NCLf36XigPFB3';
+    }
+
+    // 1. 사용자 문서 규칙
+    match /users/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null && request.auth.uid == uid;
+      
+      // 사용자 본인은 전체 update 가능, 관리자는 오직 currency와 updatedAt 필드만 부분 update 가능
+      allow update: if (request.auth != null && request.auth.uid == uid)
+                    || (isOwnerAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['currency', 'updatedAt']));
+      allow delete: if false;
+    }
+    
+    // 2. 게임 세션 처리 결과 문서 규칙
+    match /processedGameSessions/{userSessionId} {
+      allow read, create: if request.auth != null && userSessionId.startsWith(request.auth.uid + '_');
+      allow update, delete: if false;
+    }
+    
+    // 3. 랭킹(리더보드) 엔트리 규칙 (구버전)
+    match /leaderboards/{boardId}/entries/{uid} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // 3.1. 랭킹 v3 엔트리 규칙
+    match /leaderboardsV3/{entryId} {
+      allow read: if true;
+
+      allow create: if request.auth != null
+        && request.resource.data.playerId == request.auth.uid
+        && request.resource.data.rankingVersion == 'v3';
+
+      allow update: if request.auth != null
+        && resource.data.playerId == request.auth.uid
+        && request.resource.data.playerId == request.auth.uid
+        && request.resource.data
+          .diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+            'totalScore',
+            'monthlyScore',
+            'score',
+            'nickname',
+            'representativeCatId',
+            'playedAt',
+            'playedAtTimestamp',
+            'updatedAt'
+          ]);
+
+      allow delete: if false;
+    }
+
+    // 4. 공지사항 규칙
+    match /notices/{noticeId} {
+      allow read: if request.auth != null;
+      allow write: if isOwnerAdmin();
+    }
+
+    // 5. 관리자 작업 로그 규칙
+    match /adminAuditLogs/{logId} {
+      allow read, write: if isOwnerAdmin();
+    }
+  }
+}
