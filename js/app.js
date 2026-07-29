@@ -218,7 +218,10 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
                 ownedCats: { base_normal_01: { count: 1, acquiredAt: new Date().toISOString() } },
                 adventure: { completedStageIds: [], unlockedStageIds: ['stage_01_01'], completedStages: {}, unlockedWorlds: { world_01: true }, firstClearRewards: {} },
                 dailyMissions: { dateKey: "", missions: {} },
-                rewardState: { lastRewardedLevel: 1 },
+                rewardState: {
+                    lastRewardedLevel: 1,
+                    levelCurve: { curveVersion: 2, baseLevel: 1, baseTotalPoints: 0 }
+                },
                 createdAt: null,
                 updatedAt: null
             };
@@ -798,27 +801,8 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
     window.claimDailyMissionTransaction = claimDailyMissionTransaction;
 
     function padValue(value) { return String(value).padStart(2, '0'); }
-    function getKstParts(referenceDate) {
-        const date = referenceDate ? new Date(referenceDate) : new Date();
-        const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(date);
-        const values = {};
-        parts.forEach(part => { values[part.type] = part.value; });
-        return { year: Number(values.year), month: Number(values.month), day: Number(values.day) };
-    }
     function getKoreaMonthKey(referenceDate) {
-        const value = getKstParts(referenceDate);
-        return value.year + '-' + padValue(value.month);
-    }
-    function getKoreanWeekRange(referenceDate) {
-        const value = getKstParts(referenceDate);
-        const day = new Date(Date.UTC(value.year, value.month - 1, value.day));
-        const weekday = day.getUTCDay() || 7;
-        const thursday = new Date(day);
-        thursday.setUTCDate(day.getUTCDate() + 4 - weekday);
-        const yearStart = new Date(Date.UTC(thursday.getUTCFullYear(), 0, 1));
-        const week = Math.ceil((((thursday - yearStart) / 86400000) + 1) / 7);
-        const weekKey = thursday.getUTCFullYear() + '-W' + padValue(week);
-        return { weekKey: weekKey };
+        return v2.rankingService.getKoreaMonthKey(referenceDate);
     }
 
     async function saveFinalGameResult(result) {
@@ -841,7 +825,14 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
                 finishReason: result.reason || (result.success ? 'stage_cleared' : 'stage_failed'),
                 maxCombo: calculateBestCombo(guestQuestions)
             });
-            return { ok: true, guest: true, localRecord };
+            return {
+                ok: true,
+                guest: true,
+                localRecord,
+                sessionPoints: guestCorrectCount * 10,
+                playCoins: 0,
+                levelRewardPremiumTickets: 0
+            };
         }
 
         const user = auth.currentUser;
@@ -855,19 +846,16 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
 
         const correctCount = questionResults.filter(r => r.isCorrect).length;
         const totalCount = questionResults.length;
-        const isPerfect = (correctCount === totalCount && totalCount > 0);
-
         const userRef = db.collection('users').doc(user.uid);
         const sessionRef = db.collection('processedGameSessions').doc(user.uid + '_' + sessionId);
 
         const playedAt = new Date().toISOString();
         const monthKey = getKoreaMonthKey(playedAt);
-        const weekKey = getKoreanWeekRange(playedAt).weekKey;
 
         const overallAlltimeRef = db.collection('leaderboardsV3').doc(user.uid + '_overall_allTime');
         const overallMonthlyRef = db.collection('leaderboardsV3').doc(user.uid + '_overall_' + monthKey);
         const taAlltimeRef = db.collection('leaderboardsV3').doc(user.uid + '_timeAttack_allTimeBest');
-        const taWeeklyRef = db.collection('leaderboardsV3').doc(user.uid + '_timeAttack_' + weekKey);
+        const taMonthlyRef = db.collection('leaderboardsV3').doc(user.uid + '_timeAttack_' + monthKey);
 
         const currentPoints = (currentUserData && currentUserData.stats ? currentUserData.stats.totalPoints : 0);
         console.log("[LEADERBOARD WRITE PLAN]", {
@@ -879,7 +867,7 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
                 overallAlltimeRef.path,
                 overallMonthlyRef.path,
                 taAlltimeRef.path,
-                taWeeklyRef.path
+                taMonthlyRef.path
             ]
         });
 
@@ -890,6 +878,8 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
         let adventureReward = null;
         let adventureFirstClear = false;
         let levelRewardPremiumTickets = 0;
+        let savedSessionPoints = 0;
+        let playCoins = 0;
 
         await db.runTransaction(async (transaction) => {
             const sessionDoc = await transaction.get(sessionRef);
@@ -908,7 +898,7 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
             const overallAlltimeDoc = await transaction.get(overallAlltimeRef);
             const overallMonthlyDoc = await transaction.get(overallMonthlyRef);
             const taAlltimeDoc = await transaction.get(taAlltimeRef);
-            const taWeeklyDoc = await transaction.get(taWeeklyRef);
+            const taMonthlyDoc = await transaction.get(taMonthlyRef);
 
             let userData = userDoc.data();
             if (userData.schemaVersion !== 3) {
@@ -922,6 +912,7 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
             const sessionPoints = correctCount * 10;
             const previousPoints = userData.stats.totalPoints || 0;
             const nextPoints = previousPoints + sessionPoints;
+            savedSessionPoints = sessionPoints;
             
             userData.stats.totalPoints = nextPoints;
             userData.stats.totalGames = (userData.stats.totalGames || 0) + 1;
@@ -941,11 +932,9 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
             let ticketsReward = 0;
             let premiumTicketsReward = 0;
 
-            if (mode === 'classic') {
-                coinsReward += 50 + (correctCount * 10);
-                if (isPerfect) coinsReward += 50;
-            } else if (mode === 'timeAttack') {
-                coinsReward += correctCount * 15;
+            if (mode === 'classic' || mode === 'timeAttack') {
+                playCoins = v2.levelProgressService.calculatePlayCoins(mode, sessionPoints, success);
+                coinsReward = playCoins;
             } else if (mode === 'adventure') {
                 if (success) {
                     userData.adventure.firstClearRewards = userData.adventure.firstClearRewards || {};
@@ -974,18 +963,25 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
             userData.currency.normalTickets = (userData.currency.normalTickets || 0) + ticketsReward;
             userData.currency.premiumTickets = (userData.currency.premiumTickets || 0) + premiumTicketsReward;
 
-            const newLevel = Math.floor(userData.stats.totalPoints / 150) + 1;
-            if (newLevel > (userData.stats.level || 1)) {
-                userData.rewardState = userData.rewardState || { lastRewardedLevel: 1 };
-                const lastRewarded = userData.rewardState.lastRewardedLevel || 1;
-                if (newLevel > lastRewarded) {
-                    const diff = newLevel - lastRewarded;
-                    userData.currency.premiumTickets = (userData.currency.premiumTickets || 0) + diff;
-                    levelRewardPremiumTickets = diff;
-                    userData.rewardState.lastRewardedLevel = newLevel;
-                }
-                userData.stats.level = newLevel;
+            userData.rewardState = userData.rewardState || { lastRewardedLevel: userData.stats.level || 1 };
+            const currentLevel = Math.max(1, Number(userData.stats.level) || 1);
+            const levelCurve = v2.levelProgressService.normalizeBaseline(
+                userData.rewardState.levelCurve,
+                currentLevel,
+                previousPoints
+            );
+            userData.rewardState.levelCurve = levelCurve;
+            const previousLevel = v2.levelProgressService.resolveLevel(previousPoints, levelCurve, currentLevel);
+            const newLevel = v2.levelProgressService.resolveLevel(nextPoints, levelCurve, previousLevel);
+            if (newLevel > previousLevel) {
+                levelRewardPremiumTickets = newLevel - previousLevel;
+                userData.currency.premiumTickets = (userData.currency.premiumTickets || 0) + levelRewardPremiumTickets;
             }
+            userData.stats.level = Math.max(currentLevel, newLevel);
+            userData.rewardState.lastRewardedLevel = Math.max(
+                Number(userData.rewardState.lastRewardedLevel) || currentLevel,
+                userData.stats.level
+            );
 
             userData.adventure.completedStageIds = userData.adventure.completedStageIds || [];
             userData.adventure.unlockedStageIds = userData.adventure.unlockedStageIds || ['stage_01_01'];
@@ -1150,15 +1146,15 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
                 }
             }
 
-            // 타임어택 주간 문서 갱신
+            // 타임어택 월간 문서 갱신
             if (mode === 'timeAttack' && correctCount > 0) {
-                const prevWeeklyScore = taWeeklyDoc.exists ? (Number(taWeeklyDoc.data().score) || 0) : 0;
-                if (!taWeeklyDoc.exists || correctCount > prevWeeklyScore) {
-                    transaction.set(taWeeklyRef, {
+                const prevMonthlyTimeAttackScore = taMonthlyDoc.exists ? (Number(taMonthlyDoc.data().score) || 0) : 0;
+                if (!taMonthlyDoc.exists || correctCount > prevMonthlyTimeAttackScore) {
+                    transaction.set(taMonthlyRef, {
                         rankingVersion: 'v3',
                         mode: 'timeAttack',
-                        periodType: 'weeklyBest',
-                        weekKey: weekKey,
+                        periodType: 'monthly',
+                        monthKey: monthKey,
                         playerId: user.uid,
                         score: correctCount,
                         nickname: nickname,
@@ -1179,7 +1175,7 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
                     overallAlltimeRef.path,
                     overallMonthlyRef.path,
                     taAlltimeRef.path,
-                    taWeeklyRef.path
+                    taMonthlyRef.path
                 ],
                 writtenValues: {
                     overallAlltimeScore: writtenAlltimeScore,
@@ -1196,7 +1192,9 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
             duplicate: isDuplicate,
             adventureReward: adventureReward,
             adventureFirstClear: adventureFirstClear,
-            levelRewardPremiumTickets: levelRewardPremiumTickets
+            levelRewardPremiumTickets: isDuplicate ? 0 : levelRewardPremiumTickets,
+            sessionPoints: isDuplicate ? 0 : savedSessionPoints,
+            playCoins: isDuplicate ? 0 : playCoins
         };
     }
 
@@ -1236,24 +1234,32 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
             const totalStats = requireElement("total-stats");
             const resLevel = requireElement("res-level");
             const resTotalPoints = requireElement("res-total-points");
+            const rewardBox = requireElement("reward-box");
 
             const totalQuestions = session.questionCount || 20;
             const accuracyRate = totalQuestions > 0 ? (session.correctCount / totalQuestions) : 0;
             const accPercent = Math.floor(accuracyRate * 100);
             
-            const speedScore = session.results.reduce((acc, r) => acc + (r.isCorrect ? Math.max(0, 10 - Math.floor(r.elapsedMs / 1000)) : 0), 0);
-            const totalScore = session.correctCount * 10 + speedScore;
+            const totalScore = savedResult && Number.isFinite(Number(savedResult.sessionPoints))
+                ? Number(savedResult.sessionPoints)
+                : session.correctCount * 10;
 
             // DOM 바인딩
             resCorrect.innerText = `${session.correctCount} / ${totalQuestions}`;
             resAccRate.innerText = `${accPercent}%`;
             resScore.innerText = totalScore;
             
-            const perfectBonus = (session.correctCount === totalQuestions);
-            let coinsEarned = 50 + (session.correctCount * 10);
-            if (perfectBonus) coinsEarned += 50;
-            
+            const coinsEarned = savedResult && Number.isFinite(Number(savedResult.playCoins))
+                ? Number(savedResult.playCoins)
+                : Math.floor(totalScore / 2);
             resCoinsEarned.innerText = `${coinsEarned}코인`;
+            if (savedResult && savedResult.levelRewardPremiumTickets) {
+                rewardBox.textContent = `레벨업 보상: 고급 뽑기권 +${savedResult.levelRewardPremiumTickets}`;
+                rewardBox.style.display = 'block';
+            } else {
+                rewardBox.textContent = '';
+                rewardBox.style.display = 'none';
+            }
 
             // 패널 노출 분기
             requireElement("classic-result-panel").style.display = 'block';
@@ -1284,7 +1290,7 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
             requireElement("classic-result-panel").style.display = 'none';
             
             if (typeof window.showTimeAttackResultUI === 'function') {
-                window.showTimeAttackResultUI(session);
+                window.showTimeAttackResultUI(session, savedResult);
             }
 
             phase2ResultPanel.style.display = 'block';
@@ -1329,8 +1335,9 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
     }
     window.displayResultScreen = displayResultScreen;
 
-    function showFallbackResultScreen(mode, savedResult) {
-        alert("게임이 정상 완료 및 안전 저장되었습니다냥! 결과 화면 렌더링 중 오류가 감지되어 로비로 바로 이동합니다냥.");
+    function showFallbackResultScreen(mode, savedResult, error) {
+        const detail = error && error.message ? ` (${error.message})` : '';
+        alert(`게임은 안전하게 저장됐지만 결과 화면을 표시하지 못했습니다냥.${detail}`);
         showLobby();
     }
     window.showFallbackResultScreen = showFallbackResultScreen;
@@ -1396,7 +1403,7 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
                 stack: error?.stack || ''
             });
 
-            showFallbackResultScreen(window.gameSession.mode, savedResult);
+            showFallbackResultScreen(window.gameSession.mode, savedResult, error);
         }
     }
     window.finalizeGameSession = finalizeGameSession;
@@ -1855,7 +1862,12 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
                         missions: {}
                     },
                     rewardState: {
-                        lastRewardedLevel: 1
+                        lastRewardedLevel: 1,
+                        levelCurve: {
+                            curveVersion: 2,
+                            baseLevel: 1,
+                            baseTotalPoints: 0
+                        }
                     },
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()

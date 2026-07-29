@@ -98,7 +98,7 @@ assert.strictEqual(patch.createdAt, '__SERVER_TIMESTAMP__');
 
 const collectionSource = fs.readFileSync('js/ui/collectionController.js', 'utf8');
 const skillSource = fs.readFileSync('js/ui/catSkillDetailController.js', 'utf8');
-assert(collectionSource.includes('global.openCatDetail=openCatDetail'));
+assert(/global\.openCatDetail\s*=\s*openCatDetail/.test(collectionSource));
 assert(!skillSource.includes('global.openCatDetail='), 'skill helper must not replace openCatDetail');
 assert(skillSource.includes('equipButton.dataset.catId'));
 assert(skillSource.includes('global.updateRepresentativeCat(equipButton.dataset.catId)'));

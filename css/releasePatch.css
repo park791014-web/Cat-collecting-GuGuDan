@@ -8,4 +8,9 @@
 .mode-ranking-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;margin:6px 0;border-radius:12px;background:#faf7ff}
 .mode-ranking-item.is-me,.ranking-own-outside{background:#fff0f7;border:1px solid #f1b8d4}
 .ranking-own-outside{margin-top:14px}
+.leaderboard-player-line{display:flex;align-items:center;gap:.5rem;min-width:0}
+.leaderboard-rank{flex:0 0 auto;font-weight:700}
+.leaderboard-nickname{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ranking-cat-thumb{width:40px!important;height:40px!important;max-width:40px!important;max-height:40px!important;flex:0 0 40px!important;border:1px solid #ddd;border-radius:50%;background:#eee;object-fit:cover}
 .ranking-empty,.ranking-error{text-align:center}.ranking-error{color:#b00020}
+@media(max-width:420px){.mode-ranking-item{gap:8px;padding:9px}.leaderboard-player-line{gap:.4rem}.leaderboard-rank,.leaderboard-nickname{font-size:.9rem}.ranking-cat-thumb{width:34px!important;height:34px!important;max-width:34px!important;max-height:34px!important;flex-basis:34px!important}}

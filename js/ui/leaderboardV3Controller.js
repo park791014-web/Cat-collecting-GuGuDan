@@ -3,6 +3,8 @@
   var v2 = global.GugudanV2 || {};
   var category = 'overall';
   var period = 'monthly';
+  var activeRequest = null;
+  var requestSequence = 0;
 
   function byId(id) { return document.getElementById(id); }
   function escapeHtml(value) { var node = document.createElement('span'); node.textContent = value == null ? '' : String(value); return node.innerHTML; }
@@ -27,7 +29,7 @@
     if (!row) return;
     row.innerHTML = category === 'overall'
       ? '<button data-period="monthly" type="button">월간</button><button data-period="allTime" type="button">누적</button>'
-      : '<button data-period="weeklyBest" type="button">주간 최고기록</button><button data-period="allTimeBest" type="button">누적 최고기록</button>';
+      : '<button data-period="monthly" type="button">월간 최고기록</button><button data-period="allTimeBest" type="button">누적 최고기록</button>';
     row.querySelectorAll('[data-period]').forEach(function (button) {
       button.onclick = function() { setRankingPeriod(button.dataset.period); };
     });
@@ -39,20 +41,19 @@
     document.querySelectorAll('[data-period]').forEach(function (button) { button.classList.toggle('active', button.dataset.period === period); });
     var label = byId('ranking-period-label');
     if (!label) return;
-    if (category === 'overall' && period === 'monthly') label.textContent = v2.rankingService.getKoreaMonthKey() + ' · 한국 시간';
-    else if (category === 'timeAttack' && period === 'weeklyBest') label.textContent = v2.rankingService.getKoreanWeekRange().weekKey + ' · 한국 시간';
+    if (period === 'monthly') label.textContent = v2.rankingService.getKoreaMonthKey() + ' · 한국 시간';
     else label.textContent = '누적 랭킹';
   }
 
   function setRankingMode(next) {
     category = next === 'timeAttack' ? 'timeAttack' : 'overall';
-    period = category === 'overall' ? 'monthly' : 'weeklyBest';
+    period = 'monthly';
     renderPeriodButtons();
     loadModeRanking();
   }
 
   function setRankingPeriod(next) {
-    var allowed = category === 'overall' ? ['monthly', 'allTime'] : ['weeklyBest', 'allTimeBest'];
+    var allowed = category === 'overall' ? ['monthly', 'allTime'] : ['monthly', 'allTimeBest'];
     if (allowed.indexOf(next) < 0) return;
     period = next;
     updateButtons();
@@ -70,14 +71,19 @@
       return;
     }
 
-    // 클라이언트 메모리 정렬 (주 점수 내림차순 -> KST 갱신일playedAtTimestamp/playedAt 오름차순)
+    // Firestore limit(100) 이후 정렬하므로 100위 경계 동점은 서버 집계 없이는 완전히 결정적이지 않다.
     records.sort(function(a, b) {
       if (b.displayScore !== a.displayScore) {
         return b.displayScore - a.displayScore;
       }
-      var tA = a.playedAtTimestamp ? (a.playedAtTimestamp.seconds || new Date(a.playedAt).getTime()) : new Date(a.playedAt).getTime();
-      var tB = b.playedAtTimestamp ? (b.playedAtTimestamp.seconds || new Date(b.playedAt).getTime()) : new Date(b.playedAt).getTime();
-      return tA - tB;
+      var tA = a.playedAtTimestamp && Number.isFinite(Number(a.playedAtTimestamp.seconds))
+        ? Number(a.playedAtTimestamp.seconds) * 1000
+        : new Date(a.playedAt).getTime();
+      var tB = b.playedAtTimestamp && Number.isFinite(Number(b.playedAtTimestamp.seconds))
+        ? Number(b.playedAtTimestamp.seconds) * 1000
+        : new Date(b.playedAt).getTime();
+      if (tA !== tB) return tA - tB;
+      return String(a.playerId || '').localeCompare(String(b.playerId || ''));
     });
 
     records.forEach(function (record, index) {
@@ -90,10 +96,11 @@
 
       var suffix = category === 'overall' ? 'P' : '개';
 
-      item.innerHTML = '<span style="display:flex; align-items:center;">' +
-                       '<img class="ranking-cat-thumb" src="' + catImgSrc + '" style="width:30px; height:30px; border-radius:50%; margin-right:8px; object-fit:contain; background-color:#eee; border:1px solid #ddd;" alt="">' +
-                       '<b>' + (index + 1) + '위</b> ' + escapeHtml(record.nickname || '익명') + '</span>' +
-                       '<strong>' + record.displayScore + suffix + '</strong>';
+      item.innerHTML = '<div class="leaderboard-player-line">' +
+                       '<img class="ranking-cat-thumb" src="' + catImgSrc + '" alt="">' +
+                       '<span class="leaderboard-rank">' + (index + 1) + '위</span>' +
+                       '<span class="leaderboard-nickname">' + escapeHtml(record.nickname || '익명') + '</span></div>' +
+                       '<strong>' + Number(record.displayScore).toLocaleString('ko-KR') + suffix + '</strong>';
       list.appendChild(item);
     });
 
@@ -107,46 +114,69 @@
 
       var suffix = category === 'overall' ? 'P' : '개';
 
-      own.innerHTML = '<span style="display:flex; align-items:center;">' +
-                       '<img class="ranking-cat-thumb" src="' + ownCatImgSrc + '" style="width:30px; height:30px; border-radius:50%; margin-right:8px; object-fit:contain; background-color:#eee; border:1px solid #ddd;" alt="">' +
-                       '<b>10위 밖 · 내 기록</b> ' + escapeHtml(ownRecord.nickname || me.nickname || '') + '</span>' +
-                       '<strong>' + ownRecord.displayScore + suffix + '</strong>';
+      own.innerHTML = '<div class="leaderboard-player-line">' +
+                       '<img class="ranking-cat-thumb" src="' + ownCatImgSrc + '" alt="">' +
+                       '<span class="leaderboard-rank">100위 밖 · 내 기록</span>' +
+                       '<span class="leaderboard-nickname">' + escapeHtml(ownRecord.nickname || me.nickname || '') + '</span></div>' +
+                       '<strong>' + Number(ownRecord.displayScore).toLocaleString('ko-KR') + suffix + '</strong>';
       list.appendChild(own);
     }
   }
 
-  async function loadModeRanking() {
-    updateButtons();
+  function renderLoadError(result) {
     var list = byId('ranking-list');
     if (!list) return;
-    list.innerHTML = '<p class="ranking-empty">순위를 불러오는 중...</p>';
+    list.innerHTML = '<p class="ranking-error">순위를 불러오지 못했습니다.</p>' +
+      '<button class="ranking-retry-button" type="button">재시도</button>';
+    var retryButton = list.querySelector('.ranking-retry-button');
+    if (retryButton) {
+      retryButton.onclick = function () {
+        if (activeRequest) return;
+        retryButton.disabled = true;
+        loadModeRanking();
+      };
+    }
+    if (result && result.error) console.error('[LEADERBOARD LOAD ERROR DETAIL]', result.error);
+    if (result && result.indexUrl) console.error('[LEADERBOARD INDEX CREATION URL]', result.indexUrl);
+  }
+
+  function loadModeRanking() {
+    updateButtons();
+    var list = byId('ranking-list');
+    if (!list) return Promise.resolve();
     var options = { category: category, period: period };
-    
-    try {
-      var results = await Promise.all([
+    var requestKey = category + ':' + period;
+    if (activeRequest && activeRequest.key === requestKey) return activeRequest.promise;
+
+    list.innerHTML = '<p class="ranking-empty">순위를 불러오는 중입니다.</p>';
+    var currentRequest = ++requestSequence;
+    var promise = Promise.all([
         v2.rankingService.getLeaderboard(options),
         v2.rankingService.getPlayerRecord(Object.assign({ playerId: playerId() }, options))
-      ]);
-      
+      ]).then(function (results) {
+      if (currentRequest !== requestSequence) return;
       if (!results[0].ok) {
-        list.innerHTML = '<p class="ranking-error">순위를 불러오지 못했습니다.</p>';
-        console.error("[LEADERBOARD LOAD ERROR DETAIL]", results[0].error);
-        if (results[0].indexUrl) {
-          console.error("[LEADERBOARD INDEX CREATION URL]", results[0].indexUrl);
-        }
+        renderLoadError(results[0]);
         return;
       }
       render(results[0].records, results[1]);
-    } catch(err) {
-      list.innerHTML = '<p class="ranking-error">순위를 불러오지 못했습니다.</p>';
-      console.error("[LEADERBOARD LOAD EXCEPTION]", err);
-    }
+    }).catch(function (error) {
+      if (currentRequest !== requestSequence) return;
+      renderLoadError({ error: error });
+      console.error('[LEADERBOARD LOAD EXCEPTION]', error);
+    }).finally(function () {
+      if (activeRequest && activeRequest.sequence === currentRequest) activeRequest = null;
+    });
+    activeRequest = { key: requestKey, sequence: currentRequest, promise: promise };
+    return promise;
   }
 
   function openRankings() {
     if (typeof global.clearPhase2Runtime === 'function') global.clearPhase2Runtime();
     if (typeof global.prepareClassicUI === 'function') global.prepareClassicUI();
     category = 'overall'; period = 'monthly';
+    activeRequest = null;
+    requestSequence += 1;
     
     buildControls();
     

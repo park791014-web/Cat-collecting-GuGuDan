@@ -246,7 +246,7 @@
     }
   }
 
-  function showTimeAttackResultUI(session) {
+  function showTimeAttackResultUI(session, savedResult) {
     prepareResultLayout(true);
     var title = '⏱️ 타임어택 종료';
     
@@ -256,15 +256,19 @@
     var accuracy = session.answeredCount ? Math.round(correctCount / session.answeredCount * 100) : 0;
     var bestCombo = state.bestCombo || 0;
 
-    var coinsEarned = correctCount * 15;
-    var rewardHtml = '<div class="mode-coin-reward"><strong>획득 코인 +' + coinsEarned + '코인</strong><small>정답 보상</small></div>';
+    var coinsEarned = savedResult && Number.isFinite(Number(savedResult.playCoins))
+      ? Number(savedResult.playCoins)
+      : Math.floor(score / 2);
+    var levelReward = savedResult && Number(savedResult.levelRewardPremiumTickets) > 0
+      ? '<small>레벨업 보상: 고급 뽑기권 +' + Number(savedResult.levelRewardPremiumTickets) + '</small>'
+      : '';
+    var rewardHtml = '<div class="mode-coin-reward"><strong>획득 포인트: +' + score + 'P</strong><span>플레이 보상: 코인 +' + coinsEarned + '</span>' + levelReward + '</div>';
     
     document.querySelector('#result-screen > h1').textContent = title;
     byId('phase2-result-title').textContent = title;
     byId('phase2-result-stats').innerHTML = '<div class="phase2-result-grid"><span>최종 점수 <b>' + score + 'P</b></span><span>정답 <b>' + correctCount + '</b></span><span>오답 <b>' + wrongCount + '</b></span><span>정확도 <b>' + accuracy + '%</b></span><span>최고 콤보 <b>' + bestCombo + '</b></span></div>' + rewardHtml;
     
     byId('phase2-ranking-status').textContent = '결과가 성공적으로 저장되었습니다냥!';
-    byId('ranking-box').style.display = 'none';
     showScreen('result-screen');
     byId('phase2-result-panel').focus();
   }

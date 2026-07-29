@@ -1,0 +1,226 @@
+.leaderboard-player-line {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.rarity-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    min-height: 20px;
+    margin: 0 !important;
+    padding: 2px 7px !important;
+    border: 0 !important;
+    border-radius: 6px !important;
+    color: #fff !important;
+    font-size: 11px !important;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.rarity-badge.rarity-normal { background: var(--rarity-normal) !important; }
+.rarity-badge.rarity-rare { background: var(--rarity-rare) !important; }
+.rarity-badge.rarity-hero { background: var(--rarity-hero) !important; }
+.rarity-badge.rarity-legendary { background: var(--rarity-legendary) !important; }
+
+.home-representative-name-row,
+.selected-cat-title-line {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.home-representative-name-row .representative-cat-name {
+    min-width: 0;
+    color: var(--color-text);
+}
+
+.home-representative-name-row .rarity-badge,
+.cat-card-title-row > .representative-badge,
+.cat-card-title-row > .rarity-badge,
+.cat-card-title-row > .cat-stars {
+    position: static !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    order: 0 !important;
+    flex: 0 0 auto;
+}
+
+.home-representative-name-row .rarity-badge {
+    display: inline-flex !important;
+    width: fit-content !important;
+    min-width: 0 !important;
+    max-width: max-content !important;
+    flex: 0 0 auto !important;
+    flex-grow: 0 !important;
+    flex-shrink: 0 !important;
+    align-self: center !important;
+    white-space: nowrap !important;
+}
+
+.home-representative-name-row .home-representative-cat-name,
+.cat-card-title-row > .cat-name {
+    min-width: 0;
+    order: 0 !important;
+}
+
+.cat-stars {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.cat-stars-gold { color: #d59b2b; }
+.cat-stars-red { color: #d94848; }
+
+.cat-detail-name,
+.cat-detail-meta {
+    text-align: left;
+}
+
+.cat-detail-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 4px 0 10px;
+}
+
+.cat-detail-rarity {
+    font-weight: 700;
+}
+
+.rarity-text-normal { color: var(--rarity-normal); }
+.rarity-text-rare { color: var(--rarity-rare); }
+.rarity-text-hero { color: var(--rarity-hero); }
+.rarity-text-legendary { color: var(--rarity-legendary); }
+
+.cat-detail-category {
+    color: var(--color-text-soft);
+}
+
+.selected-cat-rarity {
+    flex: 0 0 auto;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 800;
+}
+
+.selected-cat-rarity.rarity-normal { color: var(--rarity-normal); border: 0 !important; }
+.selected-cat-rarity.rarity-rare { color: var(--rarity-rare); border: 0 !important; }
+.selected-cat-rarity.rarity-hero { color: var(--rarity-hero); border: 0 !important; }
+.selected-cat-rarity.rarity-legendary { color: var(--rarity-legendary); border: 0 !important; }
+
+.currency-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+    margin-top: 8px;
+}
+
+.currency-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    padding: 6px 9px;
+    border-radius: 999px;
+    background: var(--color-surface-soft);
+    color: var(--color-text-soft);
+    white-space: nowrap;
+}
+
+.currency-chip strong {
+    color: var(--color-text);
+}
+
+.collection-grid.collection-single-row-list {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 8px !important;
+}
+
+.collection-single-row-list .collection-cat-row {
+    display: grid !important;
+    grid-template-columns: 72px minmax(0, 1fr) !important;
+    gap: 10px !important;
+    align-items: center;
+    width: 100% !important;
+    min-height: 72px !important;
+    padding: 8px 10px !important;
+    box-sizing: border-box;
+    text-align: left !important;
+}
+
+.collection-single-row-list .collection-cat-row__image {
+    grid-column: 1;
+    width: 72px !important;
+    height: 72px !important;
+    margin: 0 !important;
+    object-fit: contain !important;
+    transform: none !important;
+    clip-path: none !important;
+}
+
+.collection-single-row-list .collection-cat-row__content {
+    grid-column: 2;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.collection-single-row-list .collection-cat-row__title-line {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-width: 0;
+}
+
+.collection-single-row-list .collection-cat-row__representative,
+.collection-single-row-list .collection-cat-row__rarity {
+    position: static !important;
+    flex: 0 0 auto;
+    margin: 0 !important;
+}
+
+.collection-single-row-list .collection-cat-row__name {
+    min-width: 0;
+    margin: 0 !important;
+    font-size: 15px !important;
+    line-height: 1.25;
+}
+
+.collection-single-row-list .collection-cat-row__description {
+    margin: 4px 0 0;
+    font-size: 13px;
+    line-height: 1.4;
+    text-align: left;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+}
+
+@media (max-width: 360px) {
+    .collection-single-row-list .collection-cat-row {
+        grid-template-columns: 56px minmax(0, 1fr) !important;
+        gap: 8px !important;
+    }
+
+    .collection-single-row-list .collection-cat-row__image {
+        width: 56px !important;
+        height: 56px !important;
+    }
+}
