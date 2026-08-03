@@ -123,23 +123,29 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
         return `u_${hash}@nyanko.invalid`;
     }
 
+    function getAllCatalogCats() {
+        const catalog = window.GugudanV2 || {};
+        return [].concat(catalog.baseCats || [], catalog.seasonCats || []);
+    }
+    v2.allCats = getAllCatalogCats();
+
     // 고양이 데이터 안전 정규화 (유효한 ID 필터링 및 복구)
     function normalizeOwnedCats(userData) {
         let ownedCatIds = [];
         let duplicateCounts = {};
-        const baseCats = (window.GugudanV2 && window.GugudanV2.baseCats) || [];
+        const catalogCats = getAllCatalogCats();
         
         if (userData) {
             if (Array.isArray(userData.ownedCatIds)) {
                 ownedCatIds = userData.ownedCatIds.filter(id => {
-                    const exists = baseCats.some(c => c.id === id);
+                    const exists = catalogCats.some(c => c.id === id);
                     if (!exists) console.warn("[CAT NORMALIZATION WARNING] 유효하지 않은 고양이 ID 무시:", id);
                     return exists;
                 });
             } else if (Array.isArray(userData.rewards)) {
                 userData.rewards.forEach(r => {
                     if (r && r.id) {
-                        const exists = baseCats.some(c => c.id === r.id);
+                        const exists = catalogCats.some(c => c.id === r.id);
                         if (exists) {
                             if (!ownedCatIds.includes(r.id)) {
                                 ownedCatIds.push(r.id);
@@ -169,9 +175,9 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
     // 유효한 대표 고양이 ID 검증 및 대체
     function getValidRepresentativeCatId(userData, ownedCatIds) {
         let repId = userData ? userData.representativeCatId : null;
-        const baseCats = (window.GugudanV2 && window.GugudanV2.baseCats) || [];
+        const catalogCats = getAllCatalogCats();
         
-        const isValid = repId && baseCats.some(c => c.id === repId) && ownedCatIds.includes(repId);
+        const isValid = repId && catalogCats.some(c => c.id === repId) && ownedCatIds.includes(repId);
         if (isValid) return repId;
         
         if (ownedCatIds && ownedCatIds.length > 0) return ownedCatIds[0];
@@ -227,7 +233,8 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
             };
         }
 
-        const baseCats = (window.GugudanV2 && window.GugudanV2.baseCats) || [];
+        const catalogCats = getAllCatalogCats();
+        v2.allCats = catalogCats;
         
         // 1. stats 보존
         const stats = Object.assign({
@@ -305,7 +312,7 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
                 ownedCatIds.push('base_normal_01');
             }
             ownedCatIds.forEach(id => {
-                if (baseCats.some(c => c.id === id)) {
+                if (catalogCats.some(c => c.id === id)) {
                     const dupCount = (raw.duplicateCounts && raw.duplicateCounts[id]) || 0;
                     ownedCats[id] = {
                         count: 1 + dupCount,
@@ -1645,9 +1652,13 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
                     }
                 }
                 
-                const catsInRarity = baseCats.filter(c => c.rarity === chosenRarity);
-                if (catsInRarity.length === 0) throw new Error("no_cats_available_for_rarity");
-                const chosenCat = catsInRarity[Math.floor(Math.random() * catsInRarity.length)];
+                const premiumCandidates = drawType === 'premiumTicket'
+                    ? v2.cardPackService.getPremiumCandidates(chosenRarity)
+                    : baseCats.filter(c => c.rarity === chosenRarity);
+                if (premiumCandidates.length === 0) throw new Error("no_cats_available_for_rarity");
+                const chosenCat = drawType === 'premiumTicket'
+                    ? v2.cardPackService.selectWeightedCat(premiumCandidates)
+                    : premiumCandidates[Math.floor(Math.random() * premiumCandidates.length)];
 
                 const mutation = v2.gachaPersistenceService.buildMutation(rawUserData, {
                     currencyKey,

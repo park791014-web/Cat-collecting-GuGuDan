@@ -25,6 +25,36 @@
     return v2.releasePolicyService.getVisibleCats();
   }
 
+  function catalogCats() {
+    return v2.allCats || [].concat(v2.baseCats || [], v2.seasonCats || []);
+  }
+
+  function collectionSummary(save) {
+    var ownedIds = new Set((save.collection && save.collection.ownedCatIds) || []);
+    var catalog = catalogCats();
+    var pickup = v2.cardPackService && typeof v2.cardPackService.getPremiumPickup === 'function'
+      ? v2.cardPackService.getPremiumPickup()
+      : null;
+    var season = pickup && pickup.active ? pickup.season : null;
+    var baseCats = (v2.baseCats || []).filter(function (cat) { return cat.available !== false && cat.obtainable !== false; });
+    var seasonCats = season ? catalog.filter(function (cat) { return cat.seasonId === season.id && cat.available !== false && cat.obtainable !== false; }) : [];
+    var ownedCount = catalog.filter(function (cat) { return ownedIds.has(cat.id); }).length;
+    var baseOwned = baseCats.filter(function (cat) { return ownedIds.has(cat.id); }).length;
+    var seasonOwned = seasonCats.filter(function (cat) { return ownedIds.has(cat.id); }).length;
+    return {
+      ownedCount: ownedCount,
+      baseOwned: baseOwned,
+      baseTotal: baseCats.length,
+      seasonOwned: seasonOwned,
+      seasonTotal: seasonCats.length,
+      seasonName: season ? season.name : '',
+      homeText: '보유 고양이 ' + ownedCount + '종',
+      baseText: '기본 컬렉션 ' + baseOwned + '/' + baseCats.length,
+      seasonText: season ? season.name + ' ' + seasonOwned + '/' + seasonCats.length : '',
+      detailText: '기본 컬렉션 ' + baseOwned + '/' + baseCats.length + (season ? ' · ' + season.name + ' ' + seasonOwned + '/' + seasonCats.length : '')
+    };
+  }
+
   function findCat(catId) {
     return visibleCats().find(function (cat) { return cat.id === catId; });
   }
@@ -98,8 +128,9 @@
       packCurrency.textContent = '보유 코인 ' + formatNumber(save.currency.coins) + '코인';
     }
     if (ownedSummary) {
-      ownedSummary.textContent = '보유 고양이 ' + ownedCats(save).length + '종 · 기본 컬렉션 ' +
-        ownedCats(save).length + '/' + (v2.baseCats || []).length;
+      var summaryData = collectionSummary(save);
+      ownedSummary.innerHTML = '<span class="collection-owned-total">' + summaryData.homeText + '</span><span class="collection-owned-base">' + summaryData.baseText + '</span>' +
+        (summaryData.seasonText ? '<span class="collection-owned-season">' + summaryData.seasonText + '</span>' : '');
     }
 
     if (!summary) return;
@@ -352,12 +383,14 @@
     var filters = byId('collection-filters');
     if (!grid || !filters) return;
 
-    filters.innerHTML = '<span class="collection-owned-count">보유 ' + list.length +
+    var summaryData = collectionSummary(save);
+    filters.innerHTML = '<span class="collection-owned-count">보유 ' + summaryData.ownedCount +
       '종</span><input id="collection-search" type="search" placeholder="고양이 이름 검색" ' +
       'aria-label="고양이 이름 검색"><div class="collection-rarity-filters">' +
       '<button data-rarity="all" class="active">전체</button><button data-rarity="normal">일반</button>' +
       '<button data-rarity="rare">희귀</button><button data-rarity="hero">영웅</button>' +
-      '<button data-rarity="legendary">전설</button></div>';
+      '<button data-rarity="legendary">전설</button></div>' +
+      (summaryData.seasonName ? '<small class="collection-season-progress">' + summaryData.seasonName + ' · ' + summaryData.seasonOwned + '/' + summaryData.seasonTotal + '</small>' : '');
 
     var rarity = 'all';
     var query = '';
@@ -396,7 +429,7 @@
     paint();
     renderCurrency();
     if (byId('collection-screen-summary')) {
-      byId('collection-screen-summary').textContent = '보유 고양이 ' + list.length + '종';
+      byId('collection-screen-summary').textContent = summaryData.homeText + ' · ' + summaryData.detailText;
     }
   }
 
@@ -447,4 +480,5 @@
   global.renderPhase4Currency = renderCurrency;
   global.renderBaseCollection = renderCollection;
   global.openCollectionScreen = openCollectionScreen;
+  v2.collectionSummaryService = { getSummary: collectionSummary };
 })(window);
