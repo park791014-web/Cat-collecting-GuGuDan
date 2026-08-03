@@ -84,6 +84,17 @@
     byId('feedback').textContent = '';
     byId('timer-bar').parentElement.style.display = mode === GAME_MODES.TIME_ATTACK ? '' : 'none'; 
     byId('progress-bar').parentElement.style.display = mode === GAME_MODES.TIME_ATTACK ? '' : 'none';
+    if (global.renderGameShell) {
+      global.renderGameShell({
+        mode: mode,
+        title: mode === GAME_MODES.TIME_ATTACK ? '타임어택' : '무한 도전',
+        stageLabel: mode === GAME_MODES.TIME_ATTACK ? '제한 시간 안에 최대한 많이!' : '끝없는 도전',
+        showTimer: mode === GAME_MODES.TIME_ATTACK,
+        showCombo: true,
+        showBossHp: false,
+        enemyType: 'cat'
+      });
+    }
     
     showScreen('play-screen'); 
     renderModeStatus(); 
@@ -143,6 +154,7 @@
       questionStartTime = Date.now(); 
       byId('question').textContent = question.left + ' X ' + question.right + ' = ?'; 
       byId('question').className = 'question-text'; 
+      byId('feedback').className = '';
       byId('feedback').textContent = ''; 
       renderAnswers(question); 
       renderModeStatus(); 
@@ -184,6 +196,7 @@
   }
 
   function playModeSound(correct) { try { if(v2.soundService){if (correct) v2.soundService.playCorrectSound(); else v2.soundService.playWrongSound();}else playSound(correct ? 'correct' : 'wrong'); if(v2.catPresentationRuntime)v2.catPresentationRuntime.playFeedback(correct?'correct':'wrong'); } catch (error) { playSound(correct ? 'correct' : 'wrong'); } }
+  function showModeFeedback(kind, message) { if (global.setGameAnswerFeedback) global.setGameAnswerFeedback(kind, message); else { var feedback = byId('feedback'); feedback.className = 'game-answer-feedback is-' + kind; feedback.textContent = message; } }
   
   function handleModeCorrect() { 
     var nextCombo = state.combo + 1, rules = config.modes[activeMode], points = v2.scoreManager.calculateModeAnswerScore(nextCombo, rules); 
@@ -192,13 +205,12 @@
     var praise = ''; 
     try { praise = v2.effectService.playCorrect(nextCombo); } 
     catch (error) { console.error('[Mode correct effect error]', error); } 
-    byId('feedback').textContent = activeMode === GAME_MODES.TIME_ATTACK ? '' : praise + ' +' + points + 'P'; 
-    byId('feedback').className = activeMode === GAME_MODES.TIME_ATTACK ? '' : 'correct-anim'; 
+    showModeFeedback('correct', (praise || '정답이다냥!') + ' +' + points + 'P');
     byId('question').className = 'question-text correct-anim'; 
     
     if (activeMode === GAME_MODES.ENDLESS && state.correctCount % rules.difficultyIncreaseInterval === 0) { 
       stateApi.increaseDifficulty(); 
-      byId('feedback').textContent = '난이도 상승! Lv.' + state.difficultyLevel; 
+      showModeFeedback('correct', '난이도 상승! Lv.' + state.difficultyLevel);
     } 
     continueAfterAnswer(activeMode === GAME_MODES.TIME_ATTACK ? 360 : 450); 
   }
@@ -206,8 +218,7 @@
   function handleModeWrong() { 
     stateApi.recordWrongAnswer(); 
     playModeSound(false); 
-    byId('feedback').textContent = activeMode === GAME_MODES.TIME_ATTACK ? '' : '💦 오답! 정답은 ' + state.currentQuestion.answer; 
-    byId('feedback').className = activeMode === GAME_MODES.TIME_ATTACK ? '' : 'wrong-anim'; 
+    showModeFeedback('wrong', '💦 오답! 정답은 ' + state.currentQuestion.answer);
     byId('question').className = 'question-text wrong-anim'; 
     
     if (activeMode === GAME_MODES.ENDLESS) { 

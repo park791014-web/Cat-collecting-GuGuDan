@@ -45,7 +45,7 @@
   }
 
   function calculatePlayCoins(mode, sessionPoints, completed) {
-    if (!completed || (mode !== 'classic' && mode !== 'timeAttack')) return 0;
+    if (!completed || ['classic', 'timeAttack', 'adventure', 'divisionExact', 'divisionRemainder'].indexOf(mode) < 0) return 0;
     return Math.floor(Math.max(0, Number(sessionPoints) || 0) / 2);
   }
 

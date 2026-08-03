@@ -213,7 +213,7 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
             return {
                 schemaVersion: 3,
                 profile: { loginId: "", nickname: "냥코", representativeCatId: "base_normal_01" },
-                stats: { totalPoints: 0, level: 1, classicCorrect: 0, timeAttackBest: 0, adventureCorrect: 0, totalCorrect: 0, totalGames: 0 },
+                stats: { totalPoints: 0, level: 1, classicCorrect: 0, timeAttackBest: 0, adventureCorrect: 0, totalCorrect: 0, totalGames: 0, modeCompletions: { divisionExact: 0 } },
                 currency: { coins: 1000, normalTickets: 5, premiumTickets: 1, seasonTickets: 0 },
                 ownedCats: { base_normal_01: { count: 1, acquiredAt: new Date().toISOString() } },
                 adventure: { completedStageIds: [], unlockedStageIds: ['stage_01_01'], completedStages: {}, unlockedWorlds: { world_01: true }, firstClearRewards: {} },
@@ -592,6 +592,8 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
         }
         const feedback = document.getElementById('feedback');
         if (feedback) {
+            if (window.setGameAnswerFeedback) window.setGameAnswerFeedback('correct', '');
+            feedback.className = '';
             feedback.textContent = '';
         }
         const timerBar = document.getElementById('timer-bar');
@@ -638,7 +640,14 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
         const rewardBox = document.getElementById('reward-box');
         if (rewardBox) {
             rewardBox.style.display = 'none';
+            rewardBox.replaceChildren();
         }
+        const phase2Stats = document.getElementById('phase2-result-stats');
+        if (phase2Stats) phase2Stats.replaceChildren();
+        const phase2Ranking = document.getElementById('phase2-ranking-status');
+        if (phase2Ranking) phase2Ranking.textContent = '';
+        const adventureActions = document.getElementById('adventure-result-actions');
+        if (adventureActions) adventureActions.replaceChildren();
         const retryModal = document.getElementById('save-retry-modal');
         if (retryModal) {
             retryModal.remove();
@@ -742,6 +751,22 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
         }
     }
     window.refreshCurrentUserData = refreshCurrentUserData;
+    window.getDivisionProgress = function () {
+        if (isGuestMode) {
+            const guest = v2.storageService.loadSaveData();
+            const progress = guest.adventureProgress || {};
+            return {
+                storyCompleted: Array.isArray(progress.clearedStageIds) && progress.clearedStageIds.includes('stage_08_10'),
+                divisionExactCompletions: Math.max(0, Number(guest.progress && guest.progress.modeCompletions && guest.progress.modeCompletions.divisionExact) || 0)
+            };
+        }
+        const adventure = currentUserData && currentUserData.adventure;
+        const stats = currentUserData && currentUserData.stats;
+        return {
+            storyCompleted: Boolean(adventure && Array.isArray(adventure.completedStageIds) && adventure.completedStageIds.includes('stage_08_10')),
+            divisionExactCompletions: Math.max(0, Number(stats && stats.modeCompletions && stats.modeCompletions.divisionExact) || 0)
+        };
+    };
 
     async function claimDailyMissionTransaction(missionId) {
         const user = auth.currentUser;
@@ -808,6 +833,75 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
     async function saveFinalGameResult(result) {
         if (isGuestMode) {
             console.log('[Guest Mode] saveFinalGameResult local only');
+            const isDivisionMode = result.mode === 'divisionExact' || result.mode === 'divisionRemainder';
+            if (isDivisionMode) {
+                const guestData = v2.storageService.loadSaveData();
+                guestData.progress = guestData.progress || {};
+                guestData.progress.modeCompletions = guestData.progress.modeCompletions || { divisionExact: 0 };
+                guestData.rewardHistory = guestData.rewardHistory || {};
+                const processed = guestData.rewardHistory.divisionProcessedSessionIds || [];
+                const duplicate = processed.includes(result.sessionId);
+                const correct = (result.questionResults || []).filter(item => item.isCorrect).length;
+                const points = result.success && !duplicate ? correct * 10 : 0;
+                const coins = Math.floor(points / 2);
+                if (result.success && !duplicate) {
+                    guestData.progress.totalScore = (guestData.progress.totalScore || 0) + points;
+                    guestData.progress.totalGames = (guestData.progress.totalGames || 0) + 1;
+                    guestData.progress.totalCorrect = (guestData.progress.totalCorrect || 0) + correct;
+                    guestData.currency.coins = (guestData.currency.coins || 0) + coins;
+                    if (result.mode === 'divisionExact') guestData.progress.modeCompletions.divisionExact = (guestData.progress.modeCompletions.divisionExact || 0) + 1;
+                    guestData.rewardHistory.divisionProcessedSessionIds = processed.concat(result.sessionId).slice(-100);
+                    v2.storageService.saveSaveData(guestData);
+                }
+                return { ok: true, guest: true, duplicate: duplicate, sessionPoints: points, playCoins: coins, divisionExactCompletions: guestData.progress.modeCompletions.divisionExact || 0, divisionRemainderUnlocked: (guestData.progress.modeCompletions.divisionExact || 0) >= 10, levelRewardPremiumTickets: 0 };
+            }
+            if (result.mode === 'adventure') {
+                const data = v2.storageService.loadSaveData();
+                data.rewardState = data.rewardState || {};
+                let levelRewardPremiumTickets = 0;
+                let playCoins = 0;
+                const history = data.rewardHistory = data.rewardHistory || {};
+                const processed = history.rewardedSessionIds || [];
+                const duplicate = processed.includes(result.sessionId);
+                const progress = data.adventureProgress || {};
+                const records = progress.stageRecords = progress.stageRecords || {};
+                const previous = records[result.stageId] || {};
+                const correct = (result.questionResults || []).filter(item => item.isCorrect).length;
+                const total = (result.questionResults || []).length;
+                const stars = !result.success ? 0 : correct === total ? 3 : (total && Math.round(correct / total * 100) >= 80 ? 2 : 1);
+                data.rewardState.adventureStarRewards = data.rewardState.adventureStarRewards || { version: 1, claimedStarsByStage: {} };
+                const claimed = data.rewardState.adventureStarRewards.claimedStarsByStage;
+                const wasCompleted = (progress.clearedStageIds || []).includes(result.stageId);
+                if (wasCompleted && claimed[result.stageId] == null) {
+                    // Existing guest clears establish a baseline; they never receive retroactive stars.
+                    claimed[result.stageId] = Number(previous.bestStars) || stars;
+                }
+                const legacy = Boolean(wasCompleted && !previous.bestStars);
+                const reward = v2.rewardService.calculateAdventureClearRewards({ stage: { id: result.stageId, stageNumber: result.stageNumber }, success: Boolean(result.success), correctCount: correct, previousBestStars: previous.bestStars || 0, previousClaimedStars: claimed[result.stageId], currentStars: stars, isLegacyCompletedStage: legacy });
+                if (!duplicate && result.success) {
+                    const previousPoints = Number(data.progress.totalScore) || 0;
+                    playCoins = v2.levelProgressService.calculatePlayCoins('adventure', reward.sessionPoints, true);
+                    data.progress.totalScore = (data.progress.totalScore || 0) + reward.sessionPoints;
+                    data.currency.coins = (data.currency.coins || 0) + playCoins + reward.rewardTotals.coins;
+                    data.currency.normalTickets = (data.currency.normalTickets || 0) + reward.rewardTotals.normalTickets;
+                    data.currency.premiumTickets = (data.currency.premiumTickets || 0) + reward.rewardTotals.premiumTickets;
+                    records[result.stageId] = Object.assign({}, previous, { cleared: true, bestStars: reward.nextBestStars });
+                    claimed[result.stageId] = reward.nextClaimedStars;
+                    const levelProgress = data.rewardState.levelProgress = data.rewardState.levelProgress || { level: 1, levelCurve: null };
+                    const levelCurve = v2.levelProgressService.normalizeBaseline(levelProgress.levelCurve, levelProgress.level || 1, previousPoints);
+                    const nextLevel = v2.levelProgressService.resolveLevel(data.progress.totalScore, levelCurve, levelProgress.level || 1);
+                    levelRewardPremiumTickets = Math.max(0, nextLevel - (levelProgress.level || 1));
+                    levelProgress.levelCurve = levelCurve;
+                    levelProgress.level = Math.max(levelProgress.level || 1, nextLevel);
+                    data.currency.premiumTickets = (data.currency.premiumTickets || 0) + levelRewardPremiumTickets;
+                    history.rewardedSessionIds = processed.concat(result.sessionId).slice(-100);
+                    v2.storageService.saveSaveData(data);
+                }
+                const returnedReward = duplicate
+                    ? { clearReward: { coins: 0, normalTickets: 0, premiumTickets: 0 }, starRewards: [], newlyEarnedStarLevels: [], nextBestStars: Number(previous.bestStars) || 0, nextClaimedStars: Number(claimed[result.stageId]) || 0, coins: 0, normalTickets: 0, premiumTickets: 0 }
+                    : Object.assign({ clearReward: reward.clearReward, starRewards: reward.starRewards, newlyEarnedStarLevels: reward.newlyEarnedStarLevels, nextBestStars: reward.nextBestStars, nextClaimedStars: reward.nextClaimedStars }, reward.rewardTotals);
+                return { ok: true, guest: true, duplicate: duplicate, sessionPoints: duplicate ? 0 : reward.sessionPoints, playCoins: duplicate ? 0 : playCoins, adventureReward: returnedReward, clearReward: returnedReward.clearReward, newlyEarnedStarLevels: returnedReward.newlyEarnedStarLevels, starRewards: returnedReward.starRewards, rewardTotals: { coins: returnedReward.coins, normalTickets: returnedReward.normalTickets, premiumTickets: returnedReward.premiumTickets }, nextBestStars: returnedReward.nextBestStars, nextClaimedStars: returnedReward.nextClaimedStars, levelUpReward: { premiumTickets: levelRewardPremiumTickets }, levelRewardPremiumTickets: levelRewardPremiumTickets };
+            }
             const localRecord = v2.storageService.recordGame(result);
             const guestQuestions = result.questionResults || [];
             const guestCorrectCount = guestQuestions.filter(item => item.isCorrect).length;
@@ -906,16 +1000,19 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
             }
 
             userData.stats = userData.stats || {};
+            userData.stats.modeCompletions = userData.stats.modeCompletions || { divisionExact: 0 };
             userData.currency = userData.currency || {};
             userData.adventure = userData.adventure || {};
 
-            const sessionPoints = correctCount * 10;
+            const isDivisionMode = mode === 'divisionExact' || mode === 'divisionRemainder';
+            const isAdventureFailure = mode === 'adventure' && !success;
+            const sessionPoints = (isDivisionMode && !success) || isAdventureFailure ? 0 : correctCount * 10;
             const previousPoints = userData.stats.totalPoints || 0;
             const nextPoints = previousPoints + sessionPoints;
             savedSessionPoints = sessionPoints;
             
             userData.stats.totalPoints = nextPoints;
-            userData.stats.totalGames = (userData.stats.totalGames || 0) + 1;
+            if (!isDivisionMode || success) userData.stats.totalGames = (userData.stats.totalGames || 0) + 1;
 
             if (mode === 'classic') {
                 userData.stats.classicCorrect = (userData.stats.classicCorrect || 0) + correctCount;
@@ -928,33 +1025,36 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
             }
             userData.stats.totalCorrect = (userData.stats.classicCorrect || 0) + (userData.stats.adventureCorrect || 0) + (userData.stats.timeAttackBest || 0);
 
+            if (mode === 'divisionExact' && success) userData.stats.modeCompletions.divisionExact = (Number(userData.stats.modeCompletions.divisionExact) || 0) + 1;
+
             let coinsReward = 0;
             let ticketsReward = 0;
             let premiumTicketsReward = 0;
 
-            if (mode === 'classic' || mode === 'timeAttack') {
+            if (mode === 'classic' || mode === 'timeAttack' || mode === 'adventure' || mode === 'divisionExact' || mode === 'divisionRemainder') {
                 playCoins = v2.levelProgressService.calculatePlayCoins(mode, sessionPoints, success);
                 coinsReward = playCoins;
-            } else if (mode === 'adventure') {
+            }
+            if (mode === 'adventure' && success) {
                 if (success) {
-                    userData.adventure.firstClearRewards = userData.adventure.firstClearRewards || {};
+                    userData.rewardState = userData.rewardState || {};
+                    userData.rewardState.adventureStarRewards = userData.rewardState.adventureStarRewards || { version: 1, claimedStarsByStage: {} };
                     const previouslyCompleted = Array.isArray(userData.adventure.completedStageIds) && userData.adventure.completedStageIds.includes(stageId);
-                    adventureFirstClear = !userData.adventure.firstClearRewards[stageId] && !previouslyCompleted;
+                    const previousRecord = (userData.adventure.completedStages || {})[stageId] || {};
+                    const previousBestStars = Number(previousRecord.bestStars) || 0;
+                    const claimed = userData.rewardState.adventureStarRewards.claimedStarsByStage;
+                    const currentStars = correctCount === totalCount ? 3 : (totalCount && Math.round(correctCount / totalCount * 100) >= 80 ? 2 : 1);
+                    if (previouslyCompleted && claimed[stageId] == null) {
+                        // Migrate completed stages into the reward baseline without backpay.
+                        claimed[stageId] = previousBestStars || currentStars;
+                    }
                     const resolvedStageNumber = Number(result.stageNumber || String(stageId || '').split('_').pop());
-                    const stageReward = v2.rewardService.calculateStageRewards({
-                        stage: { stageNumber: resolvedStageNumber },
-                        cleared: true,
-                        isFirstClear: adventureFirstClear
-                    });
-                    userData.adventure.firstClearRewards[stageId] = true;
-                    coinsReward = stageReward.coins;
-                    ticketsReward = stageReward.normalTickets;
-                    premiumTicketsReward = stageReward.premiumTickets;
-                    adventureReward = {
-                        coins: coinsReward,
-                        normalTickets: ticketsReward,
-                        premiumTickets: premiumTicketsReward
-                    };
+                    const stageReward = v2.rewardService.calculateAdventureClearRewards({ stage: { id: stageId, stageNumber: resolvedStageNumber }, success: true, correctCount: correctCount, previousBestStars: previousBestStars, previousClaimedStars: claimed[stageId], currentStars: currentStars, isLegacyCompletedStage: previouslyCompleted && !previousRecord.bestStars });
+                    claimed[stageId] = stageReward.nextClaimedStars;
+                    coinsReward += stageReward.rewardTotals.coins;
+                    ticketsReward = stageReward.rewardTotals.normalTickets;
+                    premiumTicketsReward = stageReward.rewardTotals.premiumTickets;
+                    adventureReward = Object.assign({ starRewards: stageReward.starRewards, clearReward: stageReward.clearReward, newlyEarnedStarLevels: stageReward.newlyEarnedStarLevels, nextBestStars: stageReward.nextBestStars, nextClaimedStars: stageReward.nextClaimedStars }, stageReward.rewardTotals);
                 }
             }
 
@@ -1186,11 +1286,21 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
         }
 
         syncFirestoreDataToLocal(currentUserData, user.uid);
+        const returnedAdventureReward = isDuplicate || !adventureReward
+            ? { clearReward: { coins: 0, normalTickets: 0, premiumTickets: 0 }, starRewards: [], newlyEarnedStarLevels: [], nextBestStars: 0, nextClaimedStars: 0, coins: 0, normalTickets: 0, premiumTickets: 0 }
+            : adventureReward;
         return {
             ok: true,
             guest: false,
             duplicate: isDuplicate,
-            adventureReward: adventureReward,
+            adventureReward: returnedAdventureReward,
+            clearReward: returnedAdventureReward.clearReward,
+            newlyEarnedStarLevels: returnedAdventureReward.newlyEarnedStarLevels,
+            starRewards: returnedAdventureReward.starRewards,
+            rewardTotals: { coins: returnedAdventureReward.coins, normalTickets: returnedAdventureReward.normalTickets, premiumTickets: returnedAdventureReward.premiumTickets },
+            nextBestStars: returnedAdventureReward.nextBestStars,
+            nextClaimedStars: returnedAdventureReward.nextClaimedStars,
+            levelUpReward: { premiumTickets: isDuplicate ? 0 : levelRewardPremiumTickets },
             adventureFirstClear: adventureFirstClear,
             levelRewardPremiumTickets: isDuplicate ? 0 : levelRewardPremiumTickets,
             sessionPoints: isDuplicate ? 0 : savedSessionPoints,
@@ -1223,7 +1333,7 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
         let resultPointsElement = null;
         let resultCoinsElement = null;
 
-        if (mode === 'classic') {
+        if (mode === 'classic' || mode === 'divisionExact' || mode === 'divisionRemainder') {
             document.body.classList.remove('boss-mode');
             
             resultScreen = requireElement("result-screen");
@@ -1253,6 +1363,19 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
                 ? Number(savedResult.playCoins)
                 : Math.floor(totalScore / 2);
             resCoinsEarned.innerText = `${coinsEarned}코인`;
+            const divisionExtra = document.getElementById('division-result-extra');
+            if (divisionExtra) {
+                const isDivision = mode === 'divisionExact' || mode === 'divisionRemainder';
+                divisionExtra.style.display = isDivision ? 'block' : 'none';
+                if (isDivision) {
+                    const divisionProgress = window.getDivisionProgress ? window.getDivisionProgress() : { divisionExactCompletions: 0 };
+                    const completed = Math.max(0, Number(divisionProgress.divisionExactCompletions) || 0);
+                    divisionExtra.textContent = mode === 'divisionExact'
+                        ? (completed >= 10 ? '나눗셈 완료 10 / 10 · 새로운 모드 해금! ‘몫과 나머지’를 플레이할 수 있어요.' : '나눗셈 완료 ' + completed + ' / 10')
+                        : '몫과 나머지 완료!';
+                    resultScreen.querySelector('h1').textContent = mode === 'divisionExact' ? '➗ 나눗셈 완료!' : '➗ 몫과 나머지 완료!';
+                }
+            }
             if (savedResult && savedResult.levelRewardPremiumTickets) {
                 rewardBox.textContent = `레벨업 보상: 고급 뽑기권 +${savedResult.levelRewardPremiumTickets}`;
                 rewardBox.style.display = 'block';
@@ -2068,6 +2191,13 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
         if (window.clearAdventureEngineTimeouts) window.clearAdventureEngineTimeouts();
         if (window.clearModeEngineTimers) window.clearModeEngineTimers();
         if (window.clearPhase2Runtime) window.clearPhase2Runtime();
+        clearQuestionUI();
+        clearBossUI();
+        clearStoryEnemyUI();
+        clearResultUI();
+        if (window.clearPortraitGameShell) window.clearPortraitGameShell();
+        const effectLayer = document.getElementById('game-effect-layer');
+        if (effectLayer) effectLayer.replaceChildren();
 
         document.getElementById('lobby-name').innerText = currentUser;
 
@@ -2088,6 +2218,7 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
         if (window.renderBaseCollection) window.renderBaseCollection();
         if (v2.isFeatureEnabled && v2.isFeatureEnabled('seasons') && window.renderSeasonBanner) window.renderSeasonBanner();
         if (window.renderDailyMissions) window.renderDailyMissions();
+        if (window.renderDivisionModeCards) window.renderDivisionModeCards();
         if (window.maybeShowOnboarding) window.maybeShowOnboarding();
     }
 
@@ -2136,6 +2267,17 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
         document.body.classList.remove('boss-mode');
         document.getElementById('reward-box').style.display = 'none';
         updateLivePoints(); 
+        if (window.renderGameShell) {
+            window.renderGameShell({
+                mode: 'classic',
+                title: '일반 게임',
+                stageLabel: '20문제 도전',
+                showTimer: false,
+                showCombo: true,
+                showBossHp: false,
+                enemyType: 'cat'
+            });
+        }
         
         showScreen('play-screen'); nextMarathonQuestionFlow();
     }
@@ -2184,7 +2326,9 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
         
         document.getElementById('q-counter').innerText = `문제: ${currentQIndex}/${CLASSIC_QUESTION_LIMIT}`;
         document.getElementById('progress-bar').style.width = `${(currentQIndex / CLASSIC_QUESTION_LIMIT) * 100}%`;
-        document.getElementById('feedback').innerText = "";
+        const feedback = document.getElementById('feedback');
+        feedback.className = '';
+        feedback.innerText = "";
         
         let optionsCount = (currentQIndex <= 18) ? 4 : 8; 
         let needsTrap = (currentQIndex >= 16); 
@@ -2253,7 +2397,9 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
 
         answerLocked = true;
         clearInterval(timerInterval); clearInterval(countdownInterval); document.getElementById('timer-bar').style.width = '0%';
-        const feedback = document.getElementById('feedback'); feedback.innerText = "⏰ 시간 초과냥!"; feedback.className = "wrong-anim";
+        const feedback = document.getElementById('feedback');
+        if (window.setGameAnswerFeedback) window.setGameAnswerFeedback('wrong', '⏰ 시간 초과냥!');
+        else { feedback.innerText = '⏰ 시간 초과냥!'; feedback.className = 'game-answer-feedback is-wrong'; }
         document.getElementById('question').className = "question-text wrong-anim";
         playSound('wrong'); triggerVibration([400, 100, 400]);
         if (v2.gameState) v2.gameState.recordWrongAnswer();
@@ -2312,11 +2458,15 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
             catch (error) { console.error('[Classic correct effect error]', error); }
             if (combo >= 10) classicTenComboShown = true;
             if (session.answeredCount % 5 === 0 && session.correctCount === session.answeredCount) praise = '퍼펙트! 완벽한 계산이다냥!';
-            feedback.innerText = praise; feedback.className = "correct-anim"; document.getElementById('question').className = "question-text correct-anim";
+            if (window.setGameAnswerFeedback) window.setGameAnswerFeedback('correct', praise || '정답이다냥!');
+            else { feedback.innerText = praise || '정답이다냥!'; feedback.className = 'game-answer-feedback is-correct'; }
+            document.getElementById('question').className = "question-text correct-anim";
             try { if (v2.soundService) v2.soundService.playCorrectSound(); else playSound('correct'); if(v2.catPresentationRuntime)v2.catPresentationRuntime.playFeedback('correct'); } catch(e) { playSound('correct'); } triggerVibration([100, 50, 100]); 
         } else {
             if (v2.gameState) v2.gameState.recordWrongAnswer();
-            feedback.innerText = "💦 틀렸다냥!"; feedback.className = "wrong-anim"; document.getElementById('question').className = "question-text wrong-anim";
+            if (window.setGameAnswerFeedback) window.setGameAnswerFeedback('wrong', '💦 틀렸다냥!');
+            else { feedback.innerText = '💦 틀렸다냥!'; feedback.className = 'game-answer-feedback is-wrong'; }
+            document.getElementById('question').className = "question-text wrong-anim";
             try { if (v2.soundService) v2.soundService.playWrongSound(); else playSound('wrong'); if(v2.catPresentationRuntime)v2.catPresentationRuntime.playFeedback('wrong'); } catch(e) { playSound('wrong'); } triggerVibration([300, 100, 300, 100, 300]); 
         }
         disableBtns(); setTimeout(nextMarathonQuestionFlow, 1000);

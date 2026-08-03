@@ -3,6 +3,7 @@
   var v2 = global.GugudanV2, worldId = null, stage = null, run = null, timer = null, transitionTimer = null, safetyTimer = null, resultRenderCount = 0;
   
   function byId(id) { return document.getElementById(id); }
+  function showAdventureFeedback(kind, message) { if (global.setGameAnswerFeedback) global.setGameAnswerFeedback(kind, message); else { var feedback = byId('feedback'); feedback.className = 'game-answer-feedback is-' + kind; feedback.textContent = message; } }
   function cats() { return [].concat(v2.baseCats || [], v2.seasonCats || []); }
   function selectedCat() { return v2.releasePolicyService.getSelectedCat(); }
   function img(src, cls, alt) { return '<img src="' + src + '" class="' + cls + '" alt="' + (alt || '') + '">'; }
@@ -382,6 +383,8 @@
       run.current = question(); 
       session.currentQuestion = run.current;
       byId('question').textContent = run.current.text; 
+      byId('feedback').className = '';
+      byId('feedback').textContent = '';
       var box = byId('options-container'); 
       box.innerHTML = '';
       
@@ -450,13 +453,13 @@
       feedbackText = '아쉬워요. 정답은 ' + run.current.answer;
     }
     
-    byId('feedback').textContent = feedbackText;
     try{renderHud();}catch(hudError){console.warn('[Adventure HUD error]',hudError);}
     
     if (correct && v2.effectService && typeof v2.effectService.playCorrect === 'function') {
-      try { byId('feedback').textContent = v2.effectService.playCorrect(run.combo) || feedbackText; }
+      try { feedbackText = v2.effectService.playCorrect(run.combo) || feedbackText; }
       catch (error) { console.error('[Adventure correct effect error]', error); }
     }
+    showAdventureFeedback(correct ? 'correct' : 'wrong', feedbackText);
 
     var isBoss = stage.boss || stage.type === 'midBoss' || stage.type === 'finalBoss';
     var cleared = isBoss ? (run.bossHp <= 0 && run.lives > 0) : (session.answeredCount >= stage.rules.questionCount && run.lives > 0);
@@ -542,18 +545,15 @@
       playScreen.style.backgroundSize = 'cover';
       playScreen.style.backgroundPosition = 'center';
       
-      // BOSS BATTLE 가상요소 제어
-      if (bossUiVisible) {
-        playScreen.classList.add('boss-arena');
-      } else {
-        playScreen.classList.remove('boss-arena');
-      }
+      // The portrait shell owns the arena.  Keep the legacy class off the whole
+      // screen so only the visual-stage arena receives boss styling.
+      playScreen.classList.remove('boss-arena');
     }
 
     // 보스 판넬 제어
     var bossPanel = byId('boss-panel');
     if (bossPanel) {
-      bossPanel.style.display = ''; // 일반 스테이지도 적 이미지는 여기에 표출하므로 block 상태 유지
+      bossPanel.style.display = bossUiVisible ? '' : 'none';
       if (bossUiVisible) {
         bossPanel.classList.add('boss-active-frame');
       } else {
@@ -580,6 +580,21 @@
     playerName.innerHTML = '<strong>' + cat.displayName + '</strong><small>' + ({normal:'일반',rare:'희귀',hero:'영웅',legendary:'전설'}[cat.rarity]) + (cat.description ? ' · ' + cat.description : '') + '</small>';
 
     var enemyAsset = resolveStoryEnemyAsset(stage.worldId, stage.stageNumber);
+    if (global.renderGameShell) {
+      global.renderGameShell({
+        mode: 'adventure',
+        title: '구구단 대모험',
+        stageLabel: '스테이지 ' + stage.stageNumber,
+        showTimer: Boolean(stage.rules.timeLimitSeconds),
+        showCombo: true,
+        showBossHp: bossUiVisible,
+        enemyType: bossUiVisible ? 'boss' : 'enemy',
+        enemyImage: enemyAsset,
+        enemyLabel: bossUiVisible ? '' : '스테이지 적',
+        bossHp: run.bossHp,
+        bossMaxHp: stage.boss ? stage.boss.maximumHp : 0
+      });
+    }
     
     if (bossUiVisible) {
       byId('boss-hp').style.display = ''; 
@@ -638,10 +653,7 @@
     else if (accuracy >= 80) stars = 2;
     if (!isStageCleared) stars = 0;
 
-    var authenticatedResult = savedResult && savedResult.guest === false;
-    var claim = authenticatedResult
-      ? { ok: isStageCleared && !savedResult.duplicate, reward: savedResult.adventureReward || { coins: 0, normalTickets: 0, premiumTickets: 0 }, firstClear: savedResult.adventureFirstClear }
-      : v2.rewardService.claimStageRewards({ sessionId: session.sessionId, stage: stage, cleared: isStageCleared, stars: stars });
+    var claim = { ok: isStageCleared && savedResult && !savedResult.duplicate, reward: (savedResult && savedResult.adventureReward) || { coins: 0, normalTickets: 0, premiumTickets: 0, starRewards: [] }, firstClear: false };
     
     var cat = selectedCat(); 
     byId('adventure-result-number').textContent = 'STAGE ' + stage.displayNumber; 
@@ -650,14 +662,19 @@
     fallback(byId('adventure-result-cat').querySelector('img'), cat.fallbackImage); 
     
     byId('adventure-result-stars').textContent = '★'.repeat(stars) + '☆'.repeat(3 - stars); 
-    byId('adventure-result-stats').innerHTML = '<span>점수 <b>' + (correctCount * 10) + '</b></span><span>정답 <b>' + correctCount + '</b></span><span>정확도 <b>' + accuracy + '%</b></span>'; 
+    var awardedPoints = savedResult && Number.isFinite(Number(savedResult.sessionPoints)) ? Number(savedResult.sessionPoints) : 0;
+    byId('adventure-result-stats').innerHTML = '<span>점수 <b>' + awardedPoints + '</b></span><span>정답 <b>' + correctCount + '</b></span><span>정확도 <b>' + accuracy + '%</b></span>';
     
     var rewardParts = [];
-    if (claim.ok && claim.reward.coins) rewardParts.push('코인 +' + claim.reward.coins);
-    if (claim.ok && claim.reward.normalTickets) rewardParts.push('일반 뽑기권 +' + claim.reward.normalTickets);
-    if (claim.ok && claim.reward.premiumTickets) rewardParts.push('고급 뽑기권 +' + claim.reward.premiumTickets);
-    if (authenticatedResult && savedResult.levelRewardPremiumTickets) rewardParts.push('레벨업 보상: 고급 뽑기권 +' + savedResult.levelRewardPremiumTickets);
-    byId('adventure-rewards').textContent = claim.ok ? ((claim.firstClear || claim.reward.firstClear) ? '최초 클리어 보상: ' : '반복 클리어 보상: ') + rewardParts.join(' · ') : '';
+    if (claim.ok && savedResult && savedResult.playCoins) rewardParts.push('<div>플레이 보상: 코인 +' + savedResult.playCoins + '</div>');
+    if (claim.ok && claim.reward.starRewards && claim.reward.starRewards.length) {
+      var starParts = claim.reward.starRewards.map(function(r) {
+        return '★'.repeat(r.star) + ' ' + (r.coins ? '코인 +' + r.coins : r.normalTickets ? '일반 뽑기권 +' + r.normalTickets : '고급 뽑기권 +' + r.premiumTickets);
+      });
+      rewardParts.push('<div>새로 달성한 별 보상: ' + starParts.join(' · ') + '</div>');
+    }
+    if (savedResult && savedResult.levelRewardPremiumTickets) rewardParts.push('<div>레벨업 보상: 고급 뽑기권 +' + savedResult.levelRewardPremiumTickets + '</div>');
+    byId('adventure-rewards').innerHTML = claim.ok ? rewardParts.join('') : '';
     
     var parts = stage.id.split('_');
     var stageOrder = parseInt(parts[1]);

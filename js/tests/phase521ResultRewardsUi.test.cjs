@@ -48,7 +48,7 @@ assert.strictEqual(levels.resolveLevel(13500, highExistingCurve, 38), 39);
 assert.strictEqual(levels.calculatePlayCoins('classic', 100, true), 50);
 assert.strictEqual(levels.calculatePlayCoins('timeAttack', 250, true), 125);
 assert.strictEqual(levels.calculatePlayCoins('classic', 101, true), 50);
-assert.strictEqual(levels.calculatePlayCoins('adventure', 100, true), 0);
+assert.strictEqual(levels.calculatePlayCoins('adventure', 100, true), 50);
 assert.strictEqual(levels.calculatePlayCoins('classic', 100, false), 0);
 
 assert.match(appSource, /playCoins = v2\.levelProgressService\.calculatePlayCoins\(mode, sessionPoints, success\)/);

@@ -26,6 +26,8 @@
     modes: {
       classic: { enabled: true, title: '기본 도전' },
       timeAttack: { enabled: true, title: '타임어택', defaultSeconds: 60, warningSeconds: 10, correctPoints: 10, wrongPenaltyPoints: 0, wrongPenaltySeconds: 0, comboBonusEnabled: true },
+      divisionExact: { enabled: true, title: '나눗셈', totalQuestions: 20 },
+      divisionRemainder: { enabled: true, title: '몫과 나머지', totalQuestions: 20 },
       adventure: { enabled: true, title: '구구단 대모험' }
     },
     ranking: { allTimeEnabled: true, weeklyEnabled: false, limit: 5 },
