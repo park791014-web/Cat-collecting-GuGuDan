@@ -1837,6 +1837,8 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
         // 대상 화면 출력
         const targetEl = document.getElementById(targetId);
         if (targetEl) {
+            const gameContainer = document.getElementById('game-container');
+            if (gameContainer) gameContainer.hidden = targetId === 'ranking-screen';
             targetEl.style.removeProperty('display');
             targetEl.removeAttribute('hidden');
             targetEl.classList.add('active-screen');

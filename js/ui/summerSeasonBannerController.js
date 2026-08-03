@@ -39,22 +39,32 @@
       return cat.seasonId === season.id && save.collection.ownedCatIds.indexOf(cat.id) >= 0;
     }).length;
     var banner = document.createElement('section');
-    var image = document.createElement('img');
-    var content = document.createElement('span');
+    var content = document.createElement('div');
+    var title = document.createElement('strong');
+    var details = document.createElement('small');
     var button = document.createElement('button');
+    var visual = document.createElement('div');
+    var image = document.createElement('img');
 
     banner.className = 'season-banner summer-season-banner';
-    image.src = 'assets/cats/seasons/summer_2026/heatwave-flame-cat.jpg';
-    image.alt = '폭염불꽃냥이';
-    content.innerHTML = '<strong>' + season.name + '</strong><small>' + season.breed.displayName + ' · ' + formatRange(season) + ' · 수집 ' + owned + '/' + season.catIds.length + '</small>';
+    content.className = 'summer-season-banner__content';
+    title.className = 'summer-season-banner__title';
+    title.textContent = season.name;
+    details.textContent = season.breed.displayName + ' · ' + formatRange(season) + ' · 수집 ' + owned + '/' + season.catIds.length;
     button.type = 'button';
     button.className = 'game-button primary summer-season-banner__button';
     button.textContent = '시즌 보기 →';
     button.onclick = openSummerPremiumPickup;
 
-    banner.appendChild(image);
+    visual.className = 'summer-season-banner__visual';
+    image.src = 'assets/cats/seasons/summer_2026/heatwave-flame-cat.jpg';
+    image.alt = '폭염불꽃냥이';
+    content.appendChild(title);
+    content.appendChild(details);
+    content.appendChild(button);
+    visual.appendChild(image);
     banner.appendChild(content);
-    banner.appendChild(button);
+    banner.appendChild(visual);
     if (v2.assetLoader) v2.assetLoader.applyImageFallback(image, 'assets/placeholders/cat-placeholder.svg', 'summer_2026_heatwave_flame_cat');
     slot.appendChild(banner);
   }

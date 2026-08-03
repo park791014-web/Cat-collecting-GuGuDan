@@ -290,6 +290,17 @@
 
     lastFocus = document.activeElement;
     var progress = save.collection.catProgress[catId] || {};
+    var playerContext = typeof global.getCurrentPlayerContext === 'function'
+      ? global.getCurrentPlayerContext()
+      : {};
+    var ownedCats = playerContext.userData && playerContext.userData.ownedCats;
+    var acquisitionLabel = v2.catAcquisitionService
+      ? v2.catAcquisitionService.getCatAcquisitionLabel({
+        catId: catId,
+        ownedCats: ownedCats,
+        catProgress: save.collection.catProgress
+      })
+      : (progress.obtainedAt ? new Date(progress.obtainedAt).toLocaleDateString('ko-KR') + ' 획득' : '2026.08.04 이전 획득');
     var duplicates = save.collection.duplicateCounts[catId] || 0;
     var selected = save.profile.selectedCatId === catId;
     var content = byId('cat-detail-content');
@@ -300,7 +311,7 @@
       '</div>';
     content.innerHTML = '<img class="cat-detail-image" src="' + cat.image + '" alt="' + cat.displayName + '">' +
       '<h2 id="cat-detail-name" class="cat-detail-name">' + cat.displayName + '</h2>' + detailMeta + '<p>획득일 ' +
-      (progress.obtainedAt ? new Date(progress.obtainedAt).toLocaleDateString('ko-KR') : '처음부터 함께함') +
+      acquisitionLabel +
       ' · 중복 ' + duplicates + '회</p><button id="equip-cat-button" class="game-button primary" ' +
       (selected ? 'disabled' : '') + '>' +
       (selected ? '대표 고양이로 장착 중' : '대표 고양이로 장착') + '</button>';
@@ -338,6 +349,8 @@
     var card = document.createElement('button');
     card.type = 'button';
     card.className = 'collection-item cat-thumbnail-item collection-cat-row rarity-' + cat.rarity;
+    card.dataset.collection = cat.collection || 'base';
+    if (cat.seasonId) card.dataset.seasonId = cat.seasonId;
     card.style.setProperty('--rarity-color', rarityColors[cat.rarity]);
 
     var image = document.createElement('img');
@@ -481,4 +494,5 @@
   global.renderBaseCollection = renderCollection;
   global.openCollectionScreen = openCollectionScreen;
   v2.collectionSummaryService = { getSummary: collectionSummary };
+  v2.collectionUiRenderer = { createCollectionCard: createCollectionCard };
 })(window);
