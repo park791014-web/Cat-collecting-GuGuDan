@@ -1,0 +1,15 @@
+{
+  "name": "cat-gugudan-emulator-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local Firestore Emulator security tests only",
+  "scripts": {
+    "test:phase66": "node js/tests/phase66SparkAdminSecurity.test.cjs",
+    "test:phase66:emulator": "firebase emulators:exec --project demo-cat-gugudan-admin --only firestore \"node js/tests/phase66SparkAdminRules.emulator.test.cjs\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.1",
+    "firebase": "^12.17.0",
+    "firebase-tools": "^15.25.1"
+  }
+}

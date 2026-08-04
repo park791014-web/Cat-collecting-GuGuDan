@@ -1,72 +1,104 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // 관리자(Owner) 여부 판정 헬퍼
     function isOwnerAdmin() {
       return request.auth != null && request.auth.uid == 'xg6wYMihYRTsF60NCLf36XigPFB3';
     }
 
-    // 1. 사용자 문서 규칙
+    function isNonNegativeInt(value) { return value is int && value >= 0; }
+    function hasOnlyAdminTopLevelChanges(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
+
+    function validAdminCurrencyGrant() {
+      let changed = request.resource.data.currency.diff(resource.data.currency).affectedKeys();
+      return hasOnlyAdminTopLevelChanges(['currency', 'updatedAt'])
+        && changed.size() == 1
+        && (
+          (changed.hasOnly(['coins'])
+            && isNonNegativeInt(resource.data.currency.coins)
+            && isNonNegativeInt(request.resource.data.currency.coins)
+            && request.resource.data.currency.coins - resource.data.currency.coins >= 1
+            && request.resource.data.currency.coins - resource.data.currency.coins <= 100000)
+          || (changed.hasOnly(['normalTickets'])
+            && isNonNegativeInt(resource.data.currency.normalTickets)
+            && isNonNegativeInt(request.resource.data.currency.normalTickets)
+            && request.resource.data.currency.normalTickets - resource.data.currency.normalTickets >= 1
+            && request.resource.data.currency.normalTickets - resource.data.currency.normalTickets <= 100)
+          || (changed.hasOnly(['premiumTickets'])
+            && isNonNegativeInt(resource.data.currency.premiumTickets)
+            && isNonNegativeInt(request.resource.data.currency.premiumTickets)
+            && request.resource.data.currency.premiumTickets - resource.data.currency.premiumTickets >= 1
+            && request.resource.data.currency.premiumTickets - resource.data.currency.premiumTickets <= 100)
+        );
+    }
+
+    function validAdminActionCreate(actionId) {
+      let data = request.resource.data;
+      return data.keys().hasOnly(['actionId', 'adminUid', 'targetUid', 'targetLoginId', 'targetNickname', 'type', 'amount', 'catId', 'catName', 'note', 'before', 'after', 'status', 'createdAt', 'appVersion'])
+        && data.keys().hasAll(['actionId', 'adminUid', 'targetUid', 'targetLoginId', 'targetNickname', 'type', 'amount', 'catId', 'catName', 'note', 'before', 'after', 'status', 'createdAt', 'appVersion'])
+        && data.actionId == actionId
+        && data.adminUid == request.auth.uid
+        && data.targetUid is string && data.targetUid.size() >= 6 && data.targetUid.size() <= 128
+        && data.targetLoginId is string && data.targetLoginId.size() <= 16
+        && data.targetNickname is string && data.targetNickname.size() <= 30
+        && data.note is string && data.note.size() <= 100
+        && data.status == 'applied'
+        && data.createdAt == request.time
+        && data.appVersion is string && data.appVersion.size() <= 32
+        && ((data.type == 'coins'
+          && data.amount is int && data.amount >= 1 && data.amount <= 100000
+          && data.before is int && data.before >= 0 && data.after == data.before + data.amount
+          && data.catId == null && data.catName == null)
+          || (data.type in ['normalTickets', 'premiumTickets']
+            && data.amount is int && data.amount >= 1 && data.amount <= 100
+            && data.before is int && data.before >= 0 && data.after == data.before + data.amount
+            && data.catId == null && data.catName == null));
+    }
+
     match /users/{uid} {
-      allow read: if request.auth != null && request.auth.uid == uid;
+      allow get: if request.auth != null && (request.auth.uid == uid || isOwnerAdmin());
+      allow list: if isOwnerAdmin();
       allow create: if request.auth != null && request.auth.uid == uid;
-      
-      // 사용자 본인은 전체 update 가능, 관리자는 오직 currency와 updatedAt 필드만 부분 update 가능
       allow update: if (request.auth != null && request.auth.uid == uid)
-                    || (isOwnerAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['currency', 'updatedAt']));
+        || (isOwnerAdmin()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['currency', 'updatedAt'])
+          && validAdminCurrencyGrant());
       allow delete: if false;
     }
-    
-    // 2. 게임 세션 처리 결과 문서 규칙
-    match /processedGameSessions/{userSessionId} {
-      allow read, create: if request.auth != null && userSessionId.startsWith(request.auth.uid + '_');
+
+    match /adminActions/{actionId} {
+      allow get, list: if isOwnerAdmin();
+      allow create: if isOwnerAdmin() && validAdminActionCreate(actionId);
       allow update, delete: if false;
     }
-    
-    // 3. 랭킹(리더보드) 엔트리 규칙 (구버전)
+
+    match /processedGameSessions/{userSessionId} {
+      allow read, create: if request.auth != null && userSessionId.matches('^' + request.auth.uid + '_.*');
+      allow update, delete: if false;
+    }
+
     match /leaderboards/{boardId}/entries/{uid} {
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == uid;
     }
 
-    // 3.1. 랭킹 v3 엔트리 규칙
     match /leaderboardsV3/{entryId} {
       allow read: if true;
-
-      allow create: if request.auth != null
-        && request.resource.data.playerId == request.auth.uid
-        && request.resource.data.rankingVersion == 'v3';
-
-      allow update: if request.auth != null
-        && resource.data.playerId == request.auth.uid
-        && request.resource.data.playerId == request.auth.uid
-        && request.resource.data
-          .diff(resource.data)
-          .affectedKeys()
-          .hasOnly([
-            'totalScore',
-            'monthlyScore',
-            'score',
-            'nickname',
-            'representativeCatId',
-            'playedAt',
-            'playedAtTimestamp',
-            'updatedAt'
-          ]);
-
+      allow create: if request.auth != null && request.resource.data.playerId == request.auth.uid && request.resource.data.rankingVersion == 'v3';
+      allow update: if request.auth != null && resource.data.playerId == request.auth.uid && request.resource.data.playerId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalScore', 'monthlyScore', 'score', 'nickname', 'representativeCatId', 'playedAt', 'playedAtTimestamp', 'updatedAt']);
       allow delete: if false;
     }
 
-    // 4. 공지사항 규칙
     match /notices/{noticeId} {
       allow read: if request.auth != null;
       allow write: if isOwnerAdmin();
     }
 
-    // 5. 관리자 작업 로그 규칙
     match /adminAuditLogs/{logId} {
-      allow read, write: if isOwnerAdmin();
+      allow read, create: if isOwnerAdmin();
+      allow update, delete: if false;
     }
   }
 }

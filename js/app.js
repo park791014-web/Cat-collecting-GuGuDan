@@ -2064,6 +2064,7 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
     // 로그아웃
     async function logout() {
         window.__nyankoAdminSession = false;
+        if (v2.adminModeController) v2.adminModeController.clear();
         if (v2.storageService) {
             var currentSave = v2.storageService.loadSaveData();
             v2.storageService.saveSaveData(currentSave);
@@ -2104,6 +2105,7 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
 
             const OWNER_ADMIN_UID = "xg6wYMihYRTsF60NCLf36XigPFB3";
             window.__nyankoAdminSession = Boolean(user && user.uid === OWNER_ADMIN_UID);
+            if (v2.adminModeController) v2.adminModeController.handleAuthStateChanged(user);
 
             if (!user) {
                 showScreen('login');
@@ -2233,7 +2235,13 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
         if (window.renderDailyMissions) window.renderDailyMissions();
         if (window.renderDivisionModeCards) window.renderDivisionModeCards();
         if (window.maybeShowOnboarding) window.maybeShowOnboarding();
+        if (v2.adminModeController) v2.adminModeController.renderMenu({ auth: auth, open: window.openSecureAdminMode });
     }
+
+    window.openSecureAdminMode = function () {
+        if (!v2.adminModeController) return;
+        return v2.adminModeController.open({ auth: auth, db: db, firebase: firebase, showScreen: showScreen, showLobby: showLobby });
+    };
 
     function updateLiveAccuracy() {
         const session = window.gameSession;

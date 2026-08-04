@@ -91,13 +91,9 @@
         <p id="profile-setup-error" class="error-message" style="display:none;"></p>
     </div>
 
-    <!-- 관리소 화면 (기능 격리 상태, 버튼 숨김) -->
+    <!-- 관리자 화면: 실제 내용은 adminModeController가 인증 후에만 렌더링합니다. -->
     <div id="admin-screen" class="screen" hidden>
-        <h1>🛠️ 글로벌 냥코 관리소 🛠️</h1>
-        <div class="collection-box" style="border-color: #FFB347; padding: 10px;">
-            <div id="admin-list" style="text-align: left;"></div>
-        </div>
-        <button class="btn btn-guest" style="margin-top: 15px;" onclick="logout()">처음으로</button>
+        <div id="admin-mode-root"></div>
     </div>
 
     <!-- 대기실 화면 -->
@@ -123,7 +119,7 @@
             <button id="division-exact-card" class="mode-card division-exact" type="button"><strong>나눗셈</strong><span>곱셈의 원리를 거꾸로 생각하여 나누어떨어지는 나눗셈 문제를 풀어요.</span><em class="division-mode-status"></em></button>
             <button id="division-remainder-card" class="mode-card division-remainder" type="button"><strong>몫과 나머지</strong><span>몫을 먼저 고르고, 그다음 나머지를 찾아보는 나눗셈 게임이에요.</span><em class="division-mode-status"></em></button>
         </div>
-        <nav class="utility-nav" aria-label="보조 메뉴"><button onclick="openCardPackScreen()">고양이 뽑기</button><button onclick="openCollectionScreen()">도감</button><button onclick="openRankings()">순위</button><button onclick="openSettingsScreen()">설정</button></nav>
+        <nav class="utility-nav" aria-label="보조 메뉴"><button onclick="openCardPackScreen()">고양이 뽑기</button><button onclick="openCollectionScreen()">도감</button><button onclick="openRankings()">순위</button><button onclick="openSettingsScreen()">설정</button><span id="admin-menu-slot"></span></nav>
         <button class="btn btn-guest" id="lobby-logout-button">로그아웃</button>
     </div>
 
@@ -321,6 +317,9 @@
     <script src="js/utils/phase5Validators.js?v=3.3.2-gacha-event-fix"></script>
     <script src="js/utils/phase51Validators.js?v=3.3.2-gacha-event-fix"></script>
     <script src="js/services/adminConfigService.js?v=3.3.2-gacha-event-fix"></script>
+    <script src="js/services/adminValidationService.js?v=phase66-spark-admin"></script>
+    <script src="js/services/adminFirestoreService.js?v=phase66-spark-admin"></script>
+    <script src="js/services/adminBatchGrantService.js?v=phase66c3-batch"></script>
     <script src="js/tests/dataValidation.test.js?v=3.3.2-gacha-event-fix"></script>
     <script src="js/tests/phase2Validation.test.js?v=3.3.2-gacha-event-fix"></script>
     <script src="js/tests/phase3Validation.test.js?v=3.3.2-gacha-event-fix"></script>
@@ -338,9 +337,9 @@
     <script src="js/ui/summerSeasonBannerController.js?v=phase64-summer-banner"></script>
     <script src="js/ui/dailyMissionController.js?v=3.3.2-gacha-event-fix"></script>
     <script src="js/ui/portraitGameShell.js?v=phase61-portrait-shell"></script>
+    <script src="js/ui/adminModeController.js?v=phase66c-admin-ui"></script>
     <script src="js/app.js?v=phase64-summer-pickup"></script>
     <script src="js/ui/gachaSeasonBridgeController.js?v=3.3.2-gacha-event-fix"></script>
-    <script src="js/ui/adminAccountManager.js?v=3.3.2-gacha-event-fix"></script>
     <script src="js/game/modeEngine.js?v=phase521-final"></script>
     <script src="js/ui/leaderboardV3Controller.js?v=phase521-final"></script>
     <script src="js/game/adventureEngine.js?v=3.3.2-gacha-event-fix"></script>
