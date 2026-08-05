@@ -185,15 +185,30 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
     }
 
     function normalizeAdventure(rawAdventure) {
-        const completedStageIds = Array.from(new Set(rawAdventure?.completedStageIds || []));
-        const unlockedStageIds = Array.from(new Set([
-            ...(rawAdventure?.unlockedStageIds || []),
-            'stage_01_01'
-        ]));
+        rawAdventure = rawAdventure || {};
+        const legacyCompleted = [...(rawAdventure.completedStageIds || [])];
+        Object.entries(rawAdventure.worldProgress || {}).forEach(([worldKey, value]) => {
+            const worldMatch = String(worldKey).match(/(\d{1,2})$/);
+            if (!worldMatch) return;
+            const completedThrough = typeof value === 'number' ? value : Number(value?.completedThrough || value?.lastCompletedStage || value?.completedStage);
+            if (completedThrough > 0) legacyCompleted.push(`stage_${String(Number(worldMatch[1])).padStart(2, '0')}_${String(completedThrough).padStart(2, '0')}`);
+            const worldCompletedIds = [].concat(value?.completedStageIds || [], Array.isArray(value?.completedStages) ? value.completedStages : []);
+            worldCompletedIds.forEach(id => legacyCompleted.push(id));
+        });
+        const canonical = v2.adventureService.normalizeProgress({
+            completedStageIds: legacyCompleted,
+            completedStages: rawAdventure.completedStages,
+            unlockedStageIds: rawAdventure.unlockedStageIds,
+            unlockedWorlds: rawAdventure.unlockedWorlds,
+            currentStage: rawAdventure.currentStage
+        });
+        const unlockedWorlds = canonical.unlockedWorldIds.reduce((map, id) => { map[id] = true; return map; }, {});
         return {
             ...rawAdventure,
-            completedStageIds,
-            unlockedStageIds
+            completedStageIds: canonical.clearedStageIds,
+            unlockedStageIds: canonical.unlockedStageIds,
+            completedStages: canonical.stageRecords,
+            unlockedWorlds
         };
     }
 
@@ -409,6 +424,10 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
         addMissing('ownedCats', isOwnedCatsMap(raw.ownedCats) ? raw.ownedCats : undefined, migrated.ownedCats);
         addMissing('adventure.completedStageIds', raw.adventure?.completedStageIds, migrated.adventure.completedStageIds);
         addMissing('adventure.unlockedStageIds', raw.adventure?.unlockedStageIds, migrated.adventure.unlockedStageIds);
+        if (JSON.stringify(raw.adventure?.completedStageIds || []) !== JSON.stringify(migrated.adventure.completedStageIds)) patch['adventure.completedStageIds'] = migrated.adventure.completedStageIds;
+        if (JSON.stringify(raw.adventure?.unlockedStageIds || []) !== JSON.stringify(migrated.adventure.unlockedStageIds)) patch['adventure.unlockedStageIds'] = migrated.adventure.unlockedStageIds;
+        if (JSON.stringify(raw.adventure?.unlockedWorlds || {}) !== JSON.stringify(migrated.adventure.unlockedWorlds)) patch['adventure.unlockedWorlds'] = migrated.adventure.unlockedWorlds;
+        if (JSON.stringify(raw.adventure?.completedStages || {}) !== JSON.stringify(migrated.adventure.completedStages)) patch['adventure.completedStages'] = migrated.adventure.completedStages;
         addMissing('dailyMissions', raw.dailyMissions, migrated.dailyMissions);
         addMissing('rewardState', raw.rewardState, migrated.rewardState);
         if (!hasValue(raw.createdAt)) {
@@ -429,6 +448,7 @@ console.info("[NYANKO RUNTIME BUILD]", window.__NYANKO_RUNTIME_BUILD__);
     // V3 Firestore 데이터를 로컬 스토리지 구조와 전격 동기화
     function syncFirestoreDataToLocal(v3Data, uid) {
         if (!v2.storageService) return;
+        v3Data.adventure = normalizeAdventure(v3Data.adventure);
         const save = v2.storageService.loadSaveData();
 
         save.profile.nickname = v3Data.profile.nickname ?? "냥코";
@@ -1113,25 +1133,14 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
                     userData.adventure.completedStageIds.push(stageId);
                 }
 
-                const parts = stageId.split('_');
-                const stageOrder = parseInt(parts[1]);
-                const stageNum = parseInt(parts[2]);
-                
-                const nextStageNum = stageNum + 1;
-                if (nextStageNum <= 10) {
-                    const nextStageId = `stage_${String(stageOrder).padStart(2,'0')}_${String(nextStageNum).padStart(2,'0')}`;
+                const nextStageId = v2.adventureService.getNextStageId(stageId);
+                if (nextStageId) {
                     if (!userData.adventure.unlockedStageIds.includes(nextStageId)) {
                         userData.adventure.unlockedStageIds.push(nextStageId);
                     }
-                } else if (stageNum === 10) {
-                    const nextWorldId = 'world_' + String(stageOrder + 1).padStart(2,'0');
+                    const nextStage = v2.adventureService.getStage(nextStageId);
                     userData.adventure.unlockedWorlds = userData.adventure.unlockedWorlds || {};
-                    userData.adventure.unlockedWorlds[nextWorldId] = true;
-                    
-                    const nextStageId = `stage_${String(stageOrder + 1).padStart(2,'0')}_01`;
-                    if (!userData.adventure.unlockedStageIds.includes(nextStageId)) {
-                        userData.adventure.unlockedStageIds.push(nextStageId);
-                    }
+                    userData.adventure.unlockedWorlds[nextStage.worldId] = true;
                 }
             }
 

@@ -3,11 +3,17 @@
   global.GugudanV2 = global.GugudanV2 || {};
   var STAGE_TYPES = { NORMAL: 'normal', TIMED: 'timed', COMBO: 'combo', MID_BOSS: 'midBoss', BOSS: 'boss' };
   var titles = ['첫 번째 발자국','조금 더 멀리','빠른 걸음','뒤집힌 문제','중간 수문장','힘찬 전진','정교한 선택','연속 정답','지역 종합','최종 결전'];
+  function resolveBoss(world, type) {
+    var configured = type === STAGE_TYPES.MID_BOSS ? world.midBoss : world.finalBoss;
+    if (configured) return configured;
+    var suffix = type === STAGE_TYPES.MID_BOSS ? 'mid_boss' : 'final_boss';
+    return { id: world.id + '_' + suffix, name: world.title, image: 'assets/adventure/bosses/' + world.id + '_' + suffix + '.svg' };
+  }
   function buildStage(world, number) {
     var type = number === 3 ? STAGE_TYPES.TIMED : number === 5 ? STAGE_TYPES.MID_BOSS : number === 8 ? STAGE_TYPES.COMBO : number === 10 ? STAGE_TYPES.BOSS : STAGE_TYPES.NORMAL;
     var isBoss = type === STAGE_TYPES.MID_BOSS || type === STAGE_TYPES.BOSS;
     var questionCount = isBoss ? (type === STAGE_TYPES.BOSS ? 12 : 8) : number === 1 ? 5 : number >= 6 ? 10 : 7;
-    var boss = type === STAGE_TYPES.MID_BOSS ? world.midBoss : type === STAGE_TYPES.BOSS ? world.finalBoss : null;
+    var boss = isBoss ? resolveBoss(world, type) : null;
     return { id: 'stage_' + String(world.order).padStart(2,'0') + '_' + String(number).padStart(2,'0'), worldId: world.id,
       chapter: world.order, stageNumber: number, displayNumber: world.order + '-' + number, title: titles[number - 1], type: type,
       rules: { tables: world.multiplicationTables.slice(), questionCount: questionCount, answerOptionCount: isBoss ? (type === STAGE_TYPES.BOSS ? 8 : 6) : number >= 7 ? 6 : 4,

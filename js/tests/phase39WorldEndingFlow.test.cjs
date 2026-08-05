@@ -16,14 +16,16 @@ const endingBody = bodyBetween('function handleNextWorldStoryFromResult(currentS
 const nextWorldListBody = bodyBetween('async function openNextWorldStageList(nextWorldNumber)', 'function handleNextWorldStoryFromResult');
 
 assert(!resultBody.includes('setTimeout(function () {\n        try { v2.adventureStoryService.showClearStory(stage); }'));
-assert(resultBody.includes("stageOrder < 8 ? '다음 이야기' : '모험 완료'"));
-assert(resultBody.includes("if (stageNum === 10) return handleNextWorldStoryFromResult(resultStage)"));
+assert(resultBody.includes("nextStage ? '다음 월드로' : '스토리 완료'"));
+assert(resultBody.includes("if (isWorldEnd) return handleNextWorldStoryFromResult(resultStage)"));
 assert(endingBody.includes("console.info('[WORLD ENDING STORY START]'"));
 assert(endingBody.includes("console.info('[WORLD ENDING STORY OPEN]'"));
-assert(endingBody.includes('showClearStory(currentStage, async function ()'));
+assert(endingBody.includes('showClearStory(currentStage, continueAfterWorld'));
+assert(!endingBody.includes('}, true);'));
 assert(endingBody.includes("console.info('[WORLD ENDING STORY CONTINUE]'"));
 assert(endingBody.includes("console.info('[WORLD ENDING STORY CLOSE]'"));
-assert(endingBody.includes('currentWorldNumber < 8 ? currentWorldNumber + 1 : currentWorldNumber'));
+assert(endingBody.includes('v2.adventureService.getNextStageId(currentStage)'));
+assert(endingBody.includes('else { global.clearResultUI && global.clearResultUI(); openAdventureMap(); }'));
 assert(!endingBody.includes('showWorldIntro'));
 assert(!endingBody.includes('openStageReady'));
 assert(!endingBody.includes('showAdventureResult'));

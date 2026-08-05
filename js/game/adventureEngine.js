@@ -72,6 +72,10 @@
     if (!world) {
       throw new Error(`story_assets_missing:${worldId}`);
     }
+    const stageConfig = v2.adventureService.getStage(makeStageId(Number(worldId.split('_')[1]), stageNumber));
+    if ((stageType === "midBoss" || stageType === "finalBoss") && stageConfig && stageConfig.boss) {
+      return stageConfig.boss.image;
+    }
     if (stageType === "midBoss" && world.midBoss) {
       return world.midBoss.image;
     }
@@ -96,15 +100,33 @@
   }
   global.resolveStoryEnemyAsset = resolveStoryEnemyAsset;
 
+  var localFixtureApplied = false;
+  function applyLocalAdventureFixture() {
+    if (localFixtureApplied || !global.location || ['localhost', '127.0.0.1'].indexOf(global.location.hostname) < 0) return;
+    var fixtureStageId = new URLSearchParams(global.location.search || '').get('adventureFixture');
+    var target = fixtureStageId && v2.adventureService.getStage(fixtureStageId);
+    if (!target) return;
+    localFixtureApplied = true;
+    var completed = [], targetWorld = v2.adventureService.getWorld(target.worldId);
+    v2.worlds.filter(function (world) { return world.order < targetWorld.order; }).forEach(function (world) { if (world.stageIds.length) completed.push(world.stageIds[world.stageIds.length - 1]); });
+    var targetIndex = targetWorld.stageIds.indexOf(target.id);
+    if (targetIndex > 0) completed.push(targetWorld.stageIds[targetIndex - 1]);
+    var progress = v2.adventureService.normalizeProgress({ completedStageIds: completed, currentStage: target.id });
+    progress.currentWorldId = target.worldId;
+    progress.currentStageId = target.id;
+    v2.adventureService.saveProgress(progress);
+    var save = v2.storageService.loadSaveData(); delete save.adventureStory; v2.storageService.saveSaveData(save);
+  }
+
   function openAdventureMap() {
-    stop(); var progress = v2.adventureService.loadProgress(), list = byId('world-list');
+    stop(); applyLocalAdventureFixture(); var progress = v2.adventureService.loadProgress(), list = byId('world-list');
     byId('adventure-total-stars').textContent = progress.totalStars; list.innerHTML = '';
     var activeId=worldId||progress.currentWorldId,enabled=v2.worlds.filter(function(w){return w.enabled&&progress.unlockedWorldIds.indexOf(w.id)>=0;});if(!enabled.some(function(w){return w.id===activeId;}))activeId=enabled[0]&&enabled[0].id;var ordered=v2.worlds.slice().sort(function(a,b){if(a.id===activeId)return-1;if(b.id===activeId)return 1;return a.order-b.order;});
     ordered.forEach(function (world) {
       var unlocked = progress.unlockedWorldIds.indexOf(world.id) >= 0, available = world.enabled && unlocked;
       var cleared = world.stageIds.filter(function (id) { return progress.clearedStageIds.indexOf(id) >= 0; }).length;
       var card = document.createElement('article'); card.className = 'world-card theme-' + world.theme + (world.id===activeId?' active-world':' compact-world') + (available ? '' : ' locked');
-      card.innerHTML = img(available ? world.artwork.thumbnail : 'assets/adventure/worlds/world_locked.svg', 'world-card__background', '') + '<div class="world-card__overlay"></div><div class="world-card__content"><div class="world-order">WORLD ' + world.order + '</div><h3>' + world.title + '</h3><p>' + world.multiplicationTables.join(' · ') + '단</p><div class="world-progress"><span>진행 ' + cleared + '/10</span></div>' + (available ? '<button class="game-button primary">시작하기</button>' : '<div class="locked-copy">아직 잠겨 있어요</div>') + '</div>';
+      card.innerHTML = img(available ? world.artwork.thumbnail : 'assets/adventure/worlds/world_locked.svg', 'world-card__background', '') + '<div class="world-card__overlay"></div><div class="world-card__content"><div class="world-order">WORLD ' + world.order + '</div><h3>' + world.title + '</h3><p>' + world.multiplicationTables.join(' · ') + '단</p><div class="world-progress"><span>진행 ' + cleared + '/' + world.stageIds.length + '</span></div>' + (available ? '<button class="game-button primary">시작하기</button>' : '<div class="locked-copy">아직 잠겨 있어요</div>') + '</div>';
       fallback(card.querySelector('img')); if (available) card.querySelector('button').onclick = function () { openStageSelect(world.id); }; list.appendChild(card);
     });
     global.showScreen('adventure-map-screen'); focus('adventure-map-title');try{if(v2.adventureStoryService)v2.adventureStoryService.showPrologue();}catch(error){console.warn('[Story prologue failed]',error);}
@@ -199,17 +221,17 @@
     
     try {
       if (storyConfirmed) {
-        startAdventureStage(true);
+        startAdventureStage(false);
       } else if (v2.adventureStoryService) {
         v2.adventureStoryService.showStageIntro(stage, function () {
-          startAdventureStage(true);
+          startAdventureStage(false);
         });
       } else {
-        startAdventureStage(true);
+        startAdventureStage(false);
       }
     } catch (error) {
       console.warn('[Stage intro failed]', error);
-      startAdventureStage(true);
+      startAdventureStage(false);
     }
   }
   function backToStageSelect() { openStageSelect(worldId || (stage && stage.worldId)); }
@@ -325,23 +347,27 @@
 
   function handleNextWorldStoryFromResult(currentStage) {
     var currentWorldNumber = Number(currentStage.worldId.split('_')[1]);
-    var nextWorldNumber = currentWorldNumber < 8 ? currentWorldNumber + 1 : currentWorldNumber;
+    var nextStageId = v2.adventureService.getNextStageId(currentStage);
+    var nextStage = nextStageId && v2.adventureService.getStage(nextStageId);
+    var nextWorldNumber = nextStage ? Number(nextStage.worldId.split('_')[1]) : null;
     var storyCompleted = false;
     console.info('[WORLD ENDING STORY START]', { currentWorldNumber: currentWorldNumber, nextWorldNumber: nextWorldNumber });
-    if (!v2.adventureStoryService || !currentStage.clearStory) return;
-    console.info('[WORLD ENDING STORY OPEN]', { worldId: currentStage.worldId, stageId: currentStage.id });
-    return v2.adventureStoryService.showClearStory(currentStage, async function () {
+    async function continueAfterWorld() {
       storyCompleted = true;
       console.info('[WORLD ENDING STORY CONTINUE]', { currentWorldNumber: currentWorldNumber, nextWorldNumber: nextWorldNumber });
       try {
-        await openNextWorldStageList(nextWorldNumber);
+        if (nextWorldNumber) await openNextWorldStageList(nextWorldNumber);
+        else { global.clearResultUI && global.clearResultUI(); openAdventureMap(); }
       } catch (error) {
         restoreAdventureResultScreen();
         console.error('[NEXT WORLD LIST ERROR]', { nextWorldNumber: nextWorldNumber, message: error && error.message, stack: error && error.stack });
       }
-    }, function () {
+    }
+    if (!v2.adventureStoryService || !currentStage.clearStory) return continueAfterWorld();
+    console.info('[WORLD ENDING STORY OPEN]', { worldId: currentStage.worldId, stageId: currentStage.id });
+    return v2.adventureStoryService.showClearStory(currentStage, continueAfterWorld, function () {
       if (!storyCompleted) console.info('[WORLD ENDING STORY CLOSE]', { currentWorldNumber: currentWorldNumber });
-    }, true);
+    });
   }
 
   function question() {
@@ -676,19 +702,16 @@
     if (savedResult && savedResult.levelRewardPremiumTickets) rewardParts.push('<div>레벨업 보상: 고급 뽑기권 +' + savedResult.levelRewardPremiumTickets + '</div>');
     byId('adventure-rewards').innerHTML = claim.ok ? rewardParts.join('') : '';
     
-    var parts = stage.id.split('_');
-    var stageOrder = parseInt(parts[1]);
-    var stageNum = parseInt(parts[2]);
+    var stageNum = Number(stage.stageNumber);
     var resultStage = stage;
-    var nextStageIdStr = null;
+    var nextStageIdStr = v2.adventureService.getNextStageId(stage);
+    var nextStage = nextStageIdStr && v2.adventureService.getStage(nextStageIdStr);
+    var isWorldEnd = !nextStage || nextStage.worldId !== stage.worldId;
     
     var nextBtnHtml = '';
     if (isStageCleared) {
       byId('adventure-unlock-copy').textContent = '다음 스테이지가 열렸어요!'; 
-      if (stageNum < 10) {
-        nextStageIdStr = 'stage_' + String(stageOrder).padStart(2, '0') + '_' + String(stageNum + 1).padStart(2, '0');
-      }
-      var nextButtonText = stageNum < 10 ? '다음 스테이지' : (stageOrder < 8 ? '다음 이야기' : '모험 완료');
+      var nextButtonText = !isWorldEnd ? '다음 스테이지' : (nextStage ? '다음 월드로' : '스토리 완료');
       nextBtnHtml = '<button id="adventure-next-stage-button" class="game-button primary" type="button">' + nextButtonText + '</button>';
     } else {
       byId('adventure-unlock-copy').textContent = ''; 
@@ -699,7 +722,7 @@
       '<button id="adventure-stage-list-button" class="game-button secondary" type="button">스테이지 목록</button>';
     var nextButton = byId('adventure-next-stage-button');
     if (nextButton) nextButton.onclick = function () {
-      if (stageNum === 10) return handleNextWorldStoryFromResult(resultStage);
+      if (isWorldEnd) return handleNextWorldStoryFromResult(resultStage);
       openResultStory(nextStageIdStr, 'next');
     };
     byId('adventure-retry-button').onclick = function () { openResultStory(resultStage.id, 'retry'); };

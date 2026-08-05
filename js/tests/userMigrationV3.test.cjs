@@ -27,6 +27,9 @@ const context = {
 };
 context.window.firebase = context.firebase;
 vm.createContext(context);
+['js/data/worlds.js', 'js/data/stages.js', 'js/services/adventureService.js'].forEach(file => {
+  vm.runInContext(fs.readFileSync(file, 'utf8'), context, { filename: file });
+});
 vm.runInContext(source.slice(0, end), context, { filename: 'app.js:migration' });
 
 const { migrateUserDataToV3, buildUserMigrationPatch } = context.window.NyankoUserMigration;
@@ -78,6 +81,13 @@ const representative = migrateUserDataToV3({
 });
 assert.strictEqual(representative.profile.representativeCatId, 'base_rare_02');
 
+const legacyAdventure = migrateUserDataToV3({
+  adventure: { completedStages: { '3-10': { cleared: true, bestStars: 3 } } }
+});
+assert.strictEqual(legacyAdventure.adventure.unlockedWorlds.world_04, true);
+assert(legacyAdventure.adventure.unlockedStageIds.includes('stage_04_01'));
+assert.strictEqual(legacyAdventure.adventure.unlockedWorlds.world_05, undefined);
+
 const twice = migrateUserDataToV3(latest);
 assert.deepStrictEqual(plain(twice), plain(latest), 'migration must be idempotent');
 assert.deepStrictEqual(plain(twice.dailyMissions), plain(latest.dailyMissions));
@@ -105,5 +115,5 @@ assert(skillSource.includes('global.updateRepresentativeCat(equipButton.dataset.
 
 console.log(JSON.stringify({
   passed: true,
-  fixtures: ['latest_v3', 'snapshot_fallback', 'legacy_fallback', 'owned_map', 'owned_ids', 'representative_priority', 'idempotent', 'nested_preservation', 'missing_only_patch']
+  fixtures: ['latest_v3', 'snapshot_fallback', 'legacy_fallback', 'owned_map', 'owned_ids', 'representative_priority', 'legacy_adventure_world_unlock', 'idempotent', 'nested_preservation', 'missing_only_patch']
 }, null, 2));

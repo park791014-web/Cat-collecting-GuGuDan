@@ -19,9 +19,9 @@ assert(adventure.includes("global.showScreen('adventure-result-screen')"));
 assert(adventure.includes("openResultStory(nextStageIdStr, 'next')"));
 assert(adventure.includes("openResultStory(resultStage.id, 'retry')"));
 assert(adventure.includes("openStageReady(targetStageId, true)"));
-assert(adventure.includes("stageOrder < 8 ? '다음 이야기' : '모험 완료'"));
+assert(adventure.includes("nextStage ? '다음 월드로' : '스토리 완료'"));
 assert(adventure.includes('handleNextWorldStoryFromResult(resultStage)'));
-assert(adventure.includes('showClearStory(currentStage, async function ()'));
+assert(adventure.includes('showClearStory(currentStage, continueAfterWorld'));
 
 assert(!runtime.includes('renderResultButtons'));
 assert(!runtime.includes("document.getElementById('adventure-result-actions')"));
