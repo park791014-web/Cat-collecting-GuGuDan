@@ -3,11 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="고양이를 모으며 구구단과 나눗셈을 연습하는 학습 게임, 구구단 대모험입니다.">
+    <meta property="og:title" content="구구단 대모험">
+    <meta property="og:description" content="고양이를 모으며 구구단과 나눗셈을 연습하는 학습 게임입니다.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://cat-gugudan.vercel.app/">
+    <meta property="og:image" content="https://cat-gugudan.vercel.app/assets/adventure/worlds/world_01_grassland.svg">
+    <link rel="canonical" href="https://cat-gugudan.vercel.app/">
     <title>🌟 두근두근 구구단 대모험 🌟</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://cat-gugudan.firebaseapp.com/__/firebase/init.js"></script>
     <script src="js/firebaseClient.js?v=3.3.2-gacha-event-fix"></script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -73,6 +81,10 @@
             <div class="input-group">
                 <input type="password" id="signup-password-confirm-input" class="input-field" placeholder="비밀번호 확인">
             </div>
+            <label class="signup-consent">
+                <input type="checkbox" id="signup-guardian-consent" required>
+                <span><a href="privacy.html" target="_blank" rel="noopener">개인정보처리방침</a>과 <a href="terms.html" target="_blank" rel="noopener">이용약관</a>을 확인했습니다. 만 14세 미만 사용자는 법정대리인의 동의를 받은 뒤 가입합니다.</span>
+            </label>
             <button type="submit" id="signup-submit-button" class="btn btn-success">가입 완료</button>
             <button type="button" id="back-to-login-button" class="btn btn-guest">로그인으로 돌아가기</button>
         </form>
@@ -236,6 +248,14 @@
         </div>
     </div>
 </div>
+
+<footer class="site-policy-links" aria-label="서비스 정책">
+    <a href="privacy.html">개인정보처리방침</a>
+    <span aria-hidden="true">·</span>
+    <a href="terms.html">이용약관</a>
+    <span aria-hidden="true">·</span>
+    <a href="https://github.com/park791014-web/Cat-collecting-GuGuDan/issues" target="_blank" rel="noopener noreferrer">일반 문의</a>
+</footer>
 
 <!-- 냥코 순위 단독 화면 -->
 <div id="ranking-screen" class="screen">

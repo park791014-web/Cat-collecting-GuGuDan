@@ -2,3 +2,7 @@ node_modules/
 firestore-debug.log
 
 .firebase/
+
+# Local dorms-check configuration and generated evidence
+.dorms-check/
+dorms-check.config.json

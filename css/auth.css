@@ -309,3 +309,35 @@
         font-size: 15px;
     }
 }
+.signup-consent {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 12px 0;
+  color: #4b5563;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.signup-consent input {
+  flex: 0 0 auto;
+  margin-top: 3px;
+}
+
+.signup-consent a,
+.site-policy-links a {
+  color: #2855a6;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.site-policy-links {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 18px 12px 26px;
+  color: #5f6673;
+  font-size: 13px;
+}

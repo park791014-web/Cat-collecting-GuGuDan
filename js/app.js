@@ -1904,6 +1904,7 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
         const rawId = document.getElementById('signup-id-input').value;
         const password = document.getElementById('signup-password-input').value;
         const confirmPw = document.getElementById('signup-password-confirm-input').value;
+        const guardianConsent = document.getElementById('signup-guardian-consent').checked;
         const errorMsg = document.getElementById('signup-error-message');
         errorMsg.style.display = 'none';
 
@@ -1920,6 +1921,11 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
         }
         if (password !== confirmPw) {
             errorMsg.innerText = "비밀번호 확인이 일치하지 않습니다.";
+            errorMsg.style.display = 'block';
+            return;
+        }
+        if (!guardianConsent) {
+            errorMsg.innerText = "개인정보처리방침과 이용약관을 확인하고, 만 14세 미만이면 법정대리인의 동의를 받아주세요.";
             errorMsg.style.display = 'block';
             return;
         }
