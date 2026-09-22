@@ -27,7 +27,7 @@
       breed: { id: 'chuseok', displayName: '보름달 아래 고양이들' }, enabled: true, previewOnly: false,
       startAt: '2026-09-22T00:00:00+09:00', endAt: '2026-10-05T23:59:59+09:00', catIds: catIds('chuseok_2026'),
       artwork: { banner: 'assets/cats/seasons/chuseok_2026/fullmoon-guardian-cat.png', background: 'assets/cats/seasons/chuseok_2026/fullmoon-guardian-cat.png', icon: 'assets/cats/seasons/chuseok_2026/fullmoon-guardian-cat.png' },
-      audio: { theme: null, packOpen: null }, cardPack: { enabled: false, ticketType: 'premiumTickets', ticketCost: 1, rarityRates: { normal: .45, rare: .35, hero: .17, legendary: .03 } }, missions: [], entryReward: { enabled: false }, afterSeasonPolicy: 'limited_return', claimGracePeriodDays: 3, displayOrder: 0
+      audio: { theme: null, packOpen: null }, cardPack: { enabled: false, ticketType: 'premiumTickets', ticketCost: 1, rarityRates: { normal: 0, rare: .60, hero: .30, legendary: .10 } }, missions: [], entryReward: { enabled: false }, afterSeasonPolicy: 'limited_return', claimGracePeriodDays: 3, displayOrder: 0
     }
   ];
 })(window);

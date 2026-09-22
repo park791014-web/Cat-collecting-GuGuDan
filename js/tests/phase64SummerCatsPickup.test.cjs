@@ -34,7 +34,7 @@ const pickup = v2.cardPackService.getPremiumPickup();
 assert(pickup.active && pickup.season.id === 'summer_2026');
 assert.equal(pickup.title, '2026 여름 시즌 뽑기');
 assert.equal(pickup.subtitle, '한여름 냥캉스');
-assert.deepStrictEqual(v2.cardPackConfig.premiumPack.rarityRates, { normal: .45, rare: .35, hero: .17, legendary: .03 });
+assert.deepStrictEqual(v2.cardPackConfig.premiumPack.rarityRates, { normal: 0, rare: .60, hero: .30, legendary: .10 });
 assert.equal(v2.cardPackService.getPremiumCandidates('normal').some(entry => entry.cat.seasonId === 'summer_2026'), false);
 ['rare', 'hero', 'legendary'].forEach(rarity => {
   const entries = v2.cardPackService.getPremiumCandidates(rarity);

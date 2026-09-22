@@ -6,6 +6,7 @@ global.window = global;
 global.GugudanV2 = {};
 [
   'js/config/seasonConfig.js',
+  'js/config/catDrawConfig.js',
   'js/config/cardPackConfig.js',
   'js/data/cats.js',
   'js/data/seasonCats.js',
@@ -24,6 +25,12 @@ assert.equal(v2.seasonCats.filter(cat => cat.seasonId === 'summer_2026').length,
 assert.equal(season.startAt, '2026-09-22T00:00:00+09:00');
 assert.equal(season.endAt, '2026-10-05T23:59:59+09:00');
 assert.deepEqual(season.cardPack.rarityRates, v2.cardPackConfig.premiumPack.rarityRates);
+assert.deepEqual(v2.cardPackConfig.premiumPack.rarityRates, { normal: 0, rare: .60, hero: .30, legendary: .10 });
+assert.equal(v2.cardPackService.selectRarity(v2.cardPackConfig.premiumPack.rarityRates, 0), 'rare', 'zero-rate normal must never be selected');
+assert.equal(v2.cardPackService.selectRarity(v2.cardPackConfig.premiumPack.rarityRates, .6), 'hero');
+assert.equal(v2.cardPackService.selectRarity(v2.cardPackConfig.premiumPack.rarityRates, .95), 'legendary');
+assert.match(fs.readFileSync('js/app.js', 'utf8'), /if \(rand < cumulative\)/, 'authenticated draw must skip zero-rate rarity');
+assert.match(fs.readFileSync('js/app.js', 'utf8'), /let chosenRarity = 'legendary'/, 'rounding fallback must not select zero-rate normal');
 
 const expected = [
   ['chuseok_2026_fullmoon_guardian_cat', '보름지기냥', 'legendary', 'fullmoon-guardian-cat.png'],
@@ -74,9 +81,10 @@ function element(tagName) {
   };
 }
 const slot = element('div');
+const nodes = {};
 global.document = {
   body: { appendChild() {}, contains() { return false; } },
-  getElementById(id) { return id === 'season-banner-slot' ? slot : { querySelectorAll() { return []; } }; },
+  getElementById(id) { return id === 'season-banner-slot' ? slot : (nodes[id] ||= { dataset: {}, addEventListener() {}, querySelector() { return null; }, querySelectorAll() { return []; } }); },
   querySelector() { return null; },
   querySelectorAll() { return []; },
   createElement: element
@@ -84,7 +92,7 @@ global.document = {
 global.MutationObserver = function () { this.observe = function () {}; };
 global.setTimeout = callback => callback();
 v2.storageService = {
-  loadSaveData() { return { collection: { ownedCatIds: [], duplicateCounts: {} }, currency: { premiumTickets: 1 } }; },
+  loadSaveData() { return { collection: { ownedCatIds: [], duplicateCounts: {} }, currency: { coins: 500, normalTickets: 1, premiumTickets: 1 } }; },
   saveSaveData() { return true; }
 };
 v2.coinDrawService = { draw() {} };
@@ -102,6 +110,13 @@ banner.children[0].children[2].onclick();
 assert.equal(opened, 1);
 
 vm.runInThisContext(fs.readFileSync('js/ui/phase54Controller.js', 'utf8'), { filename: 'js/ui/phase54Controller.js' });
+global.showScreen = () => {};
+global.openCardPackScreen();
+const drawGuide = document.getElementById('pack-list').innerHTML;
+assert.match(drawGuide, /코인 뽑기<\/h3><p>일반 50% · 희귀 30% · 영웅 15% · 전설 5%/);
+assert.match(drawGuide, /기본 뽑기권<\/h3><p>일반 50% · 희귀 30% · 영웅 15% · 전설 5%/);
+assert.match(drawGuide, /2026 추석 이벤트 뽑기/);
+assert.match(drawGuide, /일반 0% · 희귀 60% · 영웅 30% · 전설 10%/);
 const pickupHtml = v2.gachaUiRenderer.renderPremiumPickup({ currency: { premiumTickets: 1 } }, v2.cardPackConfig.premiumPack);
 assert.match(pickupHtml, /summer-pickup/);
 assert.match(pickupHtml, /2026 추석 이벤트 뽑기/);
@@ -117,10 +132,19 @@ assert.match(endedHtml, /고급 뽑기권 1장 사용/);
 
 const index = fs.readFileSync('index.html', 'utf8');
 assert.match(index, /id="season-banner-slot"/);
+assert.match(index, /코인·기본·고급 뽑기의 등급별 확률을 아래에서 확인하세요/);
 assert.match(index, /seasonCats\.js\?v=phase68-chuseok-2026/);
-assert.match(index, /seasons\.js\?v=phase68-chuseok-2026/);
+assert.match(index, /seasons\.js\?v=2026-09-draw-rates/);
+assert.match(index, /catDrawConfig\.js\?v=2026-09-draw-rates/);
+assert.match(index, /cardPackConfig\.js\?v=2026-09-draw-rates/);
+assert.match(index, /app\.js\?v=2026-09-draw-rates/);
+assert.match(index, /seasonController\.js\?v=2026-09-draw-rates/);
 assert.match(index, /cardPackService\.js\?v=phase68-chuseok-2026/);
 assert.match(index, /summerSeasonBannerController\.js\?v=phase68-chuseok-2026/);
 assert.match(fs.readFileSync('js/ui/phase54Controller.js', 'utf8'), /pickup\.title/);
 assert.match(fs.readFileSync('js/ui/ticketDrawController.js', 'utf8'), /pickup\.title/);
+const seasonGuide = fs.readFileSync('js/ui/seasonController.js', 'utf8');
+assert.match(seasonGuide, /Object\.keys\(s\.cardPack\.rarityRates\)/);
+assert.match(seasonGuide, /pack\.disabled=!s\.cardPack\.enabled/);
+assert(!seasonGuide.includes('확률 · 일반 50% · 희귀 32% · 영웅 14% · 전설 4%'));
 console.log(JSON.stringify({ passed: true, season: season.id, cats: expected.length, summerPreserved: true, datesEnforced: true, bannerReused: true }));

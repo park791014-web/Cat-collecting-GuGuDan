@@ -1650,12 +1650,12 @@ BestScore: Math.max(prevRecord.bestScore || 0, sessionPoints),
                     : ((window.GugudanV2 && window.GugudanV2.baseCats) || []);
                 
                 const rand = Math.random();
-                let chosenRarity = 'normal';
+                let chosenRarity = 'legendary';
                 let cumulative = 0;
                 const rarities = ['normal', 'rare', 'hero', 'legendary'];
                 for (let i = 0; i < rarities.length; i++) {
                     cumulative += rates[rarities[i]] || 0;
-                    if (rand <= cumulative) {
+                    if (rand < cumulative) {
                         chosenRarity = rarities[i];
                         break;
                     }
