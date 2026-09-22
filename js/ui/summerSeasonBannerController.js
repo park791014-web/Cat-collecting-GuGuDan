@@ -57,15 +57,15 @@
     button.onclick = openSummerPremiumPickup;
 
     visual.className = 'summer-season-banner__visual';
-    image.src = 'assets/cats/seasons/summer_2026/heatwave-flame-cat.jpg';
-    image.alt = '폭염불꽃냥이';
+    image.src = season.artwork.banner;
+    image.alt = season.name;
     content.appendChild(title);
     content.appendChild(details);
     content.appendChild(button);
     visual.appendChild(image);
     banner.appendChild(content);
     banner.appendChild(visual);
-    if (v2.assetLoader) v2.assetLoader.applyImageFallback(image, 'assets/placeholders/cat-placeholder.svg', 'summer_2026_heatwave_flame_cat');
+    if (v2.assetLoader) v2.assetLoader.applyImageFallback(image, 'assets/placeholders/cat-placeholder.svg', season.id);
     slot.appendChild(banner);
   }
 

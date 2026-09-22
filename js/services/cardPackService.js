@@ -13,7 +13,13 @@
   function selectRarity(rates, randomValue) { var value = randomValue == null ? Math.random() : Math.max(0, Math.min(.999999, randomValue)), sum = 0; for (var i = 0; i < rarities.length; i += 1) { sum += Number(rates[rarities[i]]) || 0; if (value < sum) return rarities[i]; } return 'legendary'; }
   function activePremiumPickupSeason() {
     var id = v2.seasonConfig && v2.seasonConfig.activePremiumPickupSeasonId;
-    return (v2.seasons || []).find(function (season) { return season.id === id && season.enabled !== false; }) || null;
+    var season = (v2.seasons || []).find(function (item) { return item.id === id && item.enabled !== false; });
+    if (!season) return null;
+    if (v2.seasonService && typeof v2.seasonService.getSeasonStatus === 'function') {
+      return v2.seasonService.getSeasonStatus(season).status === 'active' ? season : null;
+    }
+    var now = Date.now(), start = new Date(season.startAt).getTime(), end = new Date(season.endAt).getTime();
+    return Number.isFinite(start) && Number.isFinite(end) && now >= start && now <= end ? season : null;
   }
   function candidates(rarity) { return (v2.baseCats || []).filter(function (cat) { return cat.collection === 'base' && cat.available !== false && cat.obtainable !== false && cat.rarity === rarity; }); }
   function premiumCandidates(rarity) {
@@ -28,7 +34,7 @@
     for (var i = 0, sum = 0; i < candidates.length; i += 1) { sum += Number(candidates[i].weight); if (target < sum) return candidates[i].cat; }
     return candidates[candidates.length - 1].cat;
   }
-  function getPremiumPickup() { var season = activePremiumPickupSeason(); return { season: season, active: Boolean(season), title: season ? '2026 여름 시즌 뽑기' : '고급 티켓 뽑기', subtitle: season ? season.breed.displayName : '', candidates: premiumCandidates }; }
+  function getPremiumPickup() { var season = activePremiumPickupSeason(); return { season: season, active: Boolean(season), title: season ? season.name + ' 뽑기' : '고급 티켓 뽑기', subtitle: season ? season.breed.displayName : '', candidates: premiumCandidates }; }
   function planOpen(packId, randomRarity, randomCat) {
     var pack = v2.cardPackConfig[packId], valid = validateCardPackRates(pack); if (!valid.valid) return { ok: false, reason: 'invalid_config' };
     var save = v2.storageService.loadSaveData(); if (save.currency[pack.ticketType] < pack.ticketCost) return { ok: false, reason: 'insufficient_ticket' };

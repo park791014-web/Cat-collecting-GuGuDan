@@ -6,6 +6,10 @@ global.window = global;
 global.GugudanV2 = {};
 ['js/config/seasonConfig.js', 'js/config/cardPackConfig.js', 'js/data/cats.js', 'js/data/seasonCats.js', 'js/data/seasons.js', 'js/services/cardPackService.js'].forEach(file => vm.runInThisContext(fs.readFileSync(file, 'utf8'), { filename: file }));
 const v2 = global.GugudanV2;
+// Historical summer fixture: keep its catalog, assets and pickup contract testable
+// after the live pickup switches to the Chuseok season.
+v2.seasonConfig = Object.freeze(Object.assign({}, v2.seasonConfig, { activePremiumPickupSeasonId: 'summer_2026' }));
+v2.seasonService = { getSeasonStatus() { return { status: 'active' }; } };
 const expected = [
   ['summer_2026_heatwave_flame_cat', '폭염불꽃냥이', 'legendary', 'heatwave-flame-cat.jpg'],
   ['summer_2026_bikini_cat', '비키니 냥이', 'hero', 'bikini-cat.jpg'],
@@ -136,7 +140,7 @@ assert.equal(v2.seasonService.getSeasonStatus(v2.seasonService.getActiveSeason()
 assert.equal(v2.seasonService.getSeasonStatus(v2.seasonService.getActiveSeason(), '2026-09-04T00:00:00+09:00').status, 'ended');
 assert.equal(v2.seasons.find(season => season.id === 'season_01').enabled, false);
 const index = fs.readFileSync('index.html', 'utf8');
-assert.match(index, /phase54Controller\.js\?v=phase64-summer-pickup/);
+assert.match(index, /phase54Controller\.js\?v=phase68-chuseok-2026/);
 assert.match(index, /featureFlags\.js\?v=phase64-summer-pickup/);
-assert.match(index, /summerSeasonBannerController\.js\?v=phase64-summer-banner/);
+assert.match(index, /summerSeasonBannerController\.js\?v=phase68-chuseok-2026/);
 console.log(JSON.stringify({ passed: true, cases: ['catalog', 'assets', 'premium_rates', 'normal_pool_excludes_summer', 'summer_pickup_pool', 'weights', 'boundary_selection', 'premium_transaction', 'home_summary_empty_season', 'home_summary_owned_season', 'actual_premium_renderer', 'summer_banner_renderer', 'summer_banner_button', 'summer_period', 'cache_bust'] }));

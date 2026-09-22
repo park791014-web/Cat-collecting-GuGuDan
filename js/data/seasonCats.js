@@ -13,4 +13,13 @@
   ];
   summerCats.forEach(function(item,index){item.displayOrder=v2.seasonCats.length+index+1;if(item.rarity==='hero'||item.rarity==='legendary'){item.presentationSkill={effectThemeId:item.rarity==='legendary'?'gold':'moonlight',soundThemeId:item.rarity==='legendary'?'gold_meow':'moon_meow'};item.skillActive=false;}if(item.rarity==='legendary')item.legendarySkill={specialOption:'여름 불꽃 후광 연출',affectsScore:false};});
   v2.seasonCats=v2.seasonCats.concat(summerCats);
+  function chuseokCat(id,name,rarity,file,description){return{id:id,displayName:name,collection:'season',seasonId:'chuseok_2026',breed:'chuseok',rarity:rarity,image:'assets/cats/seasons/chuseok_2026/'+file,fallbackImage:fallback,available:true,obtainable:true,limited:true,description:description,visual:{frame:rarity,glow:rarity==='legendary'}};}
+  var chuseokCats=[
+    chuseokCat('chuseok_2026_fullmoon_guardian_cat','보름지기냥','legendary','fullmoon-guardian-cat.png','보름달이 가장 밝게 빛나는 밤, 달빛을 지키기 위해 나타나는 전설의 고양이.'),
+    chuseokCat('chuseok_2026_rice_pounder_cat','떡방아냥','legendary','rice-pounder-cat.png','달빛 아래에서 신나게 떡방아를 찧는 고양이. 오늘도 맛있는 떡을 만들기 위해 바쁘다.'),
+    chuseokCat('chuseok_2026_chestnut_cat','밤토리냥','hero','chestnut-cat.png','잘 익은 알밤을 찾아 가을 숲을 누비는 고양이. 품속에는 언제나 밤이 한가득이다.'),
+    chuseokCat('chuseok_2026_songpyeon_cat','송편냥','hero','songpyeon-cat.png','알록달록한 송편을 세상에서 가장 좋아하는 고양이. 맛있는 송편은 친구들과 꼭 나누어 먹는다.')
+  ];
+  chuseokCats.forEach(function(item,index){item.displayOrder=v2.seasonCats.length+index+1;item.presentationSkill={effectThemeId:item.rarity==='legendary'?'gold':'moonlight',soundThemeId:item.rarity==='legendary'?'gold_meow':'moon_meow'};item.skillActive=false;if(item.rarity==='legendary')item.legendarySkill={specialOption:'추석 보름달 후광 연출',affectsScore:false};});
+  v2.seasonCats=v2.seasonCats.concat(chuseokCats);
 })(window);
